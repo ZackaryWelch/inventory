@@ -15,13 +15,13 @@ import (
 )
 
 type ObjectController struct {
-	createObjectUC           *usecases.CreateObjectUseCase
-	updateObjectUC           *usecases.UpdateObjectUseCase
-	deleteObjectUC           *usecases.DeleteObjectUseCase
-	getCollectionObjectsUC   *usecases.GetCollectionObjectsUseCase
-	bulkImportUC             *usecases.BulkImportObjectsUseCase
-	bulkImportCollectionUC   *usecases.BulkImportCollectionUseCase
-	logger                   *slog.Logger
+	createObjectUC         *usecases.CreateObjectUseCase
+	updateObjectUC         *usecases.UpdateObjectUseCase
+	deleteObjectUC         *usecases.DeleteObjectUseCase
+	getCollectionObjectsUC *usecases.GetCollectionObjectsUseCase
+	bulkImportUC           *usecases.BulkImportObjectsUseCase
+	bulkImportCollectionUC *usecases.BulkImportCollectionUseCase
+	logger                 *slog.Logger
 }
 
 func NewObjectController(
@@ -478,7 +478,7 @@ func (ctrl *ObjectController) BulkImport(c *gin.Context) {
 		if !ok || name == "" {
 			continue // Skip items without valid names
 		}
-		
+
 		// Create properties from the remaining data
 		properties := make(map[string]interface{})
 		for key, value := range item {
@@ -486,13 +486,13 @@ func (ctrl *ObjectController) BulkImport(c *gin.Context) {
 				properties[key] = value
 			}
 		}
-		
+
 		// Combine default tags with any item-specific tags
 		tags := append([]string(nil), req.DefaultTags...)
 		if itemTags, ok := item["tags"].([]string); ok {
 			tags = append(tags, itemTags...)
 		}
-		
+
 		objects[i] = usecases.ObjectImportData{
 			Name:       name,
 			ObjectType: objectType,

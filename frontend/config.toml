@@ -1,0 +1,10 @@
+# Nishiki Frontend Configuration
+
+# Backend API URL
+backend_url = "http://localhost:3001"
+
+# Authentik OIDC Configuration
+auth_url = "https://authentik.local"
+client_id = "your-client-id"
+client_secret = "your-client-secret"
+redirect_url = "http://localhost:8080/auth/callback"

@@ -14,11 +14,11 @@ import (
 )
 
 type ContainerController struct {
-	createContainerUC     *usecases.CreateContainerUseCase
-	getAllContainersUC    *usecases.GetAllContainersUseCase
-	getContainerByIDUC    *usecases.GetContainerByIDUseCase
-	getContainersUC       *usecases.GetContainersUseCase
-	logger                *slog.Logger
+	createContainerUC  *usecases.CreateContainerUseCase
+	getAllContainersUC *usecases.GetAllContainersUseCase
+	getContainerByIDUC *usecases.GetContainerByIDUseCase
+	getContainersUC    *usecases.GetContainersUseCase
+	logger             *slog.Logger
 }
 
 func NewContainerController(
@@ -199,19 +199,19 @@ func (ctrl *ContainerController) GetContainer(c *gin.Context) {
 	resp, err := ctrl.getContainerByIDUC.Execute(c.Request.Context(), ucReq)
 	if err != nil {
 		ctrl.logger.Error("Failed to get container", slog.Any("error", err))
-		
+
 		// Check if it's an access denied error
 		if err.Error() == "access denied: user is not a member of the container's group" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 			return
 		}
-		
+
 		// Check if it's a not found error
 		if err.Error() == "container not found" {
 			c.JSON(http.StatusNotFound, gin.H{"error": "container not found"})
 			return
 		}
-		
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get container"})
 		return
 	}

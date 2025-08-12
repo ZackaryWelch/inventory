@@ -106,7 +106,7 @@ func (ctrl *AuthController) GetOIDCConfig(c *gin.Context) {
 func (ctrl *AuthController) ProxyTokenExchange(c *gin.Context) {
 	// Get request body - handle both form-encoded and JSON
 	var requestBody map[string]interface{}
-	
+
 	contentType := c.GetHeader("Content-Type")
 	if contentType == "application/x-www-form-urlencoded" {
 		// Parse form data first
@@ -115,7 +115,7 @@ func (ctrl *AuthController) ProxyTokenExchange(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid form data"})
 			return
 		}
-		
+
 		// Handle form-encoded data (standard OAuth) using Gin's PostForm
 		requestBody = make(map[string]interface{})
 		for key, values := range c.Request.PostForm {

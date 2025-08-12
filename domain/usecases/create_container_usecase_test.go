@@ -34,15 +34,14 @@ func TestCreateContainerUseCase_Execute(t *testing.T) {
 		containerName := fake.Word()
 
 		// Create test collection that user owns
-		collectionName, _ := entities.CollectionNameFromString(fake.Company())
+		collectionName, _ := entities.NewCollectionName(fake.Company())
 		objectType := entities.ObjectTypeGeneral
-		testCollection, _ := entities.NewCollection(
-			collectionID,
-			collectionName,
-			objectType,
-			userID,
-			nil, // no group
-		)
+		testCollection, _ := entities.NewCollection(entities.CollectionProps{
+			UserID:     userID,
+			GroupID:    nil, // no group
+			Name:       collectionName,
+			ObjectType: objectType,
+		})
 
 		// Setup mock expectations
 		mockAuthService.EXPECT().
@@ -56,7 +55,7 @@ func TestCreateContainerUseCase_Execute(t *testing.T) {
 			Times(1)
 
 		mockContainerRepo.EXPECT().
-			Save(gomock.Any(), gomock.Any()).
+			Create(gomock.Any(), gomock.Any()).
 			Return(nil).
 			Times(1)
 
@@ -85,15 +84,14 @@ func TestCreateContainerUseCase_Execute(t *testing.T) {
 		containerName := fake.Word()
 
 		// Create test collection owned by different user
-		collectionName, _ := entities.CollectionNameFromString(fake.Company())
+		collectionName, _ := entities.NewCollectionName(fake.Company())
 		objectType := entities.ObjectTypeGeneral
-		testCollection, _ := entities.NewCollection(
-			collectionID,
-			collectionName,
-			objectType,
-			differentUserID, // different owner
-			nil,
-		)
+		testCollection, _ := entities.NewCollection(entities.CollectionProps{
+			UserID:     differentUserID, // different owner
+			GroupID:    nil,
+			Name:       collectionName,
+			ObjectType: objectType,
+		})
 
 		// Setup mock expectations
 		mockAuthService.EXPECT().
@@ -155,7 +153,7 @@ func TestCreateContainerUseCase_Execute(t *testing.T) {
 		invalidName := "" // Empty name should be invalid
 
 		// Create test collection that user owns
-		collectionName, _ := entities.CollectionNameFromString(fake.Company())
+		collectionName, _ := entities.NewCollectionName(fake.Company())
 		objectType := entities.ObjectTypeGeneral
 		testCollection, _ := entities.NewCollection(
 			collectionID,

@@ -1,0 +1,24 @@
+# Nishiki Frontend Configuration Example
+# Copy this file to config.toml and update the values
+
+# Backend API URL - where your Go backend is running
+backend_url = "http://localhost:3001"
+
+# Authentik OIDC Configuration
+# Replace with your actual Authentik server URL
+auth_url = "https://authentik.local"
+
+# OIDC Client credentials - get these from your Authentik application configuration
+client_id = "your-client-id-here"
+client_secret = "your-client-secret-here"
+
+# Redirect URL for OAuth2 callback - must match Authentik app configuration
+redirect_url = "http://localhost:8080/auth/callback"
+
+# Optional: Environment variable overrides
+# You can also set these as environment variables with NISHIKI_ prefix:
+# NISHIKI_BACKEND_URL=http://localhost:3001
+# NISHIKI_AUTH_URL=https://authentik.local
+# NISHIKI_CLIENT_ID=your-client-id
+# NISHIKI_CLIENT_SECRET=your-client-secret
+# NISHIKI_REDIRECT_URL=http://localhost:8080/auth/callback
