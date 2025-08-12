@@ -1,0 +1,2325 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Organization Guide</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        h1 { color: #2c3e50; text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #34495e; border-left: 4px solid #3498db; padding-left: 10px; }
+        .summary { background: #ecf0f1; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .shelf { margin-bottom: 30px; border: 1px solid #ddd; border-radius: 5px; overflow: hidden; }
+        .shelf-header { background: #3498db; color: white; padding: 10px; font-weight: bold; }
+        .row { border-bottom: 1px solid #eee; }
+        .row-header { background: #ecf0f1; padding: 8px; font-weight: bold; display: flex; justify-content: space-between; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        .width-estimate { color: #7f8c8d; font-size: 0.9em; }
+        .space-info { background: #d5f4e6; padding: 5px; border-radius: 3px; margin-left: 10px; }
+        .over-capacity { background: #f8d7da; }
+        .near-capacity { background: #fff3cd; }
+        .good-capacity { background: #d1ecf1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Library Organization Guide</h1>
+        
+        <div class="summary">
+            <h2>Collection Summary</h2>
+            <p><strong>Total Books:</strong> 267</p>
+            <p><strong>Total Video Games:</strong> 17</p>
+            <p><strong>Total Music CDs:</strong> 17</p>
+            <p><strong>Organization Date:</strong> 1754786685.3510733</p>
+        </div>
+
+        <div class="summary">
+            <h2>Space Utilization Overview</h2>
+    
+            <div class="space-info good-capacity">
+                <strong>Office A:</strong> 
+                26.7% utilization 
+                (42.8" used of 160" available)
+                <span style="margin-left: 10px;">✅ Good capacity</span>
+            </div>
+        
+            <div class="space-info over-capacity">
+                <strong>Office B:</strong> 
+                97.9% utilization 
+                (125.2" used of 128" available)
+                <span style="margin-left: 10px;">⚠️ Over capacity</span>
+            </div>
+        
+            <div class="space-info near-capacity">
+                <strong>Dining:</strong> 
+                78.1% utilization 
+                (56.2" used of 72" available)
+                <span style="margin-left: 10px;">⚡ Near capacity</span>
+            </div>
+        
+            <div class="space-info over-capacity">
+                <strong>Hallway:</strong> 
+                96.1% utilization 
+                (30.8" used of 32" available)
+                <span style="margin-left: 10px;">⚠️ Over capacity</span>
+            </div>
+        
+            <div class="space-info good-capacity">
+                <strong>Crate H:</strong> 
+                63.3% utilization 
+                (20.2" used of 32" available)
+                <span style="margin-left: 10px;">✅ Good capacity</span>
+            </div>
+        
+            <div class="space-info good-capacity">
+                <strong>Crate V:</strong> 
+                37.5% utilization 
+                (4.5" used of 12" available)
+                <span style="margin-left: 10px;">✅ Good capacity</span>
+            </div>
+        
+        </div>
+    
+        <div class="shelf">
+            <div class="shelf-header">
+                Office A (32" × 26" × 5 rows)
+                - 26.7% utilized
+            </div>
+        
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 1: Core Language Learning</span>
+                    <span class="width-estimate">4.5" estimated width (4 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>Clean Code: A Handbook of Agile Software Craftsmanship</td>
+                            <td>Robert C. Martin</td>
+                            <td>464</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>GENKI I: An Integrated Course in Elementary Japanese [With CDROM] [Second Edition]</td>
+                            <td>Eri Banno, Yoko Ikeda, Yutaka Ohno</td>
+                            <td>382</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>TOBIRA</td>
+                            <td>MAYUMI (ET AL) OKA</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Tobira Grammar Power: Exercises for Mastery</td>
+                            <td>Michio Tsutsui</td>
+                            <td>205</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 2: Essential Programming & Math</span>
+                    <span class="width-estimate">6.5" estimated width (4 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>Algorithms</td>
+                            <td>Richard Johnsonbaugh, Marcus Schaefer</td>
+                            <td>768</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Numerical Methods for Scientists and Engineers</td>
+                            <td>R. W. Hamming</td>
+                            <td>752</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Art of Computer Programming, Vol. 1: Fundamental Algorithms</td>
+                            <td>Donald E. Knuth</td>
+                            <td>672</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The C Programming Language</td>
+                            <td>Brian W. Kernighan, Dennis M. Ritchie</td>
+                            <td>272</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 3: Core Science Textbooks</span>
+                    <span class="width-estimate">3.0" estimated width (2 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>Chemistry</td>
+                            <td>Steven S. Zumdahl, Susan A. Zumdahl</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Physics: Principles With Application</td>
+                            <td>Douglas G. Giancoli</td>
+                            <td>1020</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 4: Essential Philosophy</span>
+                    <span class="width-estimate">5.5" estimated width (5 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>1912: Wilson, Roosevelt, Taft and Debs--The Election that Changed the Country</td>
+                            <td>James Chace</td>
+                            <td>336</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Ancien Regime and the French Revolution (Penguin Classics)</td>
+                            <td>Alexis de Tocqueville</td>
+                            <td>336</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Kant: Groundwork of the Metaphysics of Morals (Cambridge Texts in the History of Philosophy)</td>
+                            <td>Immanuel Kant</td>
+                            <td>120</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>On the House</td>
+                            <td>John Boehner</td>
+                            <td>256</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Rubicon: The Last Years of the Roman Republic</td>
+                            <td>Tom Holland</td>
+                            <td>464</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 5: Professional Writing & Development</span>
+                    <span class="width-estimate">23.2" estimated width (21 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>A Writer&#x27;s Reference with Writing in the Disciplines</td>
+                            <td>Diana Hacker, Nancy Sommers</td>
+                            <td>736</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Alfred&#x27;s Essentials of Music Theory: A Complete Self-Study Course for All Musicians (Book &amp;amp; 2 CDs)</td>
+                            <td>Andrew Surmani, Karen Surmani, Morton Manus</td>
+                            <td>152</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Bobby Fischer Teaches Chess</td>
+                            <td>Bobby Fischer, Stuart Margulies, Don Mosenfelder</td>
+                            <td>352</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Fight of the Century</td>
+                            <td>Michael Chabon (Editor), Geraldine Brooks, Yaa Gyasi, Dave Eggers, Timothy Egan, Li Yiyun, Meg Wolitzer, Aleksandar Hemon, Elizabeth Strout, Ayelet Waldman (Editor), Rabih Alameddine, Moriel Rothman-Zecher, Jonathan Lethem, Salman Rushdie, Lauren Groff, Jennifer Egan, Scott Turow, Morgan Parker, Victor Lavalle, Michael Cunningham, David Cole (Foreword by), Neil Gaiman, Jesmyn Ward, George Saunders, Marlon James, William Finnegan, Anthony Doerr, C. J. Anders, Brenda J. Childs, Andrew Sean Greer, Louise Erdrich, Viet Thanh Nguyen, Adrian Nicole LeBlanc, Jacqueline woodson, Sergio De La Pava, Ann Patchett, Brit Bennett, Moses Sumney, Steven Okazaki, David Handler, Héctor Tobar</td>
+                            <td>336</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Fun With Chinese Characters Volume 3</td>
+                            <td>Tan Huay Peng</td>
+                            <td>143</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Genki: An Integrated Course in Elementary Japanese II [Second Edition]</td>
+                            <td>Eri Banno</td>
+                            <td>385</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Integrated Chinese Level 1 Pt. 1, 2nd Ed. Textbook: Simplified Character Edition</td>
+                            <td>Tao-Chung Yao, Yuehua Liu, Liangyan Ge, Yea-Fen Chen, Nyan-Ping Bi, Xiaojun Wang</td>
+                            <td>332</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Integrated Korean: Beginning 1, 2nd Edition</td>
+                            <td>Young-Mee Cho, Hyo Sang Lee, Carol Schulz, Ho-Min Sohn, Sung-Ock Sohn</td>
+                            <td>218</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Life, the Universe and Everything (Hitchhiker&#x27;s Trilogy)</td>
+                            <td>Douglas Adams</td>
+                            <td>240</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>On Writing: 10th Anniversary Edition: A Memoir of the Craft</td>
+                            <td>Stephen King</td>
+                            <td>288</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Points of Departure</td>
+                            <td>James Moffett</td>
+                            <td>498</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Points of View: Revised Edition</td>
+                            <td>James Moffett, Kenneth R. McElheny</td>
+                            <td>608</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Read and Write Hindi Script: A Teach Yourself Guide (TY: Language Guides)</td>
+                            <td>Rupert Snell</td>
+                            <td>192</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Seneca&#x27;s Letters from a Stoic (Dover Thrift Editions)</td>
+                            <td>Lucius  Annaeus Seneca</td>
+                            <td>480</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Teach Yourself Beginner&#x27;s Arabic Script</td>
+                            <td>John Mace</td>
+                            <td>176</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Columbia Guide to Standard American English</td>
+                            <td>Kenneth G. Wilson</td>
+                            <td>482</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Communist Manifesto and Other Revolutionary Writings: Marx, Marat, Paine, Mao Tse-Tung, Gandhi and Others (Dover Thrift Editions)</td>
+                            <td>Robert Blaisdell, Bob Blaisdell, Marx, Gandhi</td>
+                            <td>304</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Demon-Haunted World: Science as a Candle in the Dark</td>
+                            <td>Carl Sagan, Ann Druyan</td>
+                            <td>480</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Elements of Style, Fourth Edition</td>
+                            <td>William Strunk Jr., E. B. White</td>
+                            <td>105</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Why Geography Matters: Three Challenges Facing America: Climate Change, the Rise of China, and Global Terrorism</td>
+                            <td>Harm de Blij</td>
+                            <td>320</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Writing: The Story of Alphabets and Scripts</td>
+                            <td>Georges Jean</td>
+                            <td>207</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        <div class="shelf">
+            <div class="shelf-header">
+                Office B (32" × 26" × 4 rows)
+                - 97.9% utilized
+            </div>
+        
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 1: Philosophy & Political Thought</span>
+                    <span class="width-estimate">26.0" estimated width (24 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>CRC Standard Mathematical Tables and Formulas, 33rd Edition</td>
+                            <td>Daniel Zwillinger</td>
+                            <td>858</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Challenging Problems in Algebra (Dover Books on Mathematics)</td>
+                            <td>Alfred S. Posamentier, Charles T. Salkind</td>
+                            <td>288</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Complete Robot</td>
+                            <td>Isaac Asimov</td>
+                            <td>512</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Complex Variables &amp;amp; Applications 6th Edition</td>
+                            <td>James Ward Brown, Ruel Vance Churchill</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Counterexamples in Topology (Dover Books on Mathematics)</td>
+                            <td>Lynn Arthur Steen, J. Arthur Seebach Jr.</td>
+                            <td>272</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Essential World Atlas</td>
+                            <td>DK Publishing</td>
+                            <td>256</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Fifty Challenging Problems in Probability with Solutions (Dover Books on Mathematics)</td>
+                            <td>Frederick Mosteller</td>
+                            <td>96</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Flatland: A Romance of Many Dimensions (Dover Thrift Editions)</td>
+                            <td>Edwin A. Abbott</td>
+                            <td>96</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Introduction to Graph Theory (Dover Books on Mathematics)</td>
+                            <td>Richard J. Trudeau</td>
+                            <td>240</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Introductory Complex Analysis (Dover Books on Mathematics)</td>
+                            <td>Richard A. Silverman</td>
+                            <td>400</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Love Triangle</td>
+                            <td>Matt Parker</td>
+                            <td>352</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Mathematical Physics (Dover Books on Physics)</td>
+                            <td>Donald H. Menzel, Physics</td>
+                            <td>412</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Mazes and Labyrinths</td>
+                            <td>William Henry Mathews</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Number Theory (Dover Books on Mathematics)</td>
+                            <td>George E. Andrews</td>
+                            <td>259</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>On the Edge</td>
+                            <td>Nate Silver</td>
+                            <td>576</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Pocket Book of Integrals and Mathematical Formulas, 5th Edition (Advances in Applied Mathematics)</td>
+                            <td>Ronald J. Tallarida</td>
+                            <td>387</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Puzzles in Logic, Languages and Computation: The Red Book (Recreational Linguistics)</td>
+                            <td></td>
+                            <td>178</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Tensors, Differential Forms, and Variational Principles (Dover Books on Mathematics)</td>
+                            <td>David Lovelock, Hanno Rund, Mathematics</td>
+                            <td>400</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Man of Numbers: Fibonacci&#x27;s Arithmetic Revolution</td>
+                            <td>Keith Devlin</td>
+                            <td>192</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Other Population Crisis</td>
+                            <td>Steven Philip Kramer</td>
+                            <td>192</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Thirteen Books of the Elements, Vol. 2: Books 3-9</td>
+                            <td>Thomas L. Heath, Euclid</td>
+                            <td>464</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>To Infinity and Beyond:  A Cultural History of the Infinite</td>
+                            <td>Eli Maor</td>
+                            <td>304</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>What If?: Serious Scientific Answers to Absurd Hypothetical Questions</td>
+                            <td>Randall Munroe</td>
+                            <td>320</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>高等学校　新編 数学１</td>
+                            <td>永尾 ほか</td>
+                            <td>192</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 2: Academic Textbooks & References</span>
+                    <span class="width-estimate">59.2" estimated width (60 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>Aesop&#x27;s Fables</td>
+                            <td>Aesop</td>
+                            <td>215</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Analects of Confucius - A New-Millennium Bilingual Edition</td>
+                            <td>Li, David H.</td>
+                            <td>285</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Bowling Alone: Revised and Updated</td>
+                            <td>Robert D. Putnam</td>
+                            <td>544</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Common Sense (Dover Thrift Editions)</td>
+                            <td>Thomas Paine</td>
+                            <td>64</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Curious You: On Your Way!</td>
+                            <td>H. A. Rey</td>
+                            <td>32</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Discipline &amp;amp; Punish: The Birth of the Prison</td>
+                            <td>Michel Foucault</td>
+                            <td>352</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>ESV Thinline Bible, Genuine Leather, Black, Red Letter Text</td>
+                            <td>ESV Bibles by Crossway</td>
+                            <td>1120</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Easy Sushi</td>
+                            <td>Emi Kazuko, Peter Cassidy</td>
+                            <td>64</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Ficciones (Vintage Espanol) (Spanish Edition)</td>
+                            <td>Jorge Luis Borges</td>
+                            <td>224</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Freakonomics: A Rogue Economist Explores the Hidden Side of Everything</td>
+                            <td>Steven D.;Dubner, Stephen J. Levitt</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>George Washington&#x27;s Farewell Address (Little Books of Wisdom)</td>
+                            <td>George Washington</td>
+                            <td>36</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>George Washington&#x27;s Rules of Civility &amp;amp; Decent Behavior in Company and Conversation (Little Books of Wisdom)</td>
+                            <td>George Washington</td>
+                            <td>36</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Impressions 2018</td>
+                            <td>Maryville College</td>
+                            <td>100</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Koine Greek New Testament (Greek Edition)</td>
+                            <td>Frederick Henry Ambrose; Beza, Theodore Scrivener</td>
+                            <td>375</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Ky¿ No Tameguchi Eigo</td>
+                            <td>Kazuma, Kadokawa Staff (Contribution by)</td>
+                            <td>239</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Laughter in Appalachia: A Festival of Southern Mountain Humor</td>
+                            <td>Loyal Jones, Billy Edd Wheeler</td>
+                            <td>218</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>M*A*S*H</td>
+                            <td>David S. Reiss</td>
+                            <td>168</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Mengzi: With Selections from Traditional Commentaries (Hackett Classics)</td>
+                            <td>Mengzi</td>
+                            <td>272</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Modern China: A Very Short Introduction</td>
+                            <td>Rana Mitter</td>
+                            <td>144</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>My Beautiful Despair</td>
+                            <td>Kim Kierkegaardashian</td>
+                            <td>144</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Nausicaa of the Valley of the Wind 1 (Animage Comics wide-format)</td>
+                            <td>Hayao Miyazaki</td>
+                            <td>136</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Neither Here nor There: Travels in Europe</td>
+                            <td>Bill Bryson</td>
+                            <td>245</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Nippon: The Land and it&#x27;s People</td>
+                            <td></td>
+                            <td>392</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Notes on the State of Virginia (Penguin Classics)</td>
+                            <td>Thomas Jefferson</td>
+                            <td>368</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Onigirazu</td>
+                            <td></td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Osoyoru gohan.</td>
+                            <td>Kana Kitajima</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Robert&#x27;s Rules of Order in Brief: The Simple Outline of the Rules Most Often Needed at a Meeting, According to the Standard Authoritative Parliamentary Manual, Revised Edition</td>
+                            <td>Henry M. Robert III, William J. Evans, Daniel H. Honemann, Thomas J. Balch</td>
+                            <td>208</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Roy Lichtenstein, 1923-1997 (Taschen Basic Art)</td>
+                            <td>Janis Hendrickson</td>
+                            <td>96</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Selected Poems</td>
+                            <td>E. E. Cummings</td>
+                            <td>208</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Six Months Off</td>
+                            <td>Lamar Alexander</td>
+                            <td>319</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>So Long, and Thanks for All the Fish</td>
+                            <td>Douglas Adams</td>
+                            <td>224</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Sonnets from the Portuguese and Other Poems (Dover Thrift Editions)</td>
+                            <td>Elizabeth Barrett Browning</td>
+                            <td>64</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Surely You&#x27;re Joking, Mr. Feynman! (Adventures of a Curious Character)</td>
+                            <td>Richard P. Feynman, Ralph Leighton</td>
+                            <td>352</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>T.S. Eliot Selected Poems</td>
+                            <td>T.S. Eliot</td>
+                            <td>127</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Anchor Atlas of World History, Vol. 1 (From the Stone Age to the Eve of the French Revolution)</td>
+                            <td>Gary Kinder</td>
+                            <td>299</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Art of Living: The Classic Manual on Virtue, Happiness, and Effectiveness</td>
+                            <td>Epictetus, Sharon Lebell</td>
+                            <td>114</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Art of War</td>
+                            <td>Sun Tzu</td>
+                            <td>112</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Autobiography of Benjamin Franklin (Dover Thrift Editions)</td>
+                            <td>Benjamin Franklin</td>
+                            <td>144</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Birth of Tragedy: Out of the Spirit of Music</td>
+                            <td>Friedrich Nietzsche</td>
+                            <td>160</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Family Firm</td>
+                            <td>Emily Oster</td>
+                            <td>320</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Holy Bible (Mandarin)</td>
+                            <td></td>
+                            <td>320</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Jefferson Bible: The Life and Morals of Jesus of Nazareth (Little Books of Wisdom)</td>
+                            <td>Thomas Jefferson</td>
+                            <td>104</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Klingon Way: A Warrior&#x27;s Guide (Star Trek: The Klingon Book of Virtues)</td>
+                            <td>Marc Okrand</td>
+                            <td>224</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Making of Modern Japan</td>
+                            <td>Marius B. Jansen</td>
+                            <td>936</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Most Dangerous Game: A Saturday Morning Breakfast Cereal Collection</td>
+                            <td>Zach Weinersmith</td>
+                            <td>76</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Musician&#x27;s Manuscript -- 10 Stave Full Size</td>
+                            <td>Alfred Music (Other)</td>
+                            <td>64</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Origins of Totalitarianism</td>
+                            <td>Hannah Arendt</td>
+                            <td>752</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Restaurant at the End of the Universe (The Hitchhiker&#x27;s Guide to the Galaxy)</td>
+                            <td>Douglas. Adams</td>
+                            <td>223</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Study Quran</td>
+                            <td>Seyyed Hossein Nasr, Caner K. Dagli, Maria Massi Dakake, Joseph E. B. Lumbard, Mohammed Rustom</td>
+                            <td>2048</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Well of Ascension</td>
+                            <td>Brandon Sanderson</td>
+                            <td>592</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Thomas Cole&#x27;s Voyage of Life</td>
+                            <td>Paul D. Schweizer, Taft Museum of Art, Taft Museum of Art Staff, Chrysler Museum, Chrysler Museum Staff, St. Louis Art Museum, St. Louis Art Museum Staff, Dixon Gallery and Gardens, Dixon Gallery and Gardens Staff</td>
+                            <td>73</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Trump: The Art of the Deal</td>
+                            <td>Donald J. Trump, Tony Schwartz</td>
+                            <td>384</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>What If? 2</td>
+                            <td>Randall Munroe</td>
+                            <td>320</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Wherever You Are: My Love Will Find You</td>
+                            <td>Nancy Tillman</td>
+                            <td>32</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Xunzi: The Complete Text</td>
+                            <td>Xunzi</td>
+                            <td>432</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>「カゲロウデイズ」で日本文化史が面白いほどわかる本</td>
+                            <td>塚原 哲也</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>「カゲロウデイズ」で高校英単語が面白いほど覚えられる本</td>
+                            <td></td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>こんなに面白かった「百人一首」</td>
+                            <td></td>
+                            <td>285</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>まとめ上手中学/歴史</td>
+                            <td>中学教育研究会</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>マンガでおさらい中学英語</td>
+                            <td>Motoharu TakahasiMami Hukuti</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 3: Essays & Collections</span>
+                    <span class="width-estimate">30.2" estimated width (32 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>100 Endgames You Must Know: Vital Lessons for Every Chess Player</td>
+                            <td>Jesus de la Villa</td>
+                            <td>256</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>A Dictionary of Japanese Particles (A Kodansha Dictionary) (English and Japanese Edition)</td>
+                            <td>Sue A. Kawashima</td>
+                            <td>368</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>A New Reference Grammar of Modern Spanish</td>
+                            <td>Carmen Benjamin, John Butt, Antonia Moreira Rodríguez</td>
+                            <td>608</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>An Introduction to Literary Chinese: Revised Edition (Harvard East Asian Monographs)</td>
+                            <td>Michael A. Fuller</td>
+                            <td>384</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Basic Connections: Making Your Japanese Flow (Power Japanese)</td>
+                            <td>Kakuko Shoji</td>
+                            <td>128</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Breaking into Japanese Literature: Seven Modern Classics in Parallel Text</td>
+                            <td>Giles Murray</td>
+                            <td>240</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Bungo Manual: Selected Reference Materials for Students of Classical Japanese (Cornell East Asia, No. 48) (Cornell University East Asia Papers,)</td>
+                            <td>Helen C. McCullough</td>
+                            <td>89</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>CowBoy Bebop Complete Anime Guide Volume 1</td>
+                            <td>Newtype</td>
+                            <td>96</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Dinkum Aussie Dictionary</td>
+                            <td>Richard Beckett</td>
+                            <td>60</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Easy Arabic Grammar</td>
+                            <td>Jane Wightwick, Mahmoud Gaafar</td>
+                            <td>149</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Greece</td>
+                            <td>Tom Stone</td>
+                            <td>181</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Handbook of United States Coins</td>
+                            <td>R. S. Yeoman</td>
+                            <td>127</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>How to Sound Intelligent in Japanese: A Vocabulary Builder (Power Japanese)</td>
+                            <td>Charles De Wolf</td>
+                            <td>128</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Instant Vocabulary Through Prefixes and Suffixes (Power Japanese)</td>
+                            <td>Timothy J. Vance</td>
+                            <td>128</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Integrated Chinese: Level 1, Part 2</td>
+                            <td>Tao-Chung Yao, Yuehua Liu, Nyan-Ping Bi, Yea-fen Chen, Liangyan Ge, Jeffrey J. Hayden, Yaohua Shi, Xiaojun Wang</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Japanese Core Words and Phrases: Things You Can&#x27;t Find in a Dictionary (Power Japanese Series) (Kodansha&#x27;s Children&#x27;s Classics)</td>
+                            <td>Kakuko Shoji</td>
+                            <td>131</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Japanese Sentence Patterns for Effective Communication: A Self-Study Course and Reference</td>
+                            <td>Taeko Kamiya</td>
+                            <td>320</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Kanji Idioms (Power Japanese)</td>
+                            <td>George Wallace, Kayoko Kimiya</td>
+                            <td>160</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Kanji for International Students 留学生のための漢字の教科書 上級1000[改訂版]</td>
+                            <td>佐藤 尚子, 佐々木 仁子</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Kanji for International Students 留学生のための漢字の教科書 中級700[改訂版]</td>
+                            <td>佐藤尚子, 佐々木仁子</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Star Trek: Stellar Cartography: The Starfleet Reference Library Maps from the Star Trek Universe</td>
+                            <td>Larry Nemecek</td>
+                            <td>48</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Statistical Mechanics: Principles and Selected Applications (Dover Books on Physics)</td>
+                            <td>Terrell L. Hill, Physics</td>
+                            <td>464</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Table Fables II: The World-Builder&#x27;s Handbook</td>
+                            <td>Madeline Hale</td>
+                            <td>104</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Table Fables: A collection of tables for the weary game master</td>
+                            <td>Madeline Hale</td>
+                            <td>84</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Art of Fermentation: An In-Depth Exploration of Essential Concepts and Processes from Around the World</td>
+                            <td>Sandor Ellix Katz</td>
+                            <td>528</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Game Master&#x27;s Book of Astonishing Random Tables</td>
+                            <td>Ben Egloff, Robbie Daymond (Introduction by), Matt Forbeck (Contribution by)</td>
+                            <td>288</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Game Master&#x27;s Book of Random Encounters</td>
+                            <td>Michael Shea (Introduction by), Jeff Ashworth, Jasmine Kalle (Illustrator)</td>
+                            <td>256</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Game Master&#x27;s Book of Traps, Puzzles and Dungeons</td>
+                            <td>Jeff Ashworth, Kyle Hilton (Illustrator), Jasmine Bhullar (Contribution by)</td>
+                            <td>256</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Life and Opinions of Tristram Shandy, Gentleman (Oxford World&#x27;s Classics)</td>
+                            <td>Laurence Sterne</td>
+                            <td>640</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Well-Spoken Thesaurus: The Most Powerful Ways to Say Everyday Words and Phrases</td>
+                            <td>Tom Heehler</td>
+                            <td>400</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Treasures of Impressionism and Post-Impressionism: National Gallery of Art (Tiny Folio)</td>
+                            <td>Florence E. Coman</td>
+                            <td>320</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Volo&#x27;s Guide to Monsters</td>
+                            <td>Wizards RPG Team</td>
+                            <td>224</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 4: Gaming & Strategy</span>
+                    <span class="width-estimate">9.8" estimated width (11 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>AESCHYLUS I : Oresteia, Agamemnon, The Libation Bearers, The Eumenides (The Complete Greek Tragedies Series)</td>
+                            <td></td>
+                            <td>171</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>How to Slay a Dragon</td>
+                            <td>Cait Stevenson</td>
+                            <td>224</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Log Horizon, Vol. 1: The Beginning of Another World</td>
+                            <td>Mamare Touno (Author), Kazuhiro Hara (Artist)</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Musical Composition: Craft and Art</td>
+                            <td>Alan Belkin</td>
+                            <td>272</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Pygmalion (Penguin Classics)</td>
+                            <td>George Bernard Shaw</td>
+                            <td>176</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>SPORE: Official Game Guide</td>
+                            <td>David S.J. Hodgson</td>
+                            <td>205</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Secret of Mana Official Game Secrets</td>
+                            <td>Rusel Demaria</td>
+                            <td>176</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Spore Galactic Adventures: Prima Official Game Guide (Prima Official Game Guides)</td>
+                            <td>David Knight</td>
+                            <td>192</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Epic of Gilgamesh: An English Verison with an Introduction</td>
+                            <td></td>
+                            <td>128</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Game Master&#x27;s Book of Non-Player Characters</td>
+                            <td>Jeff Ashworth, Jasmine Bhullar (Introduction by), John Stanko (Illustrator), Jasmine Kalle (Illustrator)</td>
+                            <td>272</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Legend of Zelda 25th Anniversary Hyrule Historia Art Book</td>
+                            <td></td>
+                            <td>274</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        <div class="shelf">
+            <div class="shelf-header">
+                Dining (24" × 24" × 3 rows)
+                - 78.1% utilized
+            </div>
+        
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 1: Japanese Language & Asian Cooking</span>
+                    <span class="width-estimate">20.2" estimated width (18 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>Abel&#x27;s Island</td>
+                            <td>William Steig</td>
+                            <td>128</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Better Homes and Gardens New Cook Book</td>
+                            <td>Better Homes and Gardens</td>
+                            <td>480</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Cod: A Biography of the Fish that Changed the World</td>
+                            <td>Mark Kurlansky</td>
+                            <td>294</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Complete Book of Indian Cooking: 350 Recipes from the Regions of India</td>
+                            <td>Suneeta Vaswani</td>
+                            <td>480</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Essential Wok Cookbook: A Simple Chinese Cookbook for Stir-Fry, Dim Sum, and Other Restaurant Favorites</td>
+                            <td>Naomi Imatome-Yun</td>
+                            <td>150</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>How to Cook Everything--Completely Revised Twentieth Anniversary Edition</td>
+                            <td>Mark Bittman</td>
+                            <td>960</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Mark Bittman&#x27;s Kitchen Matrix: More Than 700 Simple Recipes and Techniques to Mix and Match for Endless Possibilities</td>
+                            <td>Mark Bittman</td>
+                            <td>304</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>On Food and Cooking: The Science and Lore of the Kitchen</td>
+                            <td>Harold McGee</td>
+                            <td>896</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Beer Book</td>
+                            <td>Jeremy Patenaude</td>
+                            <td>352</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Black Company (Chronicles of The Black Company #1)</td>
+                            <td>Glen Cook</td>
+                            <td>320</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Great Wings Book</td>
+                            <td>Hugh Carpenter, Teri Sandison</td>
+                            <td>144</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Time Machine (Dover Thrift Editions)</td>
+                            <td>H. G. Wells</td>
+                            <td>80</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Ultimate Bar Book: The Comprehensive Guide to Over 1,000 Cocktails</td>
+                            <td>Mittie Hellmich</td>
+                            <td>476</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Uncle John&#x27;s Robotica</td>
+                            <td>Bathroom Readers&#x27; Institute Staff</td>
+                            <td>256</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Uncle John&#x27;s Weird, Weird World: Who, What, Where, When, and Wow!</td>
+                            <td>Bathroom Readers&#x27; Institute</td>
+                            <td>288</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>What to Expect When No One&#x27;s Expecting: America&#x27;s Coming Demographic Disaster</td>
+                            <td>Jonathan V. Last</td>
+                            <td>240</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>ブッダボウルの本</td>
+                            <td>前田まり子</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>酒のほそ道おつまみレシピ―宗達流酒肴厨房 呑兵衛・岩間宗達が伝授する美味しい酒の肴151</td>
+                            <td>Razuueru hosoki</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 2: Chinese Language & Global Cooking</span>
+                    <span class="width-estimate">18.8" estimated width (17 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>Common Japanese Collocations</td>
+                            <td>Kakuko Shoji</td>
+                            <td>258</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Etiquette Guide to Japan: Know the Rules that Make the Difference!</td>
+                            <td>Boye Lafayette De Mente</td>
+                            <td>128</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Exploring Japanese Literature: Read Mishima, Tanizaki and Kawabata in the Original</td>
+                            <td>Giles Murray</td>
+                            <td>352</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Gone Fishin&#x27;: New Angles on Perennial Problems (Power Japanese)</td>
+                            <td>Jay Rubin</td>
+                            <td>128</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Hina Matsuri 1</td>
+                            <td>Masao Ohtake</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Japan Yesterday and Today</td>
+                            <td>Ray Downs</td>
+                            <td>256</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Japanese in Action</td>
+                            <td>Jack Seward</td>
+                            <td>217</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>KAGEROUDAZE Official Visual Fanbook</td>
+                            <td>Jin, WanNyanPu, Mahiro Sato, Shidu</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Kafka on the Shore, Vol. 1</td>
+                            <td>Haruki Murakami</td>
+                            <td>486</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Kagerou Days -In a Daze- (Paperback, Bunko) Japanese Edition</td>
+                            <td>Jin</td>
+                            <td>260</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Kagerou Days Official Anthology Comic-WINTER-</td>
+                            <td>Jin</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Kinkakuji (Japanese Edition)</td>
+                            <td>Yukio Mishima</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Life of Pi</td>
+                            <td>Yann Martel</td>
+                            <td>401</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Kodansha Kanji Learner&#x27;s Dictionary: Revised and Expanded</td>
+                            <td>Jack Halpern</td>
+                            <td>1201</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Penguin Book of Japanese Verse (Unesco Collection of Representative Works Japanese Series)</td>
+                            <td>Various</td>
+                            <td>352</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Zen Sourcebook: Traditional Documents from China, Korea, and Japan</td>
+                            <td>Stephen Addiss</td>
+                            <td>312</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>速読古文常識</td>
+                            <td>Mitsuo Naka</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 3: Other Languages & Kitchen References</span>
+                    <span class="width-estimate">17.2" estimated width (19 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>!Che Boludo! A gringo&#x27;s guide to understanding the Argentines, 3rd edition</td>
+                            <td>James Bracken</td>
+                            <td>72</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Aloha Niihau / Oral Histories</td>
+                            <td>Emalia Licayan, Virginia Nizo, Elama Kanahele</td>
+                            <td>88</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Bamboo Annals puzzle(Chinese Edition)</td>
+                            <td>倪德卫, 邵东方 魏可钦</td>
+                            <td>200</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Because Internet</td>
+                            <td>Gretc MCCULLOCH</td>
+                            <td>336</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>CD2枚付 改訂版 耳が喜ぶスペイン語 リスニング体得トレーニング</td>
+                            <td></td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Complete Sonnets (Dover Thrift Editions)</td>
+                            <td>William Shakespeare</td>
+                            <td>74</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Cribsheet</td>
+                            <td>Emily Oster</td>
+                            <td>352</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Florentine Codex: Book 2: The Ceremonies</td>
+                            <td>Bernardino de Sahagun</td>
+                            <td>256</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>I Am America (And So Can You!)</td>
+                            <td>Stephen Colbert</td>
+                            <td>240</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Introduction to Spanish Poetry: A Dual-Language Book (Dover Dual Language Spanish)</td>
+                            <td></td>
+                            <td>160</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Long Words Bother Me</td>
+                            <td>Tom Burton</td>
+                            <td>272</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Celts: A History</td>
+                            <td>Peter Berresford Ellis</td>
+                            <td>208</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Joy Luck Club</td>
+                            <td>Amy Tan</td>
+                            <td>288</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Klingon Dictionary (Star Trek)</td>
+                            <td>Marc Okrand</td>
+                            <td>192</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Open Empire: A History of China Through 1600</td>
+                            <td>Valerie Hansen</td>
+                            <td>480</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Power of Babel: A Natural History of Language</td>
+                            <td>John McWhorter</td>
+                            <td>352</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Tao of Pooh</td>
+                            <td>Benjamin Hoff</td>
+                            <td>176</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Universal Declaration of Human Rights: Dignity and Justice for All (Arabic, Chinese, English, French, Russian and Spanish Edition)</td>
+                            <td></td>
+                            <td>96</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>＜竹书纪年＞解谜 The Riddle of the Bamboo Annals</td>
+                            <td>倪德卫</td>
+                            <td>400</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        <div class="shelf">
+            <div class="shelf-header">
+                Hallway (16" × 16" × 2 rows)
+                - 96.1% utilized
+            </div>
+        
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 1: History & Historical Works</span>
+                    <span class="width-estimate">25.2" estimated width (22 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>41 Stories: 150th Anniversary Edition (Signet Classics)</td>
+                            <td>O. Henry</td>
+                            <td>432</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Bea Wolf</td>
+                            <td>Zach Weinersmith, Boulet (Illustrator)</td>
+                            <td>208</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Brave New World</td>
+                            <td>Aldous Huxley</td>
+                            <td>288</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Dune</td>
+                            <td>Frank Herbert</td>
+                            <td>896</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Eragon (Inheritance)</td>
+                            <td>Christopher Paolini</td>
+                            <td>768</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Fuzz: When Nature Breaks the Law</td>
+                            <td>Mary Roach</td>
+                            <td>320</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Hombres de maiz (BIBLIOTECA ASTURIAS)</td>
+                            <td>Miguel Ángel Asturias</td>
+                            <td>376</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Inconstant Moon (Sphere science fiction)</td>
+                            <td>Larry Niven</td>
+                            <td>208</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Mi Rincón en la Montaña</td>
+                            <td>Jean Craighead George</td>
+                            <td>180</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Open Borders</td>
+                            <td>Bryan Caplan, Zach Wienersmith (Illustrator)</td>
+                            <td>256</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Shadow &amp;amp; Claw: The First Half of &#x27;The Book of the New Sun&#x27;</td>
+                            <td>Gene Wolfe</td>
+                            <td>416</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Shelley: Selected Poetry (Poetry Library, Penguin)</td>
+                            <td>Percy Bysshe Shelley</td>
+                            <td>320</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Songs of Experience: Facsimile Reproduction with 26 Plates in Full Color (Dover Fine Art, History of Art)</td>
+                            <td>William Blake</td>
+                            <td>42</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Spell of the Yukon and Other Verse</td>
+                            <td>Robert Service</td>
+                            <td>126</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Anthropocene Reviewed (Signed Edition)</td>
+                            <td>John Green</td>
+                            <td>304</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Anxiety and Phobia Workbook</td>
+                            <td>Edmund Bourne PhD</td>
+                            <td>488</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Blade Itself (The First Law)</td>
+                            <td>Joe Abercrombie</td>
+                            <td>592</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Chosen</td>
+                            <td>Chaim Potok</td>
+                            <td>304</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Comedy of Errors (No Fear Shakespeare)</td>
+                            <td>SparkNotes Editors</td>
+                            <td>176</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Dark Tower I</td>
+                            <td>Stephen King</td>
+                            <td>288</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Rime of the Ancient Mariner and Other Poems</td>
+                            <td>Samuel Taylor Coleridge</td>
+                            <td>80</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Uncle John&#x27;s OLD FAITHFUL 30th Anniversary</td>
+                            <td>Bathroom Readers&#x27; Institute</td>
+                            <td>512</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 2: Literature, Fiction & Classics</span>
+                    <span class="width-estimate">5.5" estimated width (5 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>Essays and New Atlantis</td>
+                            <td>Francis Bacon</td>
+                            <td>302</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>History&#x27;s Greatest Speeches (Dover Thrift Editions)</td>
+                            <td></td>
+                            <td>240</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Love Letters Of Great Men - Vol. 1</td>
+                            <td></td>
+                            <td>136</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Selected Federalist Papers</td>
+                            <td>Alexander Hamilton, James Madison, John Jay</td>
+                            <td>224</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Uncle John&#x27;s Bathroom Reader Plunges into History Again</td>
+                            <td>Bathroom Readers&#x27; Hysterical Society</td>
+                            <td>522</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        <div class="shelf">
+            <div class="shelf-header">
+                Crate H (32" × 12" × 1 rows)
+                - 63.3% utilized
+            </div>
+        
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 1: General Overflow Storage</span>
+                    <span class="width-estimate">20.2" estimated width (18 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>Chronicles of the Crusades (Penguin Classics)</td>
+                            <td>Jean de Joinville, Geffroy de Villehardouin</td>
+                            <td>384</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Florentine Codex: Book 1: The Gods</td>
+                            <td>Bernardino de Sahagun</td>
+                            <td>89</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Founding Brothers: The Revolutionary Generation</td>
+                            <td>Joseph J. Ellis</td>
+                            <td>304</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>How to Talk So Little Kids Will Listen: A Survival Guide to Life with Children Ages 2-7</td>
+                            <td>Joanna Faber, Julie King</td>
+                            <td>432</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>It Happened in Tennessee</td>
+                            <td>James Ewing</td>
+                            <td>Unknown</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Mavericks</td>
+                            <td>Jenny Draper</td>
+                            <td>224</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Meditations (Dover Thrift Editions)</td>
+                            <td>Marcus Aurelius</td>
+                            <td>112</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Miners Millhands Mountaineers: Industrialization Appalachian South</td>
+                            <td>Ronald D. Eller</td>
+                            <td>298</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Mistborn</td>
+                            <td>Brandon Sanderson</td>
+                            <td>544</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>My Tears Spoiled My Aim: and Other Reflections on Southern Culture</td>
+                            <td>John Shelton Reed</td>
+                            <td>168</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>NLT Parallel Study Bible, TuTone</td>
+                            <td></td>
+                            <td>2624</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>New Ideas from Dead Economists: An Introduction to Modern Economic Thought</td>
+                            <td>Todd G. Buchholz</td>
+                            <td>368</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>On Revolution (Classic, 20th-Century, Penguin)</td>
+                            <td>Hannah Arendt</td>
+                            <td>352</td>
+                            <td class="width-estimate">1.25"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Hero of Ages: Book Three of Mistborn</td>
+                            <td>Brandon Sanderson</td>
+                            <td>760</td>
+                            <td class="width-estimate">2.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Hitchhiker&#x27;s Guide to the Galaxy</td>
+                            <td>Douglas Adams</td>
+                            <td>216</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The PreHistory of The Far Side:: A 10th Anniversary Exhibit</td>
+                            <td>Gary Larson</td>
+                            <td>288</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>This Is China: The First 5,000 Years (This World of Ours)</td>
+                            <td>Haiwang Yuan</td>
+                            <td>152</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Up from Slavery (Dover Thrift Editions)</td>
+                            <td>Booker T. Washington</td>
+                            <td>160</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        <div class="shelf">
+            <div class="shelf-header">
+                Crate V (12" × 32" × 1 rows)
+                - 37.5% utilized
+            </div>
+        
+            <div class="row">
+                <div class="row-header">
+                    <span>Row 1: Mathematics, Science & References</span>
+                    <span class="width-estimate">4.5" estimated width (5 books)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Pages</th>
+                            <th>Est. Width</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            
+                        <tr>
+                            <td>Mrs Dalloway (Penguin Popular Classics)</td>
+                            <td>Virginia Woolf</td>
+                            <td>224</td>
+                            <td class="width-estimate">1.00"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Oedipus Rex (Dover Thrift Editions)</td>
+                            <td>Sophocles</td>
+                            <td>64</td>
+                            <td class="width-estimate">0.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>Safe and Simple Electrical Experiments (Dover Children&#x27;s Science Books)</td>
+                            <td>Rudolf F. Graf</td>
+                            <td>117</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Other Bible</td>
+                            <td>Willis Barnstone</td>
+                            <td>742</td>
+                            <td class="width-estimate">1.50"</td>
+                        </tr>
+                
+                        <tr>
+                            <td>The Trial and Death of Socrates: Four Dialogues (Dover Thrift Editions)</td>
+                            <td>Plato</td>
+                            <td>128</td>
+                            <td class="width-estimate">0.75"</td>
+                        </tr>
+                
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+            <h3>Notes:</h3>
+            <ul>
+                <li>Width estimates are based on page count: ~0.5" for <100 pages, ~1.0" for 200-300 pages, ~1.5" for 500-750 pages</li>
+                <li>Actual widths may vary based on paper type, binding, and publisher</li>
+                <li>Consider leaving 10-15% space on each shelf for easy access and future additions</li>
+                <li>Video games and music CDs are not included in this organization (separate storage recommended)</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
+    

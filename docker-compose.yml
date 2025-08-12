@@ -1,0 +1,41 @@
+services:
+  #mongodb:
+    #image: mongo:7.0
+    #container_name: nishiki-mongodb
+    #restart: unless-stopped
+    #environment:
+    #  MONGO_INITDB_ROOT_USERNAME: root
+    #  MONGO_INITDB_ROOT_PASSWORD: password
+    #  MONGO_INITDB_DATABASE: nishiki
+    #ports:
+    #  - "27017:27017"
+    #volumes:
+    #  - mongodb_data:/data/db
+    #  - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    #networks:
+    #  - nishiki-network
+
+  nishiki-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nishiki-backend-go
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "authentik.local:192.168.0.125"
+    environment:
+      - NISHIKI_AUTH_AUTHENTIK_URL=https://authentik.local:30141
+    networks:
+      - nishiki-network
+    volumes:
+      - ./certs:/app/certs:ro
+
+#volumes:
+  #mongodb_data:
+
+networks:
+  nishiki-network:
+    driver: bridge

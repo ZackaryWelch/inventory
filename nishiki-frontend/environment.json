@@ -1,0 +1,13 @@
+{
+  "api": {
+    "baseUrl": "http://localhost:3001"
+  },
+  "auth": {
+    "authentikUrl": "https://192.168.0.125:30141",
+    "clientId": "VVyph7MnbGDqtiPq8vfgl51ECIO2GcgZ12skA4VR",
+    "redirectUrl": "http://localhost:3000/auth/callback"
+  },
+  "app": {
+    "url": "http://localhost:3000"
+  }
+}

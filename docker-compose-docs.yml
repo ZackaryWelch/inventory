@@ -1,0 +1,42 @@
+services:
+  # Documentation Services
+  docs-typedoc:
+    image: node:24.3-bookworm-slim
+    container_name: nishiki-docs-typedoc
+    working_dir: /code
+    volumes:
+      - ./nishiki-backend/backend:/code
+      - ./nishiki-backend/build-docs/backend/typedoc:/build
+    command: bash -c "npm ci && npm run typedoc && rm -rf /build/* && cp -r ./docs/* /build/"
+    networks:
+      - nishiki-network
+
+  docs-web-api:
+    image: node:24.3-bookworm-slim
+    container_name: nishiki-docs-web-api
+    working_dir: /code
+    volumes:
+      - ./nishiki-backend/backend/web-api:/code
+      - ./nishiki-backend/build-docs/backend/web-api:/build
+    command: "npx @redocly/cli build-docs ./main-web-api.yaml -o /build/index.html"
+    networks:
+      - nishiki-network
+
+  # Documentation Server
+  docs-server:
+    image: nginx:alpine
+    container_name: nishiki-docs-server
+    ports:
+      - "8081:80"
+    volumes:
+      - ./nishiki-backend/build-docs:/usr/share/nginx/html:ro
+      - ./docs-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - docs-typedoc
+      - docs-web-api
+    networks:
+      - nishiki-network
+
+networks:
+  nishiki-network:
+    driver: bridge
