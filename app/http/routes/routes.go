@@ -36,7 +36,6 @@ func Setup(router *gin.Engine, appContainer *container.Container) {
 	groupController := controllers.NewGroupController(appContainer, logger)
 	userController := controllers.NewUserController(appContainer, logger)
 	containerController := controllers.NewContainerController(appContainer, logger)
-	foodController := controllers.NewFoodController(appContainer, logger)
 	collectionController := controllers.NewCollectionController(appContainer, logger)
 	objectController := controllers.NewObjectController(appContainer, logger)
 
@@ -79,14 +78,6 @@ func Setup(router *gin.Engine, appContainer *container.Container) {
 		containers.GET("/:id", containerController.GetContainer)
 	}
 
-	// Food routes
-	foods := router.Group("/foods")
-	foods.Use(authMiddleware.RequireAuth())
-	{
-		foods.POST("", foodController.AddFood)
-		foods.PUT("/:id", foodController.UpdateFood)
-		foods.DELETE("/:id", foodController.DeleteFood)
-	}
 
 	// Account routes (mapped to user functionality)
 	accounts := router.Group("/accounts")

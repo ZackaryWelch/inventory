@@ -3,6 +3,7 @@ package request
 import (
 	"fmt"
 
+	"github.com/gin-gonic/gin"
 	"github.com/nishiki/backend-go/domain/entities"
 )
 
@@ -34,4 +35,18 @@ func (r *UpdateContainerRequest) Validate() error {
 
 func (r *CreateContainerRequest) GetCollectionID() (entities.CollectionID, error) {
 	return entities.CollectionIDFromString(r.CollectionID)
+}
+
+func GetContainerIDFromPath(c *gin.Context) (entities.ContainerID, error) {
+	idStr := c.Param("container_id")
+	if idStr == "" {
+		return entities.ContainerID{}, fmt.Errorf("missing container ID in path")
+	}
+
+	containerID, err := entities.ContainerIDFromString(idStr)
+	if err != nil {
+		return entities.ContainerID{}, fmt.Errorf("invalid container ID: %w", err)
+	}
+
+	return containerID, nil
 }

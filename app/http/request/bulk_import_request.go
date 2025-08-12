@@ -20,12 +20,6 @@ type BulkImportCollectionRequest struct {
 	DefaultTags  []string                 `json:"default_tags,omitempty"`
 }
 
-type BulkImportResponse struct {
-	Imported   int      `json:"imported"`
-	Failed     int      `json:"failed"`
-	Errors     []string `json:"errors,omitempty"`
-	ObjectIDs  []string `json:"object_ids,omitempty"`
-}
 
 func (r *BulkImportRequest) Validate() error {
 	if r.Format != "csv" && r.Format != "json" {

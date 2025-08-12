@@ -20,6 +20,7 @@ type ObjectController struct {
 	deleteObjectUC           *usecases.DeleteObjectUseCase
 	getCollectionObjectsUC   *usecases.GetCollectionObjectsUseCase
 	bulkImportUC             *usecases.BulkImportObjectsUseCase
+	bulkImportCollectionUC   *usecases.BulkImportCollectionUseCase
 	logger                   *slog.Logger
 }
 
@@ -33,6 +34,7 @@ func NewObjectController(
 		deleteObjectUC:         usecases.NewDeleteObjectUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
 		getCollectionObjectsUC: usecases.NewGetCollectionObjectsUseCase(c.CollectionRepo, c.ContainerRepo, c.AuthService),
 		bulkImportUC:           usecases.NewBulkImportObjectsUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
+		bulkImportCollectionUC: usecases.NewBulkImportCollectionUseCase(c.CollectionRepo, c.ContainerRepo, c.AuthService),
 		logger:                 logger,
 	}
 }
@@ -399,7 +401,9 @@ func (ctrl *ObjectController) DeleteObject(c *gin.Context) {
 		slog.String("object_id", objectID.String()),
 		slog.String("user_id", user.ID().String()))
 
-	c.JSON(http.StatusOK, response.NewDeleteObjectResponse(resp.Success))
+	c.JSON(http.StatusOK, response.DeleteObjectResponse{
+		Success: resp.Success,
+	})
 }
 
 // BulkImport godoc
@@ -516,7 +520,12 @@ func (ctrl *ObjectController) BulkImport(c *gin.Context) {
 		slog.Int("imported", resp.Imported),
 		slog.Int("failed", resp.Failed))
 
-	c.JSON(http.StatusOK, response.NewBulkImportResponse(resp.Imported, resp.Failed, resp.Total, resp.Errors))
+	c.JSON(http.StatusOK, response.BulkImportResponse{
+		Imported: resp.Imported,
+		Failed:   resp.Failed,
+		Total:    resp.Total,
+		Errors:   resp.Errors,
+	})
 }
 
 // BulkImportToCollection godoc
@@ -584,15 +593,15 @@ func (ctrl *ObjectController) BulkImportToCollection(c *gin.Context) {
 	}
 
 	// Use collection's object type (will be validated in use case)
-	ucReq := usecases.BulkImportRequest{
+	ucReq := usecases.BulkImportCollectionRequest{
 		UserID:       pathUserID,
-		CollectionID: &collectionID,
+		CollectionID: collectionID,
 		Data:         req.Data,
 		DefaultTags:  req.DefaultTags,
 		UserToken:    userToken,
 	}
 
-	resp, err := ctrl.bulkImportUC.Execute(c.Request.Context(), ucReq)
+	resp, err := ctrl.bulkImportCollectionUC.Execute(c.Request.Context(), ucReq)
 	if err != nil {
 		ctrl.logger.Error("Failed to bulk import to collection", slog.Any("error", err))
 		if strings.Contains(err.Error(), "access denied") {
@@ -613,10 +622,10 @@ func (ctrl *ObjectController) BulkImportToCollection(c *gin.Context) {
 		slog.Int("imported", resp.Imported),
 		slog.Int("failed", resp.Failed))
 
-	c.JSON(http.StatusOK, request.BulkImportResponse{
-		Imported:  resp.Imported,
-		Failed:    resp.Failed,
-		Errors:    resp.Errors,
-		ObjectIDs: resp.ObjectIDs,
+	c.JSON(http.StatusOK, response.BulkImportResponse{
+		Imported: resp.Imported,
+		Failed:   resp.Failed,
+		Total:    resp.Total,
+		Errors:   resp.Errors,
 	})
 }

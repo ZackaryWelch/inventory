@@ -62,29 +62,3 @@ type BulkImportResponse struct {
 	Errors   []string `json:"errors,omitempty"`
 }
 
-func NewCreateObjectResponse(object entities.Object) CreateObjectResponse {
-	return CreateObjectResponse{
-		Object: NewObjectResponse(object),
-	}
-}
-
-func NewUpdateObjectResponse(object entities.Object) UpdateObjectResponse {
-	return UpdateObjectResponse{
-		Object: NewObjectResponse(object),
-	}
-}
-
-func NewDeleteObjectResponse(success bool) DeleteObjectResponse {
-	return DeleteObjectResponse{
-		Success: success,
-	}
-}
-
-func NewBulkImportResponse(imported, failed, total int, errors []string) BulkImportResponse {
-	return BulkImportResponse{
-		Imported: imported,
-		Failed:   failed,
-		Total:    total,
-		Errors:   errors,
-	}
-}
