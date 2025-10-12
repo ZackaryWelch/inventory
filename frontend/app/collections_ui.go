@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"fmt"
@@ -29,20 +29,11 @@ func (app *App) showEnhancedCollectionsView() {
 
 	// Main content
 	content := core.NewFrame(app.mainContainer)
-	content.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Grow.Set(1, 1)
-		s.Padding.Set(units.Dp(16))
-		s.Gap.Set(units.Dp(16))
-	})
+	content.Styler(StyleContentColumn)
 
 	// Action buttons row
 	actionsRow := core.NewFrame(content)
-	actionsRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(12))
-		s.Justify.Content = styles.End
-	})
+	actionsRow.Styler(StyleActionsRow)
 
 	// Create collection button
 	createBtn := core.NewButton(actionsRow).SetText("Create Collection").SetIcon(icons.Add)
@@ -145,7 +136,7 @@ func (app *App) createEnhancedCollectionCard(parent core.Widget, collection Coll
 	collectionName := core.NewText(titleContainer).SetText(collection.Name)
 	collectionName.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(16)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 		s.Color = colors.Uniform(ColorBlack)
 	})
 
@@ -192,7 +183,7 @@ func (app *App) createEnhancedCollectionCard(parent core.Widget, collection Coll
 		desc.Styler(func(s *styles.Style) {
 			s.Font.Size = units.Dp(14)
 			s.Color = colors.Uniform(ColorGrayDark)
-			s.Text.Align = styles.Start
+			s.Text.Align = AlignStart
 		})
 	}
 
@@ -218,7 +209,7 @@ func (app *App) createEnhancedCollectionCard(parent core.Widget, collection Coll
 	containersCount := core.NewText(containersStats).SetText("0") // Would be calculated from actual data
 	containersCount.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
-		s.Font.Weight = styles.WeightBold
+		s.Font.Weight = WeightBold
 		s.Color = colors.Uniform(ColorPrimary)
 	})
 
@@ -239,7 +230,7 @@ func (app *App) createEnhancedCollectionCard(parent core.Widget, collection Coll
 	objectsCount := core.NewText(objectsStats).SetText("0") // Would be calculated from actual data
 	objectsCount.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
-		s.Font.Weight = styles.WeightBold
+		s.Font.Weight = WeightBold
 		s.Color = colors.Uniform(ColorAccent)
 	})
 
@@ -295,14 +286,14 @@ func (app *App) showCollectionDetailView(collection Collection) {
 
 	typeText := core.NewText(typeRow).SetText(fmt.Sprintf("Type: %s", strings.Title(collection.ObjectType)))
 	typeText.Styler(func(s *styles.Style) {
-		s.Font.Weight = styles.WeightMedium
+		s.Font.Weight = WeightMedium
 	})
 
 	// Description
 	if collection.Description != "" {
 		descTitle := core.NewText(infoCard).SetText("Description")
 		descTitle.Styler(func(s *styles.Style) {
-			s.Font.Weight = styles.WeightSemiBold
+			s.Font.Weight = WeightSemiBold
 			s.Color = colors.Uniform(ColorGrayDark)
 		})
 		desc := core.NewText(infoCard).SetText(collection.Description)
@@ -346,7 +337,7 @@ func (app *App) showCollectionDetailView(collection Collection) {
 	containersTitle := core.NewText(content).SetText("Containers")
 	containersTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Mock containers for now
@@ -411,7 +402,7 @@ func (app *App) createContainerCard(parent core.Widget, container Container, col
 	containerName := core.NewText(details).SetText(container.Name)
 	containerName.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(16)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	if container.Description != "" {
@@ -515,7 +506,7 @@ func (app *App) showCreateCollectionDialog() {
 	title := core.NewText(dialog).SetText("Create New Collection")
 	title.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(20)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Collection name
@@ -529,7 +520,7 @@ func (app *App) showCreateCollectionDialog() {
 	// Object type selection
 	typeLabel := core.NewText(dialog).SetText("Object Type")
 	typeLabel.Styler(func(s *styles.Style) {
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Type selection buttons
@@ -581,10 +572,8 @@ func (app *App) showCreateCollectionDialog() {
 	})
 
 	createBtn := core.NewButton(buttonRow).SetText("Create Collection")
-	createBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorAccent)
-		s.Color = colors.Uniform(ColorBlack)
-	})
+	createBtn.Styler(StyleButtonAccent)
+	createBtn.Styler(StyleButtonMd)
 	createBtn.OnClick(func(e events.Event) {
 		if selectedType == "" {
 			selectedType = "general"

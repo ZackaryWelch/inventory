@@ -159,20 +159,7 @@ class AuthentikAuthService {
     };
   }
 
-  /**
-   * Get token expiration time for debugging
-   */
-  private getTokenExp(token: string): number | null {
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-      const payload = JSON.parse(atob(parts[1] as string));
-      return payload.exp;
-    } catch {
-      return null;
-    }
-  }
-
+  
   /**
    * Check if token is expired
    */

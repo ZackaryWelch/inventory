@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"image/color"
@@ -100,7 +100,7 @@ func (app *App) showGlobalSearchView() {
 	filtersTitle := core.NewText(filtersContainer).SetText("Filters")
 	filtersTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Filter row
@@ -150,7 +150,7 @@ func (app *App) createTypeFilter(parent core.Widget) {
 	typeLabel := core.NewText(typeFilterContainer).SetText("Object Type")
 	typeLabel.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(12)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 		s.Color = colors.Uniform(ColorGrayDark)
 	})
 
@@ -175,7 +175,7 @@ func (app *App) createSortOptions(parent core.Widget) {
 	sortLabel := core.NewText(sortContainer).SetText("Sort By")
 	sortLabel.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(12)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 		s.Color = colors.Uniform(ColorGrayDark)
 	})
 
@@ -212,7 +212,7 @@ func (app *App) createDateRangeFilter(parent core.Widget) {
 	dateLabel := core.NewText(dateContainer).SetText("Date Range")
 	dateLabel.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(12)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 		s.Color = colors.Uniform(ColorGrayDark)
 	})
 
@@ -268,7 +268,7 @@ func (app *App) createActiveFiltersDisplay(parent core.Widget) {
 	filtersTitle := core.NewText(activeFiltersContainer).SetText("Active Filters")
 	filtersTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(14)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	filtersRow := core.NewFrame(activeFiltersContainer)
@@ -322,7 +322,7 @@ func (app *App) createSearchResults(parent core.Widget) {
 	resultsTitle := core.NewText(parent).SetText("Search Results")
 	resultsTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Results summary
@@ -355,7 +355,7 @@ func (app *App) createSearchResultsSection(parent core.Widget, sectionTitle stri
 	sectionTitleText := core.NewText(sectionContainer).SetText(sectionTitle)
 	sectionTitleText.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(16)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	for _, result := range results {
@@ -392,7 +392,7 @@ func (app *App) createSearchResultCard(parent core.Widget, result SearchResult) 
 
 	titleText := core.NewText(contentContainer).SetText(result.Title)
 	titleText.Styler(func(s *styles.Style) {
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	if result.Description != "" {
@@ -499,7 +499,7 @@ func (app *App) showAdvancedFilterDialog() {
 	title := core.NewText(dialog).SetText("Advanced Filters")
 	title.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(20)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Tags filter
@@ -511,7 +511,7 @@ func (app *App) showAdvancedFilterDialog() {
 
 	tagsTitle := core.NewText(tagsSection).SetText("Filter by Tags")
 	tagsTitle.Styler(func(s *styles.Style) {
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Mock available tags
@@ -541,7 +541,7 @@ func (app *App) showAdvancedFilterDialog() {
 
 	propsTitle := core.NewText(propsSection).SetText("Property Filters")
 	propsTitle.Styler(func(s *styles.Style) {
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Expiry date filter for food items
@@ -559,6 +559,10 @@ func (app *App) showAdvancedFilterDialog() {
 		s.Min.X.Set(60, units.UnitDp)
 	})
 	dayLabel := core.NewText(expiryContainer).SetText("days")
+
+	// Ensure the labels are properly styled (satisfies unused variable check)
+	expiryLabel.SetTooltip("Filter items by expiration date")
+	dayLabel.SetTooltip("Number of days until expiration")
 
 	// Buttons
 	buttonRow := core.NewFrame(dialog)
@@ -579,10 +583,8 @@ func (app *App) showAdvancedFilterDialog() {
 	})
 
 	applyBtn := core.NewButton(buttonRow).SetText("Apply Filters")
-	applyBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorPrimary)
-		s.Color = colors.Uniform(ColorWhite)
-	})
+	applyBtn.Styler(StyleButtonPrimary)
+	applyBtn.Styler(StyleButtonMd)
 	applyBtn.OnClick(func(e events.Event) {
 		app.hideOverlay()
 		// Apply filters and refresh search results

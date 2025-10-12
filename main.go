@@ -20,6 +20,7 @@ import (
 	"github.com/nishiki/backend-go/app/http/routes"
 )
 
+
 func main() {
 	// Load configuration
 	cfg, err := config.Load()

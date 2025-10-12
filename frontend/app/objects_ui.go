@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"fmt"
@@ -24,12 +24,7 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 
 	// Main content
 	content := core.NewFrame(app.mainContainer)
-	content.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Grow.Set(1, 1)
-		s.Padding.Set(units.Dp(16))
-		s.Gap.Set(units.Dp(16))
-	})
+	content.Styler(StyleContentColumn)
 
 	// Container info card
 	infoCard := core.NewFrame(content)
@@ -65,7 +60,7 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 
 	containerText := core.NewText(breadcrumb).SetText(container.Name)
 	containerText.Styler(func(s *styles.Style) {
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Container description
@@ -137,7 +132,7 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 	objectsTitle := core.NewText(content).SetText("Objects")
 	objectsTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Mock objects for demonstration
@@ -258,7 +253,7 @@ func (app *App) createObjectCard(parent core.Widget, object Object, container Co
 	objectName := core.NewText(nameSection).SetText(object.Name)
 	objectName.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(16)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 		s.Color = colors.Uniform(ColorBlack)
 	})
 
@@ -311,7 +306,7 @@ func (app *App) createObjectCard(parent core.Widget, object Object, container Co
 		propsTitle := core.NewText(propsContainer).SetText("Properties")
 		propsTitle.Styler(func(s *styles.Style) {
 			s.Font.Size = units.Dp(12)
-			s.Font.Weight = styles.WeightSemiBold
+			s.Font.Weight = WeightSemiBold
 			s.Color = colors.Uniform(ColorGrayDark)
 		})
 
@@ -337,7 +332,7 @@ func (app *App) createObjectCard(parent core.Widget, object Object, container Co
 			propValue := core.NewText(propRow).SetText(fmt.Sprintf("%v", value))
 			propValue.Styler(func(s *styles.Style) {
 				s.Font.Size = units.Dp(12)
-				s.Font.Weight = styles.WeightMedium
+				s.Font.Weight = WeightMedium
 			})
 
 			count++
@@ -369,7 +364,7 @@ func (app *App) createObjectCard(parent core.Widget, object Object, container Co
 			tagBadge := core.NewText(tagsContainer).SetText(tag)
 			tagBadge.Styler(func(s *styles.Style) {
 				s.Font.Size = units.Dp(10)
-				s.Background = colors.Uniform(ColorToBeFixed(230, 247, 245))
+				s.Background = colors.Uniform(ColorPrimaryLightest)
 				s.Color = colors.Uniform(ColorPrimary)
 				s.Padding.Set(units.Dp(4), units.Dp(8))
 				s.Border.Radius = styles.BorderRadiusFull
@@ -453,7 +448,7 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 
 	objectText := core.NewText(breadcrumb).SetText(object.Name)
 	objectText.Styler(func(s *styles.Style) {
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Object info card
@@ -489,7 +484,7 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 	objectName := core.NewText(titleContainer).SetText(object.Name)
 	objectName.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(20)
-		s.Font.Weight = styles.WeightBold
+		s.Font.Weight = WeightBold
 	})
 
 	if object.Description != "" {
@@ -539,7 +534,7 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 		propsTitle := core.NewText(propsCard).SetText("Properties")
 		propsTitle.Styler(func(s *styles.Style) {
 			s.Font.Size = units.Dp(18)
-			s.Font.Weight = styles.WeightSemiBold
+			s.Font.Weight = WeightSemiBold
 		})
 
 		for key, value := range object.Properties {
@@ -548,13 +543,13 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 				s.Direction = styles.Row
 				s.Justify.Content = styles.SpaceBetween
 				s.Padding.Set(units.Dp(8))
-				s.Background = colors.Uniform(ColorToBeFixed(248, 248, 248))
+				s.Background = colors.Uniform(ColorGrayLightest)
 				s.Border.Radius = styles.BorderRadiusMedium
 			})
 
 			propKey := core.NewText(propRow).SetText(strings.Title(strings.ReplaceAll(key, "_", " ")) + ":")
 			propKey.Styler(func(s *styles.Style) {
-				s.Font.Weight = styles.WeightMedium
+				s.Font.Weight = WeightMedium
 			})
 
 			propValue := core.NewText(propRow).SetText(fmt.Sprintf("%v", value))
@@ -578,7 +573,7 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 		tagsTitle := core.NewText(tagsCard).SetText("Tags")
 		tagsTitle.Styler(func(s *styles.Style) {
 			s.Font.Size = units.Dp(18)
-			s.Font.Weight = styles.WeightSemiBold
+			s.Font.Weight = WeightSemiBold
 		})
 
 		tagsContainer := core.NewFrame(tagsCard)
@@ -592,7 +587,7 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 			tagBadge := core.NewText(tagsContainer).SetText(tag)
 			tagBadge.Styler(func(s *styles.Style) {
 				s.Font.Size = units.Dp(14)
-				s.Background = colors.Uniform(ColorToBeFixed(230, 247, 245))
+				s.Background = colors.Uniform(ColorPrimaryLightest)
 				s.Color = colors.Uniform(ColorPrimary)
 				s.Padding.Set(units.Dp(8), units.Dp(16))
 				s.Border.Radius = styles.BorderRadiusFull
@@ -623,7 +618,7 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 	title := core.NewText(dialog).SetText("Add New Object")
 	title.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(20)
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Basic fields
@@ -636,7 +631,7 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 	// Properties section
 	propsTitle := core.NewText(dialog).SetText("Properties")
 	propsTitle.Styler(func(s *styles.Style) {
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	// Create property fields based on object type
@@ -644,7 +639,7 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 	propsContainer.Styler(func(s *styles.Style) {
 		s.Direction = styles.Column
 		s.Gap.Set(units.Dp(8))
-		s.Background = colors.Uniform(ColorToBeFixed(248, 248, 248))
+		s.Background = colors.Uniform(ColorGrayLightest)
 		s.Border.Radius = styles.BorderRadiusMedium
 		s.Padding.Set(units.Dp(12))
 	})
@@ -654,7 +649,7 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 	// Tags section
 	tagsTitle := core.NewText(dialog).SetText("Tags")
 	tagsTitle.Styler(func(s *styles.Style) {
-		s.Font.Weight = styles.WeightSemiBold
+		s.Font.Weight = WeightSemiBold
 	})
 
 	tagsField := core.NewTextField(dialog)
