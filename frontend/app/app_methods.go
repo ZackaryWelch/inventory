@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"image/color"
 	"net/http"
 
-	"cogentcore.org/core/colors"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/events"
 	"cogentcore.org/core/icons"
-	"cogentcore.org/core/styles"
-	"cogentcore.org/core/styles/units"
+
+	"github.com/nishiki/frontend/ui/components"
+	"github.com/nishiki/frontend/ui/layouts"
 )
 
 func (app *App) makeAuthenticatedRequest(method, endpoint string, body interface{}) (*http.Response, error) {
@@ -141,11 +140,10 @@ func (app *App) showLoginView() {
 	app.mainContainer.DeleteChildren()
 	app.currentView = ViewLogin
 
-	// Login container with full screen layout
-	loginContainer := core.NewFrame(app.mainContainer)
-	loginContainer.Styler(StyleLoginContainer) // flex items-center justify-center h-screen
+	// Centered layout for login screen
+	loginContainer := layouts.CenteredLayout(app.mainContainer)
 
-	// Login content center
+	// Login content column
 	loginContent := core.NewFrame(loginContainer)
 	loginContent.Styler(StyleLoginContent) // flex flex-col items-center justify-center
 
@@ -161,12 +159,14 @@ func (app *App) showLoginView() {
 	subtitle := core.NewText(loginContent).SetText("Inventory Management System")
 	subtitle.Styler(StyleSubtitle)
 
-	// Login button
-	loginBtn := core.NewButton(loginContent).SetText("Sign In with Authentik")
-	loginBtn.Styler(StyleButtonPrimary)
-	loginBtn.Styler(StyleButtonLg) // Use large size for login
-	loginBtn.OnClick(func(e events.Event) {
-		app.handleLogin()
+	// Login button using component library
+	components.Button(loginContent, components.ButtonProps{
+		Text:    "Sign In with Authentik",
+		Variant: components.ButtonPrimary,
+		Size:    components.ButtonSizeLarge,
+		OnClick: func(e events.Event) {
+			app.handleLogin()
+		},
 	})
 
 	app.mainContainer.Update()
@@ -176,17 +176,15 @@ func (app *App) showLoginView() {
 func (app *App) showCallbackView() {
 	app.mainContainer.DeleteChildren()
 
-	// Callback container with loading screen pattern
-	callbackContainer := core.NewFrame(app.mainContainer)
-	callbackContainer.Styler(StyleLoadingScreen) // min-h-screen flex items-center justify-center
+	// Centered layout for loading screen
+	callbackContainer := layouts.CenteredLayout(app.mainContainer)
 
 	// Loading content center
 	loadingContent := core.NewFrame(callbackContainer)
 	loadingContent.Styler(StyleTextCenter) // text-center
 
-	// Loading spinner
-	spinner := core.NewFrame(loadingContent)
-	spinner.Styler(StyleLoadingSpinner) // animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4
+	// Loading spinner using component library
+	components.LoadingSpinner(loadingContent)
 
 	// Loading title
 	title := core.NewText(loadingContent).SetText("Completing Sign In...")
@@ -204,55 +202,73 @@ func (app *App) showDashboardView() {
 	app.mainContainer.DeleteChildren()
 	app.currentView = ViewDashboard
 
-	// Header
-	header := core.NewFrame(app.mainContainer)
-	header.Styler(StyleHeaderRow)
-
-	// Header title
-	headerTitle := core.NewText(header).SetText("Dashboard")
-	headerTitle.Styler(StyleSectionTitle)
-
-	// User menu button
-	userBtn := core.NewButton(header)
+	// Header with user menu button
+	username := "User"
 	if app.currentUser != nil {
-		userBtn.SetText(app.currentUser.Username)
-	} else {
-		userBtn.SetText("User")
+		username = app.currentUser.Username
 	}
-	userBtn.Styler(StyleUserButton)
+	layouts.Header(app.mainContainer, layouts.HeaderProps{
+		Title: "Dashboard",
+		RightItems: []layouts.HeaderItem{
+			{
+				Text: username,
+				OnClick: func() {
+					app.showProfileView()
+				},
+			},
+		},
+	})
 
 	// Main content area
-	content := core.NewFrame(app.mainContainer)
-	content.Styler(StyleContentColumn)
+	content := layouts.ContentColumn(app.mainContainer)
 
 	// Navigation buttons
 	navContainer := core.NewFrame(content)
 	navContainer.Styler(StyleNavContainer)
 
 	// Groups button
-	groupsBtn := app.createNavButton(navContainer, "Groups", icons.Group, func() {
-		app.showEnhancedGroupsView()
+	components.Button(navContainer, components.ButtonProps{
+		Text:    "Groups",
+		Icon:    icons.Group,
+		Variant: components.ButtonPrimary,
+		Size:    components.ButtonSizeMedium,
+		OnClick: func(e events.Event) {
+			app.showEnhancedGroupsView()
+		},
 	})
 
 	// Collections button
-	collectionsBtn := app.createNavButton(navContainer, "Collections", icons.FolderOpen, func() {
-		app.showEnhancedCollectionsView()
+	components.Button(navContainer, components.ButtonProps{
+		Text:    "Collections",
+		Icon:    icons.FolderOpen,
+		Variant: components.ButtonPrimary,
+		Size:    components.ButtonSizeMedium,
+		OnClick: func(e events.Event) {
+			app.showEnhancedCollectionsView()
+		},
 	})
 
 	// Profile button
-	profileBtn := app.createNavButton(navContainer, "Profile", icons.Person, func() {
-		app.showProfileView()
+	components.Button(navContainer, components.ButtonProps{
+		Text:    "Profile",
+		Icon:    icons.Person,
+		Variant: components.ButtonPrimary,
+		Size:    components.ButtonSizeMedium,
+		OnClick: func(e events.Event) {
+			app.showProfileView()
+		},
 	})
 
 	// Search button
-	searchBtn := app.createNavButton(navContainer, "Search", icons.Search, func() {
-		app.showGlobalSearchView()
+	components.Button(navContainer, components.ButtonProps{
+		Text:    "Search",
+		Icon:    icons.Search,
+		Variant: components.ButtonPrimary,
+		Size:    components.ButtonSizeMedium,
+		OnClick: func(e events.Event) {
+			app.showGlobalSearchView()
+		},
 	})
-
-	_ = groupsBtn
-	_ = collectionsBtn
-	_ = profileBtn
-	_ = searchBtn
 
 	// Stats section
 	statsContainer := core.NewFrame(content)
@@ -264,11 +280,21 @@ func (app *App) showDashboardView() {
 	statsGrid := core.NewFrame(statsContainer)
 	statsGrid.Styler(StyleStatsGrid)
 
-	// Groups count
-	app.createStatCard(statsGrid, "Groups", fmt.Sprintf("%d", len(app.groups)), ColorPrimary)
+	// Groups count card
+	groupsCard := components.Card(statsGrid, components.CardProps{})
+	groupsCard.Styler(StyleStatCard(ColorPrimary))
+	groupsValue := core.NewText(groupsCard).SetText(fmt.Sprintf("%d", len(app.groups)))
+	groupsValue.Styler(StyleStatValue)
+	groupsLabel := core.NewText(groupsCard).SetText("Groups")
+	groupsLabel.Styler(StyleStatLabel)
 
-	// Collections count
-	app.createStatCard(statsGrid, "Collections", fmt.Sprintf("%d", len(app.collections)), ColorAccent)
+	// Collections count card
+	collectionsCard := components.Card(statsGrid, components.CardProps{})
+	collectionsCard.Styler(StyleStatCard(ColorAccent))
+	collectionsValue := core.NewText(collectionsCard).SetText(fmt.Sprintf("%d", len(app.collections)))
+	collectionsValue.Styler(StyleStatValue)
+	collectionsLabel := core.NewText(collectionsCard).SetText("Collections")
+	collectionsLabel.Styler(StyleStatLabel)
 
 	app.mainContainer.Update()
 }
@@ -302,8 +328,10 @@ func (app *App) showGroupsView() {
 	app.mainContainer.DeleteChildren()
 	app.currentView = ViewGroups
 
-	// Header with back button
-	header := app.createHeader("Groups", true)
+	// Header with back button using layout component
+	layouts.SimpleHeader(app.mainContainer, "Groups", true, func() {
+		app.showDashboardView()
+	})
 
 	// Refresh groups data
 	if err := app.fetchGroups(); err != nil {
@@ -311,26 +339,28 @@ func (app *App) showGroupsView() {
 	}
 
 	// Main content
-	content := core.NewFrame(app.mainContainer)
-	content.Styler(StyleContentColumn)
+	content := layouts.ContentColumn(app.mainContainer)
 
-	// Create group button
-	createBtn := core.NewButton(content).SetText("Create Group").SetIcon(icons.Add)
-	createBtn.Styler(StyleButtonPrimary)
-	createBtn.Styler(StyleButtonMd)
-	createBtn.Styler(StyleCreateButton)
+	// Create group button using component library
+	components.Button(content, components.ButtonProps{
+		Text:    "Create Group",
+		Icon:    icons.Add,
+		Variant: components.ButtonPrimary,
+		Size:    components.ButtonSizeMedium,
+		OnClick: func(e events.Event) {
+			// TODO: Show create group dialog
+		},
+	})
 
 	// Groups list
 	if len(app.groups) == 0 {
-		emptyText := core.NewText(content).SetText("No groups found. Create your first group!")
-		emptyText.Styler(StyleEmptyText)
+		components.EmptyState(content, "No groups found. Create your first group!")
 	} else {
 		for _, group := range app.groups {
 			app.createGroupCard(content, group)
 		}
 	}
 
-	_ = header
 	app.mainContainer.Update()
 }
 
@@ -339,8 +369,10 @@ func (app *App) showCollectionsView() {
 	app.mainContainer.DeleteChildren()
 	app.currentView = ViewCollections
 
-	// Header with back button
-	header := app.createHeader("Collections", true)
+	// Header with back button using layout component
+	layouts.SimpleHeader(app.mainContainer, "Collections", true, func() {
+		app.showDashboardView()
+	})
 
 	// Refresh collections data
 	if err := app.fetchCollections(); err != nil {
@@ -348,26 +380,28 @@ func (app *App) showCollectionsView() {
 	}
 
 	// Main content
-	content := core.NewFrame(app.mainContainer)
-	content.Styler(StyleContentColumn)
+	content := layouts.ContentColumn(app.mainContainer)
 
-	// Create collection button
-	createBtn := core.NewButton(content).SetText("Create Collection").SetIcon(icons.Add)
-	createBtn.Styler(StyleButtonPrimary)
-	createBtn.Styler(StyleButtonMd)
-	createBtn.Styler(StyleCreateButton)
+	// Create collection button using component library
+	components.Button(content, components.ButtonProps{
+		Text:    "Create Collection",
+		Icon:    icons.Add,
+		Variant: components.ButtonPrimary,
+		Size:    components.ButtonSizeMedium,
+		OnClick: func(e events.Event) {
+			// TODO: Show create collection dialog
+		},
+	})
 
 	// Collections list
 	if len(app.collections) == 0 {
-		emptyText := core.NewText(content).SetText("No collections found. Create your first collection!")
-		emptyText.Styler(StyleEmptyText)
+		components.EmptyState(content, "No collections found. Create your first collection!")
 	} else {
 		for _, collection := range app.collections {
 			app.createCollectionCard(content, collection)
 		}
 	}
 
-	_ = header
 	app.mainContainer.Update()
 }
 
@@ -376,47 +410,45 @@ func (app *App) showProfileView() {
 	app.mainContainer.DeleteChildren()
 	app.currentView = ViewProfile
 
-	// Header with back button
-	header := app.createHeader("Profile", true)
+	// Header with back button using layout component
+	layouts.SimpleHeader(app.mainContainer, "Profile", true, func() {
+		app.showDashboardView()
+	})
 
 	// Main content
-	content := core.NewFrame(app.mainContainer)
-	content.Styler(StyleContentColumn)
+	content := layouts.ContentColumn(app.mainContainer)
 
 	if app.currentUser != nil {
-		// User info card
-		userCard := core.NewFrame(content)
-		userCard.Styler(StyleCard)
+		// User info card using component library
+		userCard := components.Card(content, components.CardProps{})
 
 		// Username
 		usernameLabel := core.NewText(userCard).SetText("Username:")
 		usernameLabel.Styler(StyleUserFieldLabel)
-		username := core.NewText(userCard).SetText(app.currentUser.Username)
+		core.NewText(userCard).SetText(app.currentUser.Username)
 
 		// Email
 		emailLabel := core.NewText(userCard).SetText("Email:")
 		emailLabel.Styler(StyleUserFieldLabel)
-		email := core.NewText(userCard).SetText(app.currentUser.Email)
+		core.NewText(userCard).SetText(app.currentUser.Email)
 
 		// Name (if available)
 		if app.currentUser.Name != "" {
 			nameLabel := core.NewText(userCard).SetText("Name:")
 			nameLabel.Styler(StyleUserFieldLabel)
-			name := core.NewText(userCard).SetText(app.currentUser.Name)
-			_ = name
+			core.NewText(userCard).SetText(app.currentUser.Name)
 		}
-
-		_ = username
-		_ = email
 	}
 
-	// Logout button
-	logoutBtn := core.NewButton(content).SetText("Sign Out").SetIcon(icons.Logout)
-	logoutBtn.Styler(StyleButtonDanger)
-	logoutBtn.Styler(StyleButtonMd)
-	logoutBtn.Styler(StyleLogoutButton)
-	logoutBtn.OnClick(func(e events.Event) {
-		app.handleLogout()
+	// Logout button using component library
+	components.Button(content, components.ButtonProps{
+		Text:    "Sign Out",
+		Icon:    icons.Logout,
+		Variant: components.ButtonDanger,
+		Size:    components.ButtonSizeMedium,
+		OnClick: func(e events.Event) {
+			app.handleLogout()
+		},
 	})
 
 	// Developer tools section
@@ -426,14 +458,17 @@ func (app *App) showProfileView() {
 	devTitle := core.NewText(devSection).SetText("Developer Tools")
 	devTitle.Styler(StyleDevTitle)
 
-	// Clear cache button
-	clearCacheBtn := core.NewButton(devSection).SetText("Clear Cache & Reload").SetIcon(icons.Refresh)
-	clearCacheBtn.Styler(StyleClearCacheButton)
-	/*clearCacheBtn.OnClick(func(e events.Event) {
-		app.clearCacheAndReload()
-	})*/
+	// Clear cache button using component library
+	components.Button(devSection, components.ButtonProps{
+		Text:    "Clear Cache & Reload",
+		Icon:    icons.Refresh,
+		Variant: components.ButtonPrimary,
+		Size:    components.ButtonSizeMedium,
+		OnClick: func(e events.Event) {
+			// TODO: Implement cache clearing
+		},
+	})
 
-	_ = header
 	app.mainContainer.Update()
 }
 
