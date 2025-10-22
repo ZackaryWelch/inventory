@@ -1,5 +1,8 @@
 backend
 frontend/verification/*
-app.wasm
+*.wasm
 app.toml
 frontend/config.toml
+frontend/frontend
+frontend/bin/desktop
+frontend/web/app.wasm
