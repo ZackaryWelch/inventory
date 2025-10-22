@@ -57,33 +57,28 @@ Work through each section, comparing React (left) vs Go WASM (right):
 - Profile screen
 - Typography, colors, spacing, components
 
-### 4. Capture Screenshots (Optional)
+### 4. Capture Screenshots with Selenium (Recommended)
 
-For automated pixel-by-pixel comparison:
-
-```bash
-./scripts/capture-screenshots.sh
-```
-
-This interactive script will:
-- Prompt you to navigate to each key screen
-- Capture screenshots from both frontends
-- Save to `verification/screenshots/`
-
-### 5. Generate Comparison Report (Optional)
-
-After capturing screenshots, run the comparison:
+For automated screenshot capture of the PWA:
 
 ```bash
-./scripts/compare-screenshots.sh
+# Install Python dependencies first
+pip install selenium
+
+# Capture a single screenshot
+python3 scripts/selenium-screenshot.py <url> <output_path> [wait_seconds] [description]
+
+# Example:
+python3 scripts/selenium-screenshot.py http://localhost:3000 screenshots/react-login.png 20 "Login screen"
 ```
 
-This will:
-- Compare React vs Go screenshots using ImageMagick
-- Generate diff images highlighting pixel differences
-- Calculate difference percentages
-- Create a markdown report with statistics
-- Save to `verification/reports/`
+This Selenium-based script will:
+- Use headless Chrome/Chromium to capture screenshots
+- Wait for app to fully render (configurable wait time)
+- Save high-quality screenshots
+- Work properly with WebAssembly PWAs
+
+**Note:** Manual screenshot tools (gnome-screenshot, scrot) don't work reliably with PWAs due to WebAssembly rendering timing issues. Always use Selenium for consistent results.
 
 ### 6. Stop All Services
 
@@ -97,12 +92,64 @@ This will kill all processes started by `start-verification.sh`.
 
 ## Script Reference
 
+### selenium-screenshot.py
+
+**Purpose:** Automated screenshot capture using Selenium WebDriver
+
+**What it does:**
+- Uses headless Chrome to capture screenshots
+- Waits for page load completion
+- Configurable wait time for WASM/PWA rendering
+- Generates high-quality PNG screenshots
+
+**Usage:**
+```bash
+python3 scripts/selenium-screenshot.py <url> <output_path> [wait_seconds] [description]
+```
+
+**Parameters:**
+- `url` - URL to capture (required)
+- `output_path` - Output file path (required)
+- `wait_seconds` - Time to wait for app rendering (optional, default: 20)
+- `description` - Description for logging (optional)
+
+**Example:**
+```bash
+# Capture login screen with 20 second wait
+python3 scripts/selenium-screenshot.py \
+  http://localhost:3000 \
+  verification/screenshots/react-login.png \
+  20 \
+  "React login screen"
+
+# Capture dashboard with custom wait time
+python3 scripts/selenium-screenshot.py \
+  http://localhost:3002/dashboard \
+  verification/screenshots/go-dashboard.png \
+  30 \
+  "Go WASM dashboard"
+```
+
+**Requirements:**
+- Python 3.7+
+- Selenium (`pip install selenium`)
+- Chrome/Chromium browser
+- ChromeDriver (usually auto-managed by Selenium)
+
+**Why Selenium?**
+- PWAs with WebAssembly need time to initialize
+- Headless browser ensures consistent rendering
+- Proper waiting for `document.readyState`
+- No manual interaction required
+
+---
+
 ### setup-visual-verification.sh
 
 **Purpose:** Initial setup and prerequisite checking
 
 **What it does:**
-- Checks for Go, Node.js, npm, Firefox, ImageMagick
+- Checks for Go, Node.js, npm, Firefox
 - Verifies project directory structure
 - Checks port availability (3000, 3001, config port)
 - Installs React dependencies (`npm install`)
@@ -127,6 +174,7 @@ This will kill all processes started by `start-verification.sh`.
 - Go 1.21+
 - Node.js 18+
 - npm
+- Python 3.7+ (for Selenium screenshots)
 - Disk space for dependencies and build artifacts
 
 ---
@@ -189,115 +237,6 @@ lsof -ti :8080 | xargs kill -9  # Go (replace 8080 with your port)
 
 ---
 
-### capture-screenshots.sh
-
-**Purpose:** Interactive screenshot capture
-
-**What it does:**
-- Prompts for each screen (login, dashboard, groups, etc.)
-- Captures window screenshots using gnome-screenshot/scrot/ImageMagick
-- Saves React screenshots to `verification/screenshots/react/`
-- Saves Go screenshots to `verification/screenshots/go/`
-
-**Usage:**
-```bash
-./scripts/capture-screenshots.sh
-```
-
-**Workflow:**
-1. Script lists screens to capture
-2. For each screen:
-   - Navigate to the screen in React browser
-   - Press Enter
-   - Click on browser window to capture
-   - Navigate to same screen in Go browser
-   - Press Enter
-   - Click on browser window to capture
-3. Script saves all screenshots
-
-**Screenshot tools (in priority order):**
-- gnome-screenshot (GNOME)
-- scrot (lightweight)
-- ImageMagick import (universal)
-
-**Install screenshot tool:**
-```bash
-# Fedora
-sudo dnf install gnome-screenshot
-
-# Ubuntu/Debian
-sudo apt install scrot
-
-# ImageMagick (all distros)
-sudo dnf install ImageMagick  # Fedora
-sudo apt install imagemagick  # Ubuntu
-```
-
-**Output files:**
-- `verification/screenshots/react/login.png`
-- `verification/screenshots/react/dashboard.png`
-- `verification/screenshots/go/login.png`
-- `verification/screenshots/go/dashboard.png`
-- etc.
-
----
-
-### compare-screenshots.sh
-
-**Purpose:** Automated screenshot comparison
-
-**What it does:**
-- Compares React and Go screenshots pixel-by-pixel
-- Generates diff images with visual highlighting
-- Calculates difference percentages (RMSE metric)
-- Categorizes results (Perfect < 1%, Close < 5%, Fail > 5%)
-- Creates markdown report with statistics
-
-**Usage:**
-```bash
-./scripts/compare-screenshots.sh
-```
-
-**Requirements:**
-- ImageMagick (compare and convert commands)
-- bc (calculator for percentage math)
-
-**Install ImageMagick:**
-```bash
-# Fedora
-sudo dnf install ImageMagick
-
-# Ubuntu/Debian
-sudo apt install imagemagick
-
-# Arch
-sudo pacman -S imagemagick
-```
-
-**Output:**
-- Diff images in `verification/screenshots/diff/`
-- Comparison report in `verification/reports/`
-- Statistics summary in terminal
-
-**Diff image format:**
-- Red areas = pixel differences
-- White/black areas = matching pixels
-- Percentage overlay shows total difference
-
-**Report includes:**
-- Table of all screens with diff percentages
-- Pass/fail status for each screen
-- Overall statistics
-- Recommendations for fixes
-- Sign-off section
-
-**Thresholds:**
-- **Perfect:** < 1.0% difference
-- **Close:** 1.0% - 5.0% difference
-- **Fail:** > 5.0% difference
-
----
-
 ## Directory Structure
 
 After running all scripts, you'll have:
@@ -306,18 +245,17 @@ After running all scripts, you'll have:
 frontend/
 ├── scripts/
 │   ├── README.md                          (this file)
+│   ├── selenium-screenshot.py             (Selenium screenshot tool)
 │   ├── setup-visual-verification.sh       (initial setup)
 │   ├── start-verification.sh              (auto-generated)
-│   ├── stop-verification.sh               (auto-generated)
-│   ├── capture-screenshots.sh             (screenshot capture)
-│   └── compare-screenshots.sh             (comparison)
+│   └── stop-verification.sh               (auto-generated)
 ├── verification/
 │   ├── screenshots/
 │   │   ├── react/                         (React screenshots)
 │   │   ├── go/                            (Go WASM screenshots)
-│   │   └── diff/                          (diff images)
+│   │   └── diff/                          (diff images - manual comparison)
 │   └── reports/
-│       └── comparison-YYYYMMDD-HHMMSS.md  (comparison reports)
+│       └── verification-notes.md          (manual verification notes)
 ├── logs/
 │   ├── backend.log                        (backend output)
 │   ├── react.log                          (React output)
@@ -358,38 +296,33 @@ go run main.go
 
 ---
 
-### Screenshot Tool Not Found
+### Selenium WebDriver Issues
 
-**Error:** `No screenshot tool found`
+**Error:** `selenium module not found` or `WebDriver not found`
 
 **Solution:**
-Install a screenshot tool:
 ```bash
+# Install Selenium
+pip install selenium
+
+# Or with pip3
+pip3 install selenium
+
+# Install Chrome/Chromium browser
 # Fedora
-sudo dnf install gnome-screenshot
+sudo dnf install chromium
 
 # Ubuntu
-sudo apt install scrot
+sudo apt install chromium-browser
 ```
 
-Or use Firefox DevTools:
-1. Open DevTools (F12)
-2. Press Shift+F2
-3. Type: `screenshot --fullpage filename.png`
-
----
-
-### ImageMagick Not Found
-
-**Error:** `ImageMagick 'compare' command not found`
-
-**Solution:**
+**ChromeDriver Issues:**
+Selenium 4+ manages ChromeDriver automatically. If you encounter issues:
 ```bash
-# Fedora
-sudo dnf install ImageMagick
+# Check Chrome version
+chromium --version
 
-# Ubuntu
-sudo apt install imagemagick
+# Selenium will download matching ChromeDriver automatically
 ```
 
 ---
@@ -421,114 +354,196 @@ Then run `./bin/web` to build the WASM frontend.
 
 ---
 
-### Different Image Sizes
+### Screenshot Timing Issues
 
-**Warning:** `Dimension mismatch! Resizing...`
+**Problem:** Screenshots are blank or show loading state
 
-**Explanation:** The React and Go screenshots have different dimensions. The comparison script automatically resizes the Go screenshot to match React for fair comparison.
+**Solution:**
+Increase wait time in Selenium script:
+```bash
+# Default 20 seconds
+python3 scripts/selenium-screenshot.py http://localhost:3000 output.png 20
 
-**Action:** Review your viewport settings. Both browsers should use the same responsive design mode dimensions (e.g., 375x667 for iPhone SE).
+# Increase to 30 seconds for slower WASM loads
+python3 scripts/selenium-screenshot.py http://localhost:3002 output.png 30
+```
+
+**For PWAs:** WebAssembly apps need extra time to initialize. Always use at least 20-30 seconds wait time.
 
 ---
 
 ## Advanced Usage
 
-### Custom Viewport Sizes
+### Custom Viewport Sizes with Selenium
 
-To test different device sizes:
+The Selenium script uses a default 1920x1080 viewport. To customize:
 
-1. In Firefox DevTools (Ctrl+Shift+M)
-2. Set custom dimensions (e.g., 375x667, 390x844, 414x896)
-3. Ensure both browsers use the same size
-4. Capture screenshots
+**Edit `selenium-screenshot.py`:**
+```python
+# Change this line (around line 29)
+chrome_options.add_argument('--window-size=1920,1080')
 
-### Automated Testing
+# To:
+chrome_options.add_argument('--window-size=375,667')  # iPhone SE
+# Or:
+chrome_options.add_argument('--window-size=414,896')  # iPhone 11 Pro Max
+```
 
-For CI/CD integration, you can automate the entire process:
+**Mobile Testing:**
+```bash
+# Capture with mobile viewport
+python3 scripts/selenium-screenshot.py http://localhost:3000 mobile-login.png 20
+```
+
+### Batch Screenshot Capture
+
+Create a simple batch script:
 
 ```bash
 #!/bin/bash
-# CI/CD verification script
+# batch-screenshots.sh
 
-cd /home/zwelch/projects/inventory/frontend
+REACT_BASE="http://localhost:3000"
+GO_BASE="http://localhost:3002"
+WAIT_TIME=25
 
-# Setup
-./scripts/setup-visual-verification.sh
+declare -a SCREENS=(
+    "/:login"
+    "/dashboard:dashboard"
+    "/groups:groups"
+    "/collections:collections"
+    "/profile:profile"
+)
 
-# Start services
-./scripts/start-verification.sh
+for screen in "${SCREENS[@]}"; do
+    IFS=':' read -r path name <<< "$screen"
 
-# Wait for services to be ready
-sleep 10
+    # Capture React
+    python3 scripts/selenium-screenshot.py \
+        "${REACT_BASE}${path}" \
+        "verification/screenshots/react/${name}.png" \
+        $WAIT_TIME \
+        "React ${name}"
 
-# Note: Screenshot capture requires manual interaction
-# For CI/CD, use headless browser automation (Selenium/Playwright)
-
-# Stop services
-./scripts/stop-verification.sh
-
-# Check results
-if [ -f verification/reports/comparison-*.md ]; then
-    # Parse report and exit with appropriate code
-    echo "Verification complete - check report"
-fi
+    # Capture Go
+    python3 scripts/selenium-screenshot.py \
+        "${GO_BASE}${path}" \
+        "verification/screenshots/go/${name}.png" \
+        $WAIT_TIME \
+        "Go ${name}"
+done
 ```
 
-### Filtering Screens
+### CI/CD Integration
 
-To compare only specific screens, modify `compare-screenshots.sh`:
+For automated testing in CI/CD pipelines:
 
-```bash
-# Only compare login and dashboard
-for screen in login dashboard; do
-    # comparison logic
-done
+```yaml
+# Example GitHub Actions workflow
+name: Visual Verification
+on: [push, pull_request]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Selenium
+        run: pip install selenium
+
+      - name: Start services
+        run: ./scripts/start-verification.sh
+
+      - name: Wait for services
+        run: sleep 30
+
+      - name: Capture screenshots
+        run: |
+          python3 scripts/selenium-screenshot.py \
+            http://localhost:3000 \
+            screenshots/react-login.png \
+            30 \
+            "React login"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: screenshots
+          path: verification/screenshots/
 ```
 
 ## Best Practices
 
-1. **Consistent Environment**
-   - Use the same browser for both frontends
-   - Same viewport size and zoom level
-   - Same system fonts and display settings
+1. **Selenium Screenshot Capture**
+   - Always use Selenium for PWA/WASM apps (never manual tools)
+   - Use consistent wait times (20-30 seconds minimum)
+   - Set explicit viewport sizes for consistency
+   - Run in headless mode for reproducibility
 
-2. **Clean State**
-   - Clear browser cache before starting
-   - Use consistent test data
-   - Ensure backend is in known state
+2. **Consistent Environment**
+   - Use same Chrome/Chromium version
+   - Same viewport size across all captures
+   - Disable browser extensions in test environment
+   - Use consistent test data and auth state
 
-3. **Timing**
-   - Wait for all content to load before screenshots
-   - Let animations complete
-   - Ensure loading states finish
+3. **Timing Considerations**
+   - WASM apps need longer initialization times
+   - Increase wait time if screenshots show loading states
+   - Wait for document.readyState === 'complete'
+   - Add extra buffer for heavy JavaScript apps
 
 4. **Documentation**
    - Fill out VERIFICATION_CHECKLIST.md completely
    - Document any acceptable differences
-   - Save all reports and screenshots
+   - Save all screenshots with descriptive names
+   - Keep notes on visual discrepancies
 
 5. **Iteration**
-   - Fix critical issues first (> 5% difference)
-   - Review minor issues (1-5% difference)
-   - Re-run verification after fixes
-   - Track progress over time
+   - Compare screenshots manually or with image diff tools
+   - Fix critical visual bugs first
+   - Re-run screenshots after styling changes
+   - Track progress over time with dated screenshot sets
 
 ## Integration with Phase 1
 
 This verification process is **Task 10 of 10** in Phase 1 (Foundation) of the porting plan.
 
 **Success Criteria:**
-- ✅ All critical screens match exactly (< 2% difference)
-- ✅ Important screens match closely (< 5% difference)
+- ✅ All critical screens captured with Selenium
+- ✅ Visual comparison shows close match
 - ✅ Component library is visually consistent
 - ✅ Design tokens are applied correctly
 - ✅ VERIFICATION_CHECKLIST.md is complete
 
 **After Successful Verification:**
 1. Mark Phase 1 as complete in PORTING_PLAN.md
-2. Archive screenshots and reports
+2. Archive screenshots with timestamps
 3. Update CLAUDE.md with insights
 4. Proceed to Phase 2: Groups Management
+
+## Screenshot Comparison Tools
+
+While this repository includes Selenium for screenshot capture, you can use external tools for comparison:
+
+**Command-line tools:**
+```bash
+# ImageMagick compare
+compare react-login.png go-login.png diff.png
+
+# Perceptual diff
+perceptualdiff react-login.png go-login.png -output diff.png
+```
+
+**Online tools:**
+- [Pixelmatch](https://github.com/mapbox/pixelmatch) - JavaScript pixel-level comparison
+- [resemblejs](https://github.com/rsmbl/Resemble.js) - Image analysis and comparison
+- Browser extensions for side-by-side comparison
 
 ## Support
 
