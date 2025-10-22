@@ -58,6 +58,7 @@ func StyleContentColumn(s *styles.Style) {
 }
 
 func StyleCenteredContainer(s *styles.Style) {
+	s.Display = styles.Flex           // CRITICAL: Must set Display to Flex for centering to work
 	s.Direction = styles.Column
 	s.Align.Items = styles.Center
 	s.Justify.Content = styles.Center

@@ -1,0 +1,11 @@
+# Nishiki Frontend Configuration
+
+# Server Configuration
+port = "3002"
+
+# Backend API URL
+backend_url = "http://localhost:3001"
+
+# Authentik OIDC Configuration
+auth_url = "https://IP"
+client_id = ""

@@ -1,3 +1,5 @@
+//go:build js && wasm
+
 package app
 
 import (
@@ -10,6 +12,9 @@ import (
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/units"
+
+	"github.com/nishiki/frontend/ui/layouts"
+	appstyles "github.com/nishiki/frontend/ui/styles"
 )
 
 // Search and Filter functionality
@@ -43,7 +48,9 @@ func (app *App) showGlobalSearchView() {
 	app.currentView = "search"
 
 	// Header with back button
-	header := app.createHeader("Search", true)
+	layouts.SimpleHeader(app.mainContainer, "Search", true, func() {
+		app.showDashboardView()
+	})
 
 	// Main content
 	content := core.NewFrame(app.mainContainer)
@@ -60,14 +67,14 @@ func (app *App) showGlobalSearchView() {
 		s.Direction = styles.Row
 		s.Gap.Set(units.Dp(12))
 		s.Align.Items = styles.Center
-		s.Background = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(16))
 	})
 
 	searchIcon := core.NewIcon(searchContainer).SetIcon(icons.Search)
 	searchIcon.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorGrayDark)
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
 	})
 
 	searchField := core.NewTextField(searchContainer)
@@ -80,8 +87,8 @@ func (app *App) showGlobalSearchView() {
 	// Search button
 	searchBtn := core.NewButton(searchContainer).SetText("Search").SetIcon(icons.Search)
 	searchBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorPrimary)
-		s.Color = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorPrimary)
+		s.Color = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusMedium
 		s.Padding.Set(units.Dp(8), units.Dp(16))
 		s.Gap.Set(units.Dp(4))
@@ -91,7 +98,7 @@ func (app *App) showGlobalSearchView() {
 	filtersContainer := core.NewFrame(content)
 	filtersContainer.Styler(func(s *styles.Style) {
 		s.Direction = styles.Column
-		s.Background = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(16))
 		s.Gap.Set(units.Dp(16))
@@ -100,7 +107,7 @@ func (app *App) showGlobalSearchView() {
 	filtersTitle := core.NewText(filtersContainer).SetText("Filters")
 	filtersTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	// Filter row
@@ -135,7 +142,6 @@ func (app *App) showGlobalSearchView() {
 	// Mock search results
 	app.createSearchResults(resultsContainer)
 
-	_ = header
 	app.mainContainer.Update()
 }
 
@@ -150,13 +156,13 @@ func (app *App) createTypeFilter(parent core.Widget) {
 	typeLabel := core.NewText(typeFilterContainer).SetText("Object Type")
 	typeLabel.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(12)
-		s.Font.Weight = WeightSemiBold
-		s.Color = colors.Uniform(ColorGrayDark)
+		s.Font.Weight = appstyles.WeightSemiBold
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
 	})
 
 	typeDropdown := core.NewButton(typeFilterContainer).SetText("All Types").SetIcon(icons.ArrowDropDown)
 	typeDropdown.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorGrayLightest)
+		s.Background = colors.Uniform(appstyles.ColorGrayLightest)
 		s.Border.Radius = styles.BorderRadiusMedium
 		s.Padding.Set(units.Dp(8), units.Dp(12))
 		s.Gap.Set(units.Dp(4))
@@ -175,8 +181,8 @@ func (app *App) createSortOptions(parent core.Widget) {
 	sortLabel := core.NewText(sortContainer).SetText("Sort By")
 	sortLabel.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(12)
-		s.Font.Weight = WeightSemiBold
-		s.Color = colors.Uniform(ColorGrayDark)
+		s.Font.Weight = appstyles.WeightSemiBold
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
 	})
 
 	sortRow := core.NewFrame(sortContainer)
@@ -187,7 +193,7 @@ func (app *App) createSortOptions(parent core.Widget) {
 
 	sortDropdown := core.NewButton(sortRow).SetText("Name").SetIcon(icons.ArrowDropDown)
 	sortDropdown.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorGrayLightest)
+		s.Background = colors.Uniform(appstyles.ColorGrayLightest)
 		s.Border.Radius = styles.BorderRadiusMedium
 		s.Padding.Set(units.Dp(8), units.Dp(12))
 		s.Gap.Set(units.Dp(4))
@@ -195,7 +201,7 @@ func (app *App) createSortOptions(parent core.Widget) {
 
 	sortDirectionBtn := core.NewButton(sortRow).SetIcon(icons.ArrowUpward)
 	sortDirectionBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorGrayLightest)
+		s.Background = colors.Uniform(appstyles.ColorGrayLightest)
 		s.Border.Radius = styles.BorderRadiusMedium
 		s.Padding.Set(units.Dp(8))
 	})
@@ -212,8 +218,8 @@ func (app *App) createDateRangeFilter(parent core.Widget) {
 	dateLabel := core.NewText(dateContainer).SetText("Date Range")
 	dateLabel.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(12)
-		s.Font.Weight = WeightSemiBold
-		s.Color = colors.Uniform(ColorGrayDark)
+		s.Font.Weight = appstyles.WeightSemiBold
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
 	})
 
 	dateRow := core.NewFrame(dateContainer)
@@ -232,7 +238,7 @@ func (app *App) createDateRangeFilter(parent core.Widget) {
 	toText := core.NewText(dateRow).SetText("to")
 	toText.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(12)
-		s.Color = colors.Uniform(ColorGrayDark)
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
 	})
 
 	toField := core.NewTextField(dateRow)
@@ -259,7 +265,7 @@ func (app *App) createActiveFiltersDisplay(parent core.Widget) {
 	activeFiltersContainer := core.NewFrame(parent)
 	activeFiltersContainer.Styler(func(s *styles.Style) {
 		s.Direction = styles.Column
-		s.Background = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(16))
 		s.Gap.Set(units.Dp(12))
@@ -268,7 +274,7 @@ func (app *App) createActiveFiltersDisplay(parent core.Widget) {
 	filtersTitle := core.NewText(activeFiltersContainer).SetText("Active Filters")
 	filtersTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(14)
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	filtersRow := core.NewFrame(activeFiltersContainer)
@@ -286,7 +292,7 @@ func (app *App) createActiveFiltersDisplay(parent core.Widget) {
 			s.Direction = styles.Row
 			s.Align.Items = styles.Center
 			s.Gap.Set(units.Dp(4))
-			s.Background = colors.Uniform(ColorPrimaryLightest)
+			s.Background = colors.Uniform(appstyles.ColorPrimaryLightest)
 			s.Border.Radius = styles.BorderRadiusFull
 			s.Padding.Set(units.Dp(6), units.Dp(12))
 		})
@@ -294,13 +300,13 @@ func (app *App) createActiveFiltersDisplay(parent core.Widget) {
 		filterText := core.NewText(filterBadge).SetText(filter)
 		filterText.Styler(func(s *styles.Style) {
 			s.Font.Size = units.Dp(12)
-			s.Color = colors.Uniform(ColorPrimary)
+			s.Color = colors.Uniform(appstyles.ColorPrimary)
 		})
 
 		removeBtn := core.NewButton(filterBadge).SetIcon(icons.Close)
 		removeBtn.Styler(func(s *styles.Style) {
-			s.Background = colors.Uniform(ColorPrimary)
-			s.Color = colors.Uniform(ColorWhite)
+			s.Background = colors.Uniform(appstyles.ColorPrimary)
+			s.Color = colors.Uniform(appstyles.ColorWhite)
 			s.Border.Radius = styles.BorderRadiusFull
 			s.Padding.Set(units.Dp(2))
 			s.Font.Size = units.Dp(10)
@@ -322,13 +328,13 @@ func (app *App) createSearchResults(parent core.Widget) {
 	resultsTitle := core.NewText(parent).SetText("Search Results")
 	resultsTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	// Results summary
 	summaryText := core.NewText(parent).SetText("Found 15 results across 3 collections")
 	summaryText.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorGrayDark)
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
 	})
 
 	// Group results by type
@@ -346,7 +352,7 @@ func (app *App) createSearchResultsSection(parent core.Widget, sectionTitle stri
 	sectionContainer := core.NewFrame(parent)
 	sectionContainer.Styler(func(s *styles.Style) {
 		s.Direction = styles.Column
-		s.Background = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(16))
 		s.Gap.Set(units.Dp(12))
@@ -355,7 +361,7 @@ func (app *App) createSearchResultsSection(parent core.Widget, sectionTitle stri
 	sectionTitleText := core.NewText(sectionContainer).SetText(sectionTitle)
 	sectionTitleText.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(16)
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	for _, result := range results {
@@ -363,14 +369,14 @@ func (app *App) createSearchResultsSection(parent core.Widget, sectionTitle stri
 	}
 }
 
-// Search result card
+// Search result card (horizontal layout variant)
 func (app *App) createSearchResultCard(parent core.Widget, result SearchResult) *core.Frame {
 	card := core.NewFrame(parent)
 	card.Styler(func(s *styles.Style) {
 		s.Direction = styles.Row
 		s.Align.Items = styles.Center
 		s.Gap.Set(units.Dp(12))
-		s.Background = colors.Uniform(ColorGrayLightest)
+		s.Background = colors.Uniform(appstyles.ColorGrayLightest)
 		s.Border.Radius = styles.BorderRadiusMedium
 		s.Padding.Set(units.Dp(12))
 		s.Cursor = cursors.Pointer
@@ -383,41 +389,34 @@ func (app *App) createSearchResultCard(parent core.Widget, result SearchResult) 
 	})
 
 	// Content
-	contentContainer := core.NewFrame(card)
+	contentContainer := createFlexColumn(card, 4)
 	contentContainer.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Gap.Set(units.Dp(4))
 		s.Grow.Set(1, 0)
 	})
 
 	titleText := core.NewText(contentContainer).SetText(result.Title)
 	titleText.Styler(func(s *styles.Style) {
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	if result.Description != "" {
 		descText := core.NewText(contentContainer).SetText(result.Description)
 		descText.Styler(func(s *styles.Style) {
 			s.Font.Size = units.Dp(12)
-			s.Color = colors.Uniform(ColorGrayDark)
+			s.Color = colors.Uniform(appstyles.ColorGrayDark)
 		})
 	}
 
 	pathText := core.NewText(contentContainer).SetText(result.Path)
 	pathText.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(10)
-		s.Color = colors.Uniform(ColorPrimary)
+		s.Color = colors.Uniform(appstyles.ColorPrimary)
 	})
 
 	// Action button
 	viewBtn := core.NewButton(card).SetText("View").SetIcon(icons.ArrowForward)
-	viewBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorPrimary)
-		s.Color = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusMedium
-		s.Padding.Set(units.Dp(6), units.Dp(12))
-		s.Gap.Set(units.Dp(4))
-	})
+	viewBtn.Styler(appstyles.StyleButtonPrimary)
+	viewBtn.Styler(appstyles.StyleButtonSm)
 
 	return card
 }
@@ -454,7 +453,7 @@ func (app *App) getMockContainerResults() []SearchResult {
 			Path:        "Groups > Home > Kitchen Pantry > Refrigerator",
 			Type:        "container",
 			Icon:        icons.FolderOpen,
-			Color:       ColorPrimary,
+			Color:       appstyles.ColorPrimary,
 		},
 	}
 }
@@ -467,7 +466,7 @@ func (app *App) getMockObjectResults() []SearchResult {
 			Path:        "Groups > Home > Kitchen Pantry > Refrigerator > Organic Bananas",
 			Type:        "object",
 			Icon:        icons.Dining,
-			Color:       ColorAccent,
+			Color:       appstyles.ColorAccent,
 		},
 		{
 			Title:       "Whole Milk",
@@ -475,7 +474,7 @@ func (app *App) getMockObjectResults() []SearchResult {
 			Path:        "Groups > Home > Kitchen Pantry > Refrigerator > Whole Milk",
 			Type:        "object",
 			Icon:        icons.Dining,
-			Color:       ColorAccent,
+			Color:       appstyles.ColorAccent,
 		},
 	}
 }
@@ -486,7 +485,7 @@ func (app *App) showAdvancedFilterDialog() {
 
 	dialog := core.NewFrame(overlay)
 	dialog.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(24))
 		s.Gap.Set(units.Dp(16))
@@ -499,7 +498,7 @@ func (app *App) showAdvancedFilterDialog() {
 	title := core.NewText(dialog).SetText("Advanced Filters")
 	title.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(20)
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	// Tags filter
@@ -511,7 +510,7 @@ func (app *App) showAdvancedFilterDialog() {
 
 	tagsTitle := core.NewText(tagsSection).SetText("Filter by Tags")
 	tagsTitle.Styler(func(s *styles.Style) {
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	// Mock available tags
@@ -541,7 +540,7 @@ func (app *App) showAdvancedFilterDialog() {
 
 	propsTitle := core.NewText(propsSection).SetText("Property Filters")
 	propsTitle.Styler(func(s *styles.Style) {
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	// Expiry date filter for food items
@@ -583,8 +582,8 @@ func (app *App) showAdvancedFilterDialog() {
 	})
 
 	applyBtn := core.NewButton(buttonRow).SetText("Apply Filters")
-	applyBtn.Styler(StyleButtonPrimary)
-	applyBtn.Styler(StyleButtonMd)
+	applyBtn.Styler(appstyles.StyleButtonPrimary)
+	applyBtn.Styler(appstyles.StyleButtonMd)
 	applyBtn.OnClick(func(e events.Event) {
 		app.hideOverlay()
 		// Apply filters and refresh search results

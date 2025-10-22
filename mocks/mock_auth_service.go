@@ -103,18 +103,18 @@ func (mr *MockAuthServiceMockRecorder) GetGroupUsers(ctx, userToken, groupID any
 }
 
 // GetOIDCConfig mocks base method.
-func (m *MockAuthService) GetOIDCConfig(ctx context.Context) (map[string]any, error) {
+func (m *MockAuthService) GetOIDCConfig(ctx context.Context, clientID string) (map[string]any, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOIDCConfig", ctx)
+	ret := m.ctrl.Call(m, "GetOIDCConfig", ctx, clientID)
 	ret0, _ := ret[0].(map[string]any)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetOIDCConfig indicates an expected call of GetOIDCConfig.
-func (mr *MockAuthServiceMockRecorder) GetOIDCConfig(ctx any) *gomock.Call {
+func (mr *MockAuthServiceMockRecorder) GetOIDCConfig(ctx, clientID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOIDCConfig", reflect.TypeOf((*MockAuthService)(nil).GetOIDCConfig), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOIDCConfig", reflect.TypeOf((*MockAuthService)(nil).GetOIDCConfig), ctx, clientID)
 }
 
 // GetUserByID mocks base method.

@@ -76,11 +76,21 @@ func (ctrl *AuthController) HealthCheck(c *gin.Context) {
 // @Description Proxy OIDC discovery configuration from Authentik to avoid CORS issues
 // @Tags auth
 // @Produce json
+// @Param client_id query string true "OAuth client ID"
 // @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /auth/oidc-config [get]
 func (ctrl *AuthController) GetOIDCConfig(c *gin.Context) {
-	oidcConfig, err := ctrl.authService.GetOIDCConfig(c.Request.Context())
+	// Get client_id from query parameter
+	clientID := c.Query("client_id")
+	if clientID == "" {
+		ctrl.logger.Error("Missing client_id parameter")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "client_id query parameter is required"})
+		return
+	}
+
+	oidcConfig, err := ctrl.authService.GetOIDCConfig(c.Request.Context(), clientID)
 	if err != nil {
 		ctrl.logger.Error("Failed to get OIDC config", slog.String("error", err.Error()))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch OIDC configuration"})
@@ -134,11 +144,16 @@ func (ctrl *AuthController) ProxyTokenExchange(c *gin.Context) {
 		}
 	}
 
-	// Call auth service to handle token exchange
+	// Call auth service to handle token exchange (redirect_uri used to determine client)
 	responseBody, statusCode, err := ctrl.authService.ProxyTokenExchange(c.Request.Context(), requestBody)
 	if err != nil {
 		ctrl.logger.Error("Failed to exchange token", slog.String("error", err.Error()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to exchange token"})
+		// If it's a bad request (couldn't determine client), return 400
+		if statusCode == http.StatusBadRequest {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to exchange token"})
+		}
 		return
 	}
 

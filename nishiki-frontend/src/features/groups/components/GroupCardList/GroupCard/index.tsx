@@ -26,9 +26,9 @@ export const GroupCard: FC<IGroupCardProps> = ({ groupId, groupName }) => {
           fetchUserList(groupId),
         ]);
 
-        const containers: IContainer[] = containersResult.ok ? containersResult.value : [];
-        const users: IUser[] = usersResult.ok ? usersResult.value : [];
-        
+        const containers: IContainer[] = containersResult.ok ? (containersResult.value || []) : [];
+        const users: IUser[] = usersResult.ok ? (usersResult.value || []) : [];
+
         setContainerCount(containers.length);
         setUserCount(users.length);
       } catch (error) {

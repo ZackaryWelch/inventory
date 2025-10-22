@@ -32,15 +32,19 @@ type DatabaseConfig struct {
 	Timeout  int    `toml:"timeout" mapstructure:"timeout"`
 }
 
+type OAuthClient struct {
+	ProviderName string `toml:"provider_name" mapstructure:"provider_name"`
+	ClientID     string `toml:"client_id" mapstructure:"client_id"`
+	ClientSecret string `toml:"client_secret" mapstructure:"client_secret"`
+	RedirectURL  string `toml:"redirect_url" mapstructure:"redirect_url"`
+}
+
 type AuthConfig struct {
-	AuthentikURL      string `toml:"authentik_url" mapstructure:"authentik_url"`
-	ProviderName      string `toml:"provider_name" mapstructure:"provider_name"`
-	ClientID          string `toml:"client_id" mapstructure:"client_id"`
-	ClientSecret      string `toml:"client_secret" mapstructure:"client_secret"`
-	RedirectURL       string `toml:"redirect_url" mapstructure:"redirect_url"`
-	JWKSCacheDuration int    `toml:"jwks_cache_duration" mapstructure:"jwks_cache_duration"`
-	AllowSelfSigned   bool   `toml:"allow_self_signed" mapstructure:"allow_self_signed"`
-	APIToken          string `toml:"api_token" mapstructure:"api_token"`
+	AuthentikURL      string        `toml:"authentik_url" mapstructure:"authentik_url"`
+	Clients           []OAuthClient `toml:"clients" mapstructure:"clients"`
+	JWKSCacheDuration int           `toml:"jwks_cache_duration" mapstructure:"jwks_cache_duration"`
+	AllowSelfSigned   bool          `toml:"allow_self_signed" mapstructure:"allow_self_signed"`
+	APIToken          string        `toml:"api_token" mapstructure:"api_token"`
 }
 
 type LoggingConfig struct {
@@ -102,13 +106,10 @@ func setDefaults(v *viper.Viper) {
 
 	// Auth defaults
 	v.SetDefault("auth.authentik_url", "")
-	v.SetDefault("auth.provider_name", "")
-	v.SetDefault("auth.client_id", "")
-	v.SetDefault("auth.client_secret", "")
-	v.SetDefault("auth.redirect_url", "")
 	v.SetDefault("auth.jwks_cache_duration", 300)
 	v.SetDefault("auth.allow_self_signed", false)
 	v.SetDefault("auth.api_token", "")
+	v.SetDefault("auth.clients", []OAuthClient{})
 
 	// Logging defaults
 	v.SetDefault("logging.level", "info")
@@ -133,18 +134,34 @@ func validate(config *Config) error {
 		return fmt.Errorf("authentik URL is required")
 	}
 
-	if config.Auth.ProviderName == "" {
-		return fmt.Errorf("authentik provider name is required")
+	if len(config.Auth.Clients) == 0 {
+		return fmt.Errorf("at least one OAuth client must be configured")
 	}
 
-	if config.Auth.ClientID == "" {
-		return fmt.Errorf("authentik client ID is required")
-	}
+	// Validate each OAuth client
+	providerNames := make(map[string]bool)
+	for i, client := range config.Auth.Clients {
+		if client.ProviderName == "" {
+			return fmt.Errorf("client %d: provider name is required", i)
+		}
 
-	if config.Auth.ClientSecret == "" {
-		return fmt.Errorf("authentik client secret is required")
-	}
+		if providerNames[client.ProviderName] {
+			return fmt.Errorf("duplicate client provider name: %s", client.ProviderName)
+		}
+		providerNames[client.ProviderName] = true
 
+		if client.ClientID == "" {
+			return fmt.Errorf("client %s: client ID is required", client.ProviderName)
+		}
+
+		if client.ClientSecret == "" {
+			return fmt.Errorf("client %s: client secret is required", client.ProviderName)
+		}
+
+		if client.RedirectURL == "" {
+			return fmt.Errorf("client %s: redirect URL is required", client.ProviderName)
+		}
+	}
 
 	return nil
 }

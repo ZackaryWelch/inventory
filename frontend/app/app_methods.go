@@ -1,3 +1,5 @@
+//go:build js && wasm
+
 package app
 
 import (
@@ -6,9 +8,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"cogentcore.org/core/colors"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/events"
 	"cogentcore.org/core/icons"
+	"cogentcore.org/core/styles"
+	"cogentcore.org/core/styles/units"
 
 	"github.com/nishiki/frontend/ui/components"
 	"github.com/nishiki/frontend/ui/layouts"
@@ -137,8 +142,15 @@ func (app *App) createMainUI(b *core.Body) {
 
 // showLoginView displays the login screen
 func (app *App) showLoginView() {
-	app.mainContainer.DeleteChildren()
 	app.currentView = ViewLogin
+
+	// If UI not initialized yet, just set state and return
+	if app.mainContainer == nil {
+		app.logger.Debug("UI not initialized, deferring showLoginView")
+		return
+	}
+
+	app.mainContainer.DeleteChildren()
 
 	// Centered layout for login screen
 	loginContainer := layouts.CenteredLayout(app.mainContainer)
@@ -155,10 +167,6 @@ func (app *App) showLoginView() {
 	title := core.NewText(loginContent).SetText("Nishiki Inventory")
 	title.Styler(StyleAppTitle)
 
-	// Subtitle
-	subtitle := core.NewText(loginContent).SetText("Inventory Management System")
-	subtitle.Styler(StyleSubtitle)
-
 	// Login button using component library
 	components.Button(loginContent, components.ButtonProps{
 		Text:    "Sign In with Authentik",
@@ -174,6 +182,12 @@ func (app *App) showLoginView() {
 
 // showCallbackView displays the authentication callback loading screen
 func (app *App) showCallbackView() {
+	// If UI not initialized yet, just return (view already set by caller)
+	if app.mainContainer == nil {
+		app.logger.Debug("UI not initialized, deferring showCallbackView")
+		return
+	}
+
 	app.mainContainer.DeleteChildren()
 
 	// Centered layout for loading screen
@@ -199,8 +213,15 @@ func (app *App) showCallbackView() {
 
 // showDashboardView displays the main dashboard
 func (app *App) showDashboardView() {
-	app.mainContainer.DeleteChildren()
 	app.currentView = ViewDashboard
+
+	// If UI not initialized yet, just set state and return
+	if app.mainContainer == nil {
+		app.logger.Debug("UI not initialized, deferring showDashboardView")
+		return
+	}
+
+	app.mainContainer.DeleteChildren()
 
 	// Header with user menu button
 	username := "User"
@@ -299,34 +320,17 @@ func (app *App) showDashboardView() {
 	app.mainContainer.Update()
 }
 
-// createNavButton creates a navigation button
-func (app *App) createNavButton(parent core.Widget, text string, icon icons.Icon, onClick func()) *core.Button {
-	btn := core.NewButton(parent).SetText(text).SetIcon(icon)
-	btn.Styler(StyleNavButton)
-	btn.OnClick(func(e events.Event) {
-		onClick()
-	})
-	return btn
-}
-
-// createStatCard creates a statistics card
-func (app *App) createStatCard(parent core.Widget, label, value string, cardColor color.RGBA) *core.Frame {
-	card := core.NewFrame(parent)
-	card.Styler(StyleStatCard(cardColor))
-
-	valueText := core.NewText(card).SetText(value)
-	valueText.Styler(StyleStatValue)
-
-	labelText := core.NewText(card).SetText(label)
-	labelText.Styler(StyleStatLabel)
-
-	return card
-}
-
 // showGroupsView displays the groups management view
 func (app *App) showGroupsView() {
-	app.mainContainer.DeleteChildren()
 	app.currentView = ViewGroups
+
+	// If UI not initialized yet, just set state and return
+	if app.mainContainer == nil {
+		app.logger.Debug("UI not initialized, deferring showGroupsView")
+		return
+	}
+
+	app.mainContainer.DeleteChildren()
 
 	// Header with back button using layout component
 	layouts.SimpleHeader(app.mainContainer, "Groups", true, func() {
@@ -366,8 +370,15 @@ func (app *App) showGroupsView() {
 
 // showCollectionsView displays the collections management view
 func (app *App) showCollectionsView() {
-	app.mainContainer.DeleteChildren()
 	app.currentView = ViewCollections
+
+	// If UI not initialized yet, just set state and return
+	if app.mainContainer == nil {
+		app.logger.Debug("UI not initialized, deferring showCollectionsView")
+		return
+	}
+
+	app.mainContainer.DeleteChildren()
 
 	// Header with back button using layout component
 	layouts.SimpleHeader(app.mainContainer, "Collections", true, func() {
@@ -407,8 +418,15 @@ func (app *App) showCollectionsView() {
 
 // showProfileView displays the user profile view
 func (app *App) showProfileView() {
-	app.mainContainer.DeleteChildren()
 	app.currentView = ViewProfile
+
+	// If UI not initialized yet, just set state and return
+	if app.mainContainer == nil {
+		app.logger.Debug("UI not initialized, deferring showProfileView")
+		return
+	}
+
+	app.mainContainer.DeleteChildren()
 
 	// Header with back button using layout component
 	layouts.SimpleHeader(app.mainContainer, "Profile", true, func() {
@@ -472,30 +490,6 @@ func (app *App) showProfileView() {
 	app.mainContainer.Update()
 }
 
-// createHeader creates a header with optional back button
-func (app *App) createHeader(title string, showBack bool) *core.Frame {
-	header := core.NewFrame(app.mainContainer)
-	header.Styler(StyleHeaderRow)
-
-	// Left side
-	leftContainer := core.NewFrame(header)
-	leftContainer.Styler(StyleHeaderLeftContainer)
-
-	if showBack {
-		backBtn := core.NewButton(leftContainer).SetIcon(icons.ArrowBack)
-		backBtn.Styler(StyleBackButton)
-		backBtn.OnClick(func(e events.Event) {
-			app.showDashboardView()
-		})
-	}
-
-	// Header title
-	headerTitle := core.NewText(leftContainer).SetText(title)
-	headerTitle.Styler(StyleSectionTitle)
-
-	return header
-}
-
 // createGroupCard creates a card for displaying group information
 // Matches nishiki-frontend pattern: Card className="flex justify-between gap-2"
 func (app *App) createGroupCard(parent core.Widget, group Group) *core.Frame {
@@ -532,8 +526,9 @@ func (app *App) createGroupCard(parent core.Widget, group Group) *core.Frame {
 	// Dropdown menu button (w-12)
 	menuBtn := core.NewButton(card).SetIcon(icons.MoreVert)
 	menuBtn.Styler(func(s *styles.Style) {
-		s.Min.X.Set(48, units.UnitDp)                                     // w-12
-		s.Background = colors.Uniform(color.RGBA{R: 0, G: 0, B: 0, A: 0}) // variant="ghost"
+		s.Min.X.Set(48, units.UnitDp) // w-12
+		// variant="ghost" - transparent background
+		s.Background = nil
 	})
 
 	return card
@@ -571,8 +566,9 @@ func (app *App) createCollectionCard(parent core.Widget, collection Collection) 
 	// Dropdown menu button (w-12)
 	menuBtn := core.NewButton(card).SetIcon(icons.MoreVert)
 	menuBtn.Styler(func(s *styles.Style) {
-		s.Min.X.Set(48, units.UnitDp)                                     // w-12
-		s.Background = colors.Uniform(color.RGBA{R: 0, G: 0, B: 0, A: 0}) // variant="ghost"
+		s.Min.X.Set(48, units.UnitDp) // w-12
+		// variant="ghost" - transparent background
+		s.Background = nil
 	})
 
 	return card

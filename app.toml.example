@@ -1,0 +1,29 @@
+[server]
+port = 3001
+debug = true
+[server.tls]
+enabled = false
+cert_file = "./certs/server.crt"
+key_file = "./certs/server.key"
+
+[database]
+uri = "mongodb://IP"
+database = "nishiki"
+timeout = 10
+
+[auth]
+authentik_url = "https://IP"
+jwks_cache_duration = 300
+allow_self_signed = true
+api_token = ""
+
+# Multiple OAuth clients - add more as needed
+[[auth.clients]]
+provider_name = "nishiki"
+client_id = ""
+client_secret = ""
+
+[logging]
+level = "debug"
+seq_endpoint = "http://IP"
+seq_api_key = ""

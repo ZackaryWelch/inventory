@@ -54,6 +54,10 @@ var (
 	ColorWhite   = color.RGBA{R: 255, G: 255, B: 255, A: 255} // #ffffff
 	ColorBlack   = color.RGBA{R: 34, G: 34, B: 34, A: 255}    // #222222
 	ColorOverlay = color.RGBA{R: 0, G: 0, B: 0, A: 64}        // rgba(0, 0, 0, 0.25)
+
+	// Semantic color aliases for text
+	ColorTextPrimary   = ColorBlack    // Primary text color
+	ColorTextSecondary = ColorGrayDark // Secondary/muted text color
 )
 
 // Button styles matching nishiki-frontend Button component variants exactly

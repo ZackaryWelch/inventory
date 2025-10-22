@@ -1,3 +1,5 @@
+//go:build js && wasm
+
 package app
 
 import (
@@ -13,6 +15,9 @@ import (
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/units"
 	"cogentcore.org/core/text/rich"
+
+	"github.com/nishiki/frontend/ui/layouts"
+	appstyles "github.com/nishiki/frontend/ui/styles"
 )
 
 // Container represents a container within a collection
@@ -63,7 +68,9 @@ func (app *App) showEnhancedGroupsView() {
 	app.currentView = "groups"
 
 	// Header with back button
-	header := app.createHeader("Groups", true)
+	layouts.SimpleHeader(app.mainContainer, "Groups", true, func() {
+		app.showDashboardView()
+	})
 
 	// Refresh groups data
 	if err := app.fetchGroups(); err != nil {
@@ -72,7 +79,7 @@ func (app *App) showEnhancedGroupsView() {
 
 	// Main content
 	content := core.NewFrame(app.mainContainer)
-	content.Styler(StyleContentColumn)
+	content.Styler(appstyles.StyleContentColumn)
 
 	// Action buttons row
 	actionsRow := core.NewFrame(content)
@@ -84,16 +91,16 @@ func (app *App) showEnhancedGroupsView() {
 
 	// Create group button
 	createBtn := core.NewButton(actionsRow).SetText("Create Group").SetIcon(icons.Add)
-	createBtn.Styler(StyleButtonPrimary)
-	createBtn.Styler(StyleButtonMd)
+	createBtn.Styler(appstyles.StyleButtonPrimary)
+	createBtn.Styler(appstyles.StyleButtonMd)
 	createBtn.OnClick(func(e events.Event) {
 		app.showCreateGroupDialog()
 	})
 
 	// Join group button
 	joinBtn := core.NewButton(actionsRow).SetText("Join Group").SetIcon(icons.PersonAdd)
-	joinBtn.Styler(StyleButtonAccent)
-	joinBtn.Styler(StyleButtonMd)
+	joinBtn.Styler(appstyles.StyleButtonAccent)
+	joinBtn.Styler(appstyles.StyleButtonMd)
 	joinBtn.OnClick(func(e events.Event) {
 		app.showJoinGroupDialog()
 	})
@@ -108,122 +115,34 @@ func (app *App) showEnhancedGroupsView() {
 		}
 	}
 
-	_ = header
 	app.mainContainer.Update()
 }
 
 // Create enhanced group card with action menu
 func (app *App) createEnhancedGroupCard(parent core.Widget, group Group) *core.Frame {
-	card := core.NewFrame(parent)
-	card.Styler(StyleCard)
-	card.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Align.Items = styles.Center
-		s.Padding.Set(units.Dp(16))
-		s.Border.Style.Set(styles.BorderSolid)
-		s.Border.Width.Set(units.Dp(1))
-		s.Border.Color.Set(colors.Uniform(ColorGrayLight))
-		s.Margin.Bottom = units.Dp(8)
+	return app.createCard(parent, CardConfig{
+		Icon:        icons.Group,
+		IconColor:   appstyles.ColorPrimary,
+		Title:       group.Name,
+		Description: group.Description,
+		Stats: []CardStat{
+			{Label: "members", Value: fmt.Sprintf("%d", len(group.Members))},
+		},
+		OnClick: func() {
+			app.showGroupDetailView(group)
+		},
+		Actions: []CardAction{
+			{Icon: icons.Edit, Color: appstyles.ColorAccent, Tooltip: "Edit group", OnClick: func() {
+				app.showEditGroupDialog(group)
+			}},
+			{Icon: icons.Delete, Color: appstyles.ColorDanger, Tooltip: "Delete group", OnClick: func() {
+				app.showDeleteGroupDialog(group)
+			}},
+			{Icon: icons.PersonAdd, Color: appstyles.ColorPrimary, Tooltip: "Invite to group", OnClick: func() {
+				app.showInviteToGroupDialog(group)
+			}},
+		},
 	})
-
-	// Group info section (clickable)
-	infoContainer := core.NewFrame(card)
-	infoContainer.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Gap.Set(units.Dp(8))
-		s.Grow.Set(1, 0)
-		s.Cursor = cursors.Pointer
-	})
-	infoContainer.OnClick(func(e events.Event) {
-		app.showGroupDetailView(group)
-	})
-
-	// Group name and description
-	nameContainer := core.NewFrame(infoContainer)
-	nameContainer.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Align.Items = styles.Center
-		s.Gap.Set(units.Dp(8))
-	})
-
-	groupIcon := core.NewIcon(nameContainer).SetIcon(icons.Group)
-	groupIcon.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorPrimary)
-	})
-
-	groupName := core.NewText(nameContainer).SetText(group.Name)
-	groupName.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(18)
-		s.Font.Weight = WeightSemiBold
-		s.Color = colors.Uniform(ColorBlack)
-	})
-
-	if group.Description != "" {
-		groupDesc := core.NewText(infoContainer).SetText(group.Description)
-		groupDesc.Styler(func(s *styles.Style) {
-			s.Font.Size = units.Dp(14)
-			s.Color = colors.Uniform(ColorGrayDark)
-		})
-	}
-
-	// Stats row
-	statsRow := core.NewFrame(infoContainer)
-	statsRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(16))
-		s.Align.Items = styles.Center
-	})
-
-	membersText := core.NewText(statsRow).SetText(fmt.Sprintf("%d members", len(group.Members)))
-	membersText.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(12)
-		s.Color = colors.Uniform(ColorGrayDark)
-	})
-
-	// Actions menu
-	actionsMenu := core.NewFrame(card)
-	actionsMenu.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Gap.Set(units.Dp(8))
-	})
-
-	// Edit button
-	editBtn := core.NewButton(actionsMenu).SetIcon(icons.Edit)
-	editBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorAccent)
-		s.Color = colors.Uniform(ColorBlack)
-		s.Border.Radius = styles.BorderRadiusFull
-		s.Padding.Set(units.Dp(8))
-	})
-	editBtn.OnClick(func(e events.Event) {
-		app.showEditGroupDialog(group)
-	})
-
-	// Delete button
-	deleteBtn := core.NewButton(actionsMenu).SetIcon(icons.Delete)
-	deleteBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorDanger)
-		s.Color = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusFull
-		s.Padding.Set(units.Dp(8))
-	})
-	deleteBtn.OnClick(func(e events.Event) {
-		app.showDeleteGroupDialog(group)
-	})
-
-	// Invite button
-	inviteBtn := core.NewButton(actionsMenu).SetIcon(icons.PersonAdd)
-	inviteBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorPrimary)
-		s.Color = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusFull
-		s.Padding.Set(units.Dp(8))
-	})
-	inviteBtn.OnClick(func(e events.Event) {
-		app.showInviteToGroupDialog(group)
-	})
-
-	return card
 }
 
 // Group Detail View
@@ -232,7 +151,9 @@ func (app *App) showGroupDetailView(group Group) {
 	app.currentView = "group_detail"
 
 	// Header with back button
-	header := app.createHeader(group.Name, true)
+	layouts.SimpleHeader(app.mainContainer, group.Name, true, func() {
+		app.showEnhancedGroupsView()
+	})
 
 	// Main content
 	content := core.NewFrame(app.mainContainer)
@@ -247,7 +168,7 @@ func (app *App) showGroupDetailView(group Group) {
 	infoCard := core.NewFrame(content)
 	infoCard.Styler(func(s *styles.Style) {
 		s.Direction = styles.Column
-		s.Background = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(16))
 		s.Gap.Set(units.Dp(12))
@@ -257,8 +178,8 @@ func (app *App) showGroupDetailView(group Group) {
 	if group.Description != "" {
 		descTitle := core.NewText(infoCard).SetText("Description")
 		descTitle.Styler(func(s *styles.Style) {
-			s.Font.Weight = WeightSemiBold
-			s.Color = colors.Uniform(ColorGrayDark)
+			s.Font.Weight = appstyles.WeightSemiBold
+			s.Color = colors.Uniform(appstyles.ColorGrayDark)
 		})
 		desc := core.NewText(infoCard).SetText(group.Description)
 		desc.SetTooltip("Group description")
@@ -268,13 +189,13 @@ func (app *App) showGroupDetailView(group Group) {
 	membersTitle := core.NewText(content).SetText("Members")
 	membersTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	if len(group.Members) == 0 {
 		emptyMembers := core.NewText(content).SetText("No members in this group yet.")
 		emptyMembers.Styler(func(s *styles.Style) {
-			s.Color = colors.Uniform(ColorGrayDark)
+			s.Color = colors.Uniform(appstyles.ColorGrayDark)
 			s.Align.Self = styles.Center
 		})
 	} else {
@@ -287,7 +208,7 @@ func (app *App) showGroupDetailView(group Group) {
 	collectionsTitle := core.NewText(content).SetText("Collections")
 	collectionsTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	// Filter collections for this group
@@ -300,7 +221,7 @@ func (app *App) showGroupDetailView(group Group) {
 	if len(groupCollections) == 0 {
 		emptyCollections := core.NewText(content).SetText("No collections in this group yet.")
 		emptyCollections.Styler(func(s *styles.Style) {
-			s.Color = colors.Uniform(ColorGrayDark)
+			s.Color = colors.Uniform(appstyles.ColorGrayDark)
 			s.Align.Self = styles.Center
 		})
 	} else {
@@ -309,258 +230,84 @@ func (app *App) showGroupDetailView(group Group) {
 		}
 	}
 
-	_ = header
 	app.mainContainer.Update()
 }
 
 // Member card for group detail view
 func (app *App) createMemberCard(parent core.Widget, member User, group Group) *core.Frame {
-	card := core.NewFrame(parent)
-	card.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Align.Items = styles.Center
-		s.Justify.Content = styles.SpaceBetween
-		s.Background = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusMedium
-		s.Padding.Set(units.Dp(12))
-		s.Border.Style.Set(styles.BorderSolid)
-		s.Border.Width.Set(units.Dp(1))
-		s.Border.Color.Set(colors.Uniform(ColorGrayLight))
-		s.Margin.Bottom = units.Dp(4)
-	})
-
-	// Member info
-	infoContainer := core.NewFrame(card)
-	infoContainer.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Align.Items = styles.Center
-		s.Gap.Set(units.Dp(12))
-	})
-
-	memberIcon := core.NewIcon(infoContainer).SetIcon(icons.Person)
-	memberIcon.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorPrimary)
-	})
-
-	memberDetails := core.NewFrame(infoContainer)
-	memberDetails.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Gap.Set(units.Dp(2))
-	})
-
-	memberName := core.NewText(memberDetails).SetText(member.Username)
-	memberName.Styler(func(s *styles.Style) {
-		s.Font.Weight = WeightMedium
-	})
-
-	if member.Email != "" {
-		memberEmail := core.NewText(memberDetails).SetText(member.Email)
-		memberEmail.Styler(func(s *styles.Style) {
-			s.Font.Size = units.Dp(12)
-			s.Color = colors.Uniform(ColorGrayDark)
-		})
-	}
-
-	// Actions (only for group admins)
-	actionsContainer := core.NewFrame(card)
-	actionsContainer.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(8))
-	})
-
-	// Remove member button (only show if current user is admin)
+	// Build actions - only show remove button if not the current user
+	var actions []CardAction
 	if app.currentUser != nil && app.currentUser.ID != member.ID {
-		removeBtn := core.NewButton(actionsContainer).SetIcon(icons.PersonRemove)
-		removeBtn.Styler(func(s *styles.Style) {
-			s.Background = colors.Uniform(ColorDanger)
-			s.Color = colors.Uniform(ColorWhite)
-			s.Border.Radius = styles.BorderRadiusFull
-			s.Padding.Set(units.Dp(6))
-		})
-		removeBtn.OnClick(func(e events.Event) {
-			app.showRemoveMemberDialog(member, group)
-		})
+		actions = []CardAction{
+			{Icon: icons.PersonRemove, Color: appstyles.ColorDanger, Tooltip: "Remove member", OnClick: func() {
+				app.showRemoveMemberDialog(member, group)
+			}},
+		}
 	}
 
-	return card
+	return app.createCard(parent, CardConfig{
+		Icon:        icons.Person,
+		IconColor:   appstyles.ColorPrimary,
+		Title:       member.Username,
+		Description: member.Email,
+		Actions:     actions,
+	})
 }
 
 // Dialog functions
 func (app *App) showCreateGroupDialog() {
-	// Create overlay
-	overlay := app.createOverlay()
+	var nameField, descField *core.TextField
 
-	// Dialog container
-	dialog := core.NewFrame(overlay)
-	dialog.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(24))
-		s.Gap.Set(units.Dp(16))
-		s.Direction = styles.Column
-		s.Min.X.Set(400, units.UnitDp)
-		s.Max.X.Set(500, units.UnitDp)
+	app.showDialog(DialogConfig{
+		Title:            "Create New Group",
+		SubmitButtonText: "Create Group",
+		SubmitButtonStyle: appstyles.StyleButtonPrimary,
+		ContentBuilder: func(dialog core.Widget) {
+			nameField = createTextField(dialog, "Group name")
+			descField = createTextField(dialog, "Description (optional)")
+		},
+		OnSubmit: func() {
+			app.handleCreateGroup(nameField.Text(), descField.Text())
+		},
 	})
-
-	// Title
-	title := core.NewText(dialog).SetText("Create New Group")
-	title.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(20)
-		s.Font.Weight = WeightSemiBold
-	})
-
-	// Form fields
-	nameField := core.NewTextField(dialog)
-	nameField.SetText("").SetPlaceholder("Group name")
-	nameField.Styler(func(s *styles.Style) {
-		s.Border.Radius = styles.BorderRadiusMedium
-		s.Padding.Set(units.Dp(12))
-	})
-
-	descField := core.NewTextField(dialog)
-	descField.SetText("").SetPlaceholder("Description (optional)")
-	descField.Styler(func(s *styles.Style) {
-		s.Border.Radius = styles.BorderRadiusMedium
-		s.Padding.Set(units.Dp(12))
-	})
-
-	// Buttons
-	buttonRow := core.NewFrame(dialog)
-	buttonRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(12))
-		s.Justify.Content = styles.End
-	})
-
-	cancelBtn := core.NewButton(buttonRow).SetText("Cancel")
-	cancelBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(color.RGBA{R: 240, G: 240, B: 240, A: 255})
-		s.Border.Radius = styles.BorderRadiusMedium
-		s.Padding.Set(units.Dp(8), units.Dp(16))
-	})
-	cancelBtn.OnClick(func(e events.Event) {
-		app.hideOverlay()
-	})
-
-	createBtn := core.NewButton(buttonRow).SetText("Create Group")
-	createBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorPrimary)
-		s.Color = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusMedium
-		s.Padding.Set(units.Dp(8), units.Dp(16))
-	})
-	createBtn.OnClick(func(e events.Event) {
-		app.handleCreateGroup(nameField.Text(), descField.Text())
-	})
-
-	app.showOverlay(overlay)
 }
 
 func (app *App) showEditGroupDialog(group Group) {
-	// Similar to create dialog but with pre-filled values
-	overlay := app.createOverlay()
+	var nameField, descField *core.TextField
 
-	dialog := core.NewFrame(overlay)
-	dialog.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(24))
-		s.Gap.Set(units.Dp(16))
-		s.Direction = styles.Column
-		s.Min.X.Set(400, units.UnitDp)
-		s.Max.X.Set(500, units.UnitDp)
+	app.showDialog(DialogConfig{
+		Title:            "Edit Group",
+		SubmitButtonText: "Save Changes",
+		SubmitButtonStyle: appstyles.StyleButtonPrimary,
+		ContentBuilder: func(dialog core.Widget) {
+			nameField = createTextField(dialog, "Group name")
+			nameField.SetText(group.Name)
+			descField = createTextField(dialog, "Description (optional)")
+			descField.SetText(group.Description)
+		},
+		OnSubmit: func() {
+			app.handleEditGroup(group.ID, nameField.Text(), descField.Text())
+		},
 	})
-
-	title := core.NewText(dialog).SetText("Edit Group")
-	title.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(20)
-		s.Font.Weight = WeightSemiBold
-	})
-
-	nameField := core.NewTextField(dialog)
-	nameField.SetText(group.Name).SetPlaceholder("Group name")
-
-	descField := core.NewTextField(dialog)
-	descField.SetText(group.Description).SetPlaceholder("Description (optional)")
-
-	buttonRow := core.NewFrame(dialog)
-	buttonRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(12))
-		s.Justify.Content = styles.End
-	})
-
-	cancelBtn := core.NewButton(buttonRow).SetText("Cancel")
-	cancelBtn.OnClick(func(e events.Event) {
-		app.hideOverlay()
-	})
-
-	saveBtn := core.NewButton(buttonRow).SetText("Save Changes")
-	saveBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorPrimary)
-		s.Color = colors.Uniform(ColorWhite)
-	})
-	saveBtn.OnClick(func(e events.Event) {
-		app.handleEditGroup(group.ID, nameField.Text(), descField.Text())
-	})
-
-	app.showOverlay(overlay)
 }
 
 func (app *App) showDeleteGroupDialog(group Group) {
-	overlay := app.createOverlay()
-
-	dialog := core.NewFrame(overlay)
-	dialog.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(24))
-		s.Gap.Set(units.Dp(16))
-		s.Direction = styles.Column
-		s.Min.X.Set(400, units.UnitDp)
+	app.showDialog(DialogConfig{
+		Title:            "Delete Group",
+		Message:          fmt.Sprintf("Are you sure you want to delete \"%s\"? This action cannot be undone.", group.Name),
+		SubmitButtonText: "Delete",
+		SubmitButtonStyle: appstyles.StyleButtonDanger,
+		OnSubmit: func() {
+			app.handleDeleteGroup(group.ID)
+		},
 	})
-
-	title := core.NewText(dialog).SetText("Delete Group")
-	title.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(20)
-		s.Font.Weight = WeightSemiBold
-		s.Color = colors.Uniform(ColorDanger)
-	})
-
-	message := core.NewText(dialog).SetText(fmt.Sprintf("Are you sure you want to delete \"%s\"? This action cannot be undone.", group.Name))
-	message.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorGrayDark)
-	})
-
-	buttonRow := core.NewFrame(dialog)
-	buttonRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(12))
-		s.Justify.Content = styles.End
-	})
-
-	cancelBtn := core.NewButton(buttonRow).SetText("Cancel")
-	cancelBtn.OnClick(func(e events.Event) {
-		app.hideOverlay()
-	})
-
-	deleteBtn := core.NewButton(buttonRow).SetText("Delete")
-	deleteBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorDanger)
-		s.Color = colors.Uniform(ColorWhite)
-	})
-	deleteBtn.OnClick(func(e events.Event) {
-		app.handleDeleteGroup(group.ID)
-	})
-
-	app.showOverlay(overlay)
 }
 
 // Helper functions for overlay management
 func (app *App) createOverlay() *core.Frame {
 	overlay := core.NewFrame(app.mainContainer)
 	overlay.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorOverlay) // Semi-transparent black
+		s.Background = colors.Uniform(appstyles.ColorOverlay) // Semi-transparent black
 		s.Display = styles.Flex
 		s.Align.Items = styles.Center
 		s.Justify.Content = styles.Center
@@ -597,22 +344,22 @@ func (app *App) createEmptyState(parent core.Widget, title, message string, icon
 
 	emptyIcon := core.NewIcon(emptyState).SetIcon(icon)
 	emptyIcon.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorGray)
+		s.Color = colors.Uniform(appstyles.ColorGray)
 		s.Font.Size = units.Dp(48)
 	})
 
 	emptyTitle := core.NewText(emptyState).SetText(title)
 	emptyTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
-		s.Font.Weight = WeightSemiBold
-		s.Color = colors.Uniform(ColorGrayDark)
+		s.Font.Weight = appstyles.WeightSemiBold
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
 	})
 
 	emptyMessage := core.NewText(emptyState).SetText(message)
 	emptyMessage.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(14)
-		s.Color = colors.Uniform(ColorGrayDark)
-		s.Text.Align = AlignCenter
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
+		s.Text.Align = appstyles.AlignCenter
 	})
 
 	return emptyState
@@ -652,140 +399,48 @@ func (app *App) handleDeleteGroup(groupID string) {
 
 // Additional dialog functions
 func (app *App) showJoinGroupDialog() {
-	overlay := app.createOverlay()
+	var inviteField *core.TextField
 
-	dialog := core.NewFrame(overlay)
-	dialog.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(24))
-		s.Gap.Set(units.Dp(16))
-		s.Direction = styles.Column
-		s.Min.X.Set(400, units.UnitDp)
+	app.showDialog(DialogConfig{
+		Title:            "Join Group",
+		SubmitButtonText: "Join Group",
+		SubmitButtonStyle: appstyles.StyleButtonPrimary,
+		ContentBuilder: func(dialog core.Widget) {
+			inviteField = createTextField(dialog, "Invitation code")
+		},
+		OnSubmit: func() {
+			app.handleJoinGroup(inviteField.Text())
+		},
 	})
-
-	title := core.NewText(dialog).SetText("Join Group")
-	title.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(20)
-		s.Font.Weight = WeightSemiBold
-	})
-
-	inviteField := core.NewTextField(dialog)
-	inviteField.SetText("").SetPlaceholder("Invitation code")
-
-	buttonRow := core.NewFrame(dialog)
-	buttonRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(12))
-		s.Justify.Content = styles.End
-	})
-
-	cancelBtn := core.NewButton(buttonRow).SetText("Cancel")
-	cancelBtn.OnClick(func(e events.Event) {
-		app.hideOverlay()
-	})
-
-	joinBtn := core.NewButton(buttonRow).SetText("Join Group")
-	joinBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorPrimary)
-		s.Color = colors.Uniform(ColorWhite)
-	})
-	joinBtn.OnClick(func(e events.Event) {
-		app.handleJoinGroup(inviteField.Text())
-	})
-
-	app.showOverlay(overlay)
 }
 
 func (app *App) showInviteToGroupDialog(group Group) {
-	overlay := app.createOverlay()
-
-	dialog := core.NewFrame(overlay)
-	dialog.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(24))
-		s.Gap.Set(units.Dp(16))
-		s.Direction = styles.Column
-		s.Min.X.Set(400, units.UnitDp)
+	app.showDialog(DialogConfig{
+		Title:   "Invite to Group",
+		Message: "Share this invitation code:",
+		ContentBuilder: func(dialog core.Widget) {
+			inviteCode := core.NewText(dialog).SetText("ABC123XYZ") // Would be generated
+			inviteCode.Styler(func(s *styles.Style) {
+				s.Font.Family = rich.Monospace
+				s.Background = colors.Uniform(color.RGBA{R: 240, G: 240, B: 240, A: 255})
+				s.Padding.Set(units.Dp(8))
+				s.Border.Radius = styles.BorderRadiusMedium
+			})
+		},
+		OnSubmit: nil, // No submit button, just a close button
 	})
-
-	title := core.NewText(dialog).SetText("Invite to Group")
-	title.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(20)
-		s.Font.Weight = WeightSemiBold
-	})
-
-	message := core.NewText(dialog).SetText("Share this invitation code:")
-	message.SetTooltip("Share this code with others to invite them")
-	inviteCode := core.NewText(dialog).SetText("ABC123XYZ") // Would be generated
-	inviteCode.Styler(func(s *styles.Style) {
-		s.Font.Family = rich.Monospace
-		s.Background = colors.Uniform(color.RGBA{R: 240, G: 240, B: 240, A: 255})
-		s.Padding.Set(units.Dp(8))
-		s.Border.Radius = styles.BorderRadiusMedium
-	})
-
-	buttonRow := core.NewFrame(dialog)
-	buttonRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(12))
-		s.Justify.Content = styles.End
-	})
-
-	closeBtn := core.NewButton(buttonRow).SetText("Close")
-	closeBtn.OnClick(func(e events.Event) {
-		app.hideOverlay()
-	})
-
-	app.showOverlay(overlay)
 }
 
 func (app *App) showRemoveMemberDialog(member User, group Group) {
-	overlay := app.createOverlay()
-
-	dialog := core.NewFrame(overlay)
-	dialog.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(24))
-		s.Gap.Set(units.Dp(16))
-		s.Direction = styles.Column
-		s.Min.X.Set(400, units.UnitDp)
+	app.showDialog(DialogConfig{
+		Title:            "Remove Member",
+		Message:          fmt.Sprintf("Remove \"%s\" from \"%s\"?", member.Username, group.Name),
+		SubmitButtonText: "Remove",
+		SubmitButtonStyle: appstyles.StyleButtonDanger,
+		OnSubmit: func() {
+			app.handleRemoveMember(member.ID, group.ID)
+		},
 	})
-
-	title := core.NewText(dialog).SetText("Remove Member")
-	title.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(20)
-		s.Font.Weight = WeightSemiBold
-		s.Color = colors.Uniform(ColorDanger)
-	})
-
-	message := core.NewText(dialog).SetText(fmt.Sprintf("Remove \"%s\" from \"%s\"?", member.Username, group.Name))
-	message.SetTooltip("Confirm member removal")
-
-	buttonRow := core.NewFrame(dialog)
-	buttonRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(12))
-		s.Justify.Content = styles.End
-	})
-
-	cancelBtn := core.NewButton(buttonRow).SetText("Cancel")
-	cancelBtn.OnClick(func(e events.Event) {
-		app.hideOverlay()
-	})
-
-	removeBtn := core.NewButton(buttonRow).SetText("Remove")
-	removeBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorDanger)
-		s.Color = colors.Uniform(ColorWhite)
-	})
-	removeBtn.OnClick(func(e events.Event) {
-		app.handleRemoveMember(member.ID, group.ID)
-	})
-
-	app.showOverlay(overlay)
 }
 
 func (app *App) handleJoinGroup(inviteCode string) {

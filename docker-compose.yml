@@ -19,7 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: nishiki-backend-go
+    container_name: nishiki-backend
     restart: unless-stopped
     ports:
       - "3001:3001"

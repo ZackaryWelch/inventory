@@ -28,7 +28,7 @@ func (c *Client) GetCurrentUser() (*types.User, error) {
 }
 
 // GetOIDCConfig gets the OIDC configuration from the backend
-func (c *Client) GetOIDCConfig() (map[string]interface{}, error) {
+func (c *Client) GetOIDCConfig() (*map[string]interface{}, error) {
 	resp, err := c.common.Get("/auth/oidc-config")
 	if err != nil {
 		return nil, err

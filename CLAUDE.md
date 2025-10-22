@@ -101,6 +101,11 @@ This project follows Clean Architecture with clear separation of concerns:
 
 ### Authentication & Authorization
 - **Authentik OIDC Integration**: JWT token validation via JWKS
+- **Multiple OAuth Clients**: Support for multiple frontend applications (web, mobile, etc.)
+  - Each client has its own client_id, client_secret, and redirect_url
+  - Backend automatically routes OAuth flows based on redirect_uri parameter
+  - Clients are matched by redirect_uri during token exchange
+  - OIDC config endpoint requires client_id query parameter
 - **User Provisioning**: Automatic user creation from OIDC claims
 - **Group-based Authorization**: Access control via group membership
 - **Middleware**: Authentication required for all API endpoints
@@ -199,10 +204,22 @@ timeout = 10
 
 [auth]
 authentik_url = "https://your-authentik-server.com"  # Update with your Authentik URL
-client_id = "your-client-id"                         # Update with your client ID
-client_secret = "your-client-secret"                 # Update with your client secret
-redirect_url = "http://localhost:3001/auth/callback"
 jwks_cache_duration = 300
+allow_self_signed = false  # Set to true for development with self-signed certs
+api_token = "your-authentik-api-token"  # Required for group/user management
+
+# Multiple OAuth clients support - add one entry for each frontend/client
+[[auth.clients]]
+provider_name = "nishiki"  # Authentik provider/application name
+client_id = "your-web-client-id"
+client_secret = "your-web-client-secret"
+redirect_url = "http://localhost:3000/auth/callback"
+
+[[auth.clients]]
+provider_name = "nishiki-mobile"  # Different Authentik application
+client_id = "your-mobile-client-id"
+client_secret = "your-mobile-client-secret"
+redirect_url = "myapp://oauth/callback"
 
 [logging]
 level = "info"
@@ -215,10 +232,12 @@ All configuration can be overridden with `NISHIKI_` prefixed environment variabl
 - `NISHIKI_SERVER_PORT=3001`
 - `NISHIKI_DATABASE_URI=mongodb://...`
 - `NISHIKI_AUTH_AUTHENTIK_URL=https://...`
-- `NISHIKI_AUTH_CLIENT_ID=your-client-id`
-- `NISHIKI_AUTH_CLIENT_SECRET=your-client-secret`
+- `NISHIKI_AUTH_API_TOKEN=your-api-token`
+- `NISHIKI_AUTH_ALLOW_SELF_SIGNED=true`
 - `NISHIKI_LOGGING_SEQ_ENDPOINT=https://...`
 - `NISHIKI_LOGGING_SEQ_API_KEY=your-api-key`
+
+Note: OAuth client configuration (clients array) must be defined in the TOML file and cannot be overridden via environment variables.
 
 ## Testing Strategy
 

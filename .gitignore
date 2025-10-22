@@ -1,1 +1,5 @@
-backend-go
+backend
+frontend/verification/*
+app.wasm
+app.toml
+frontend/config.toml

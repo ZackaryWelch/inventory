@@ -1,8 +1,6 @@
 module github.com/nishiki/frontend
 
-go 1.23.4
-
-toolchain go1.24.5
+go 1.24.0
 
 require (
 	cogentcore.org/core v0.3.12

@@ -38,9 +38,10 @@ var (
 	ColorGrayDark     = color.RGBA{R: 75, G: 85, B: 99, A: 255}   // #4b5563
 
 	// Base colors (matching --color-white/black)
-	ColorWhite   = color.RGBA{R: 255, G: 255, B: 255, A: 255} // #ffffff
-	ColorBlack   = color.RGBA{R: 0, G: 0, B: 0, A: 255}       // #000000
-	ColorOverlay = color.RGBA{R: 0, G: 0, B: 0, A: 128}       // rgba(0, 0, 0, 0.5)
+	ColorWhite       = color.RGBA{R: 255, G: 255, B: 255, A: 255} // #ffffff
+	ColorBlack       = color.RGBA{R: 0, G: 0, B: 0, A: 255}       // #000000
+	ColorOverlay     = color.RGBA{R: 0, G: 0, B: 0, A: 128}       // rgba(0, 0, 0, 0.5)
+	ColorTransparent = color.RGBA{R: 0, G: 0, B: 0, A: 0}         // transparent
 )
 
 // ====================================================================================

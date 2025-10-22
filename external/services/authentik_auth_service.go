@@ -34,13 +34,18 @@ type AuthentikValidationError struct {
 	Code          string   `json:"code"`
 }
 
+type clientProvider struct {
+	config   config.OAuthClient
+	provider *oidc.Provider
+	verifier *oidc.IDTokenVerifier
+}
+
 type AuthentikAuthService struct {
-	config      config.AuthConfig
-	provider    *oidc.Provider
-	verifier    *oidc.IDTokenVerifier
-	logger      *slog.Logger
-	httpClient  *http.Client
-	apiConfig   *api.Configuration
+	config     config.AuthConfig
+	clients    map[string]*clientProvider // client_id -> provider/verifier
+	logger     *slog.Logger
+	httpClient *http.Client
+	apiConfig  *api.Configuration
 }
 
 func NewAuthentikAuthService(config config.AuthConfig, logger *slog.Logger) (*AuthentikAuthService, error) {
@@ -60,21 +65,39 @@ func NewAuthentikAuthService(config config.AuthConfig, logger *slog.Logger) (*Au
 		logger.Warn("Self-signed certificates are enabled - this should only be used in development")
 	}
 
-	// Create OIDC provider with custom HTTP client
-	// Construct the correct Authentik OIDC provider URL
-	providerURL := fmt.Sprintf("%s/application/o/%s/", config.AuthentikURL, config.ProviderName)
-	logger.Info("Creating OIDC provider", slog.String("provider_url", providerURL))
-
 	ctx = oidc.ClientContext(ctx, httpClient)
-	provider, err := oidc.NewProvider(ctx, providerURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
-	}
 
-	// Create ID token verifier
-	verifier := provider.Verifier(&oidc.Config{
-		ClientID: config.ClientID,
-	})
+	// Initialize all OAuth clients
+	clients := make(map[string]*clientProvider)
+
+	for _, clientConfig := range config.Clients {
+		// Construct the correct Authentik OIDC provider URL
+		providerURL := fmt.Sprintf("%s/application/o/%s/", config.AuthentikURL, clientConfig.ProviderName)
+		logger.Info("Creating OIDC provider",
+			slog.String("provider_name", clientConfig.ProviderName),
+			slog.String("provider_url", providerURL))
+
+		// Create OIDC provider
+		provider, err := oidc.NewProvider(ctx, providerURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create OIDC provider for client %s: %w", clientConfig.ProviderName, err)
+		}
+
+		// Create ID token verifier
+		verifier := provider.Verifier(&oidc.Config{
+			ClientID: clientConfig.ClientID,
+		})
+
+		clients[clientConfig.ClientID] = &clientProvider{
+			config:   clientConfig,
+			provider: provider,
+			verifier: verifier,
+		}
+
+		logger.Info("OAuth client initialized successfully",
+			slog.String("provider_name", clientConfig.ProviderName),
+			slog.String("client_id", clientConfig.ClientID))
+	}
 
 	// Create Authentik API configuration
 	apiConfig := api.NewConfiguration()
@@ -88,8 +111,7 @@ func NewAuthentikAuthService(config config.AuthConfig, logger *slog.Logger) (*Au
 
 	return &AuthentikAuthService{
 		config:     config,
-		provider:   provider,
-		verifier:   verifier,
+		clients:    clients,
 		logger:     logger,
 		httpClient: httpClient,
 		apiConfig:  apiConfig,
@@ -102,32 +124,107 @@ func (s *AuthentikAuthService) ValidateToken(ctx context.Context, tokenString st
 
 	s.logger.Debug("Validating token", slog.String("token_prefix", tokenString[:min(len(tokenString), 20)]+"..."))
 
-	// Verify the token
-	idToken, err := s.verifier.Verify(ctx, tokenString)
+	// Try to verify token with each client until one succeeds
+	var lastErr error
+	for clientID, client := range s.clients {
+		idToken, err := client.verifier.Verify(ctx, tokenString)
+		if err != nil {
+			s.logger.Debug("Token verification failed for client",
+				slog.String("client_id", clientID),
+				slog.Any("error", err))
+			lastErr = err
+			continue
+		}
+
+		// Extract claims
+		var claims services.AuthClaims
+		if err := idToken.Claims(&claims); err != nil {
+			s.logger.Error("Failed to extract claims", slog.Any("error", err))
+			lastErr = err
+			continue
+		}
+
+		// Validate token expiration
+		if time.Now().Unix() > claims.ExpiresAt {
+			s.logger.Warn("Token has expired", slog.Int64("exp", claims.ExpiresAt))
+			lastErr = fmt.Errorf("token has expired")
+			continue
+		}
+
+		s.logger.Debug("Token validated successfully",
+			slog.String("client_id", clientID),
+			slog.String("subject", claims.Subject),
+			slog.String("username", claims.Username),
+			slog.String("email", claims.Email))
+
+		return &claims, nil
+	}
+
+	s.logger.Error("Token verification failed for all clients", slog.Any("error", lastErr))
+	return nil, fmt.Errorf("token verification failed: %w", lastErr)
+}
+
+// getClientByRedirectURL finds the appropriate OAuth client based on the redirect_uri
+func (s *AuthentikAuthService) getClientByRedirectURL(redirectURI string) (*clientProvider, error) {
+	if redirectURI == "" {
+		return nil, fmt.Errorf("redirect_uri is required")
+	}
+
+	// Try exact match first
+	for _, client := range s.clients {
+		if client.config.RedirectURL == redirectURI {
+			s.logger.Debug("Matched client by redirect_uri (exact)",
+				slog.String("redirect_uri", redirectURI),
+				slog.String("provider_name", client.config.ProviderName))
+			return client, nil
+		}
+	}
+
+	// Try matching by origin if exact match fails
+	requestURL, err := url.Parse(redirectURI)
 	if err != nil {
-		s.logger.Error("Token verification failed", slog.Any("error", err))
-		return nil, fmt.Errorf("token verification failed: %w", err)
+		return nil, fmt.Errorf("invalid redirect_uri: %w", err)
+	}
+	requestOrigin := fmt.Sprintf("%s://%s", requestURL.Scheme, requestURL.Host)
+
+	for _, client := range s.clients {
+		configURL, err := url.Parse(client.config.RedirectURL)
+		if err != nil {
+			s.logger.Warn("Invalid redirect URL for client",
+				slog.String("provider_name", client.config.ProviderName),
+				slog.String("redirect_url", client.config.RedirectURL))
+			continue
+		}
+
+		configOrigin := fmt.Sprintf("%s://%s", configURL.Scheme, configURL.Host)
+
+		if requestOrigin == configOrigin {
+			s.logger.Debug("Matched client by origin",
+				slog.String("origin", requestOrigin),
+				slog.String("provider_name", client.config.ProviderName))
+			return client, nil
+		}
 	}
 
-	// Extract claims
-	var claims services.AuthClaims
-	if err := idToken.Claims(&claims); err != nil {
-		s.logger.Error("Failed to extract claims", slog.Any("error", err))
-		return nil, fmt.Errorf("failed to extract claims: %w", err)
+	return nil, fmt.Errorf("no OAuth client configured for redirect_uri: %s", redirectURI)
+}
+
+// getClientByClientID finds the appropriate OAuth client based on client_id
+func (s *AuthentikAuthService) getClientByClientID(clientID string) (*clientProvider, error) {
+	if clientID == "" {
+		return nil, fmt.Errorf("client_id is required")
 	}
 
-	// Validate token expiration
-	if time.Now().Unix() > claims.ExpiresAt {
-		s.logger.Warn("Token has expired", slog.Int64("exp", claims.ExpiresAt))
-		return nil, fmt.Errorf("token has expired")
+	client, ok := s.clients[clientID]
+	if !ok {
+		return nil, fmt.Errorf("no OAuth client configured for client_id: %s", clientID)
 	}
 
-	s.logger.Debug("Token validated successfully",
-		slog.String("subject", claims.Subject),
-		slog.String("username", claims.Username),
-		slog.String("email", claims.Email))
+	s.logger.Debug("Matched client by client_id",
+		slog.String("client_id", clientID),
+		slog.String("provider_name", client.config.ProviderName))
 
-	return &claims, nil
+	return client, nil
 }
 
 func (s *AuthentikAuthService) GetUserFromClaims(ctx context.Context, claims *services.AuthClaims) (*entities.User, error) {
@@ -610,12 +707,20 @@ func (s *AuthentikAuthService) GetGroupByID(ctx context.Context, userToken, grou
 }
 
 // GetOIDCConfig fetches OIDC discovery configuration from Authentik and modifies token endpoint
-func (s *AuthentikAuthService) GetOIDCConfig(ctx context.Context) (map[string]interface{}, error) {
+func (s *AuthentikAuthService) GetOIDCConfig(ctx context.Context, clientID string) (map[string]interface{}, error) {
+	// Get the appropriate client
+	client, err := s.getClientByClientID(clientID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find OAuth client: %w", err)
+	}
+
 	// Build discovery URL
 	discoveryURL := fmt.Sprintf("%s/application/o/%s/.well-known/openid-configuration",
-		s.config.AuthentikURL, s.config.ProviderName)
+		s.config.AuthentikURL, client.config.ProviderName)
 
-	s.logger.Debug("Fetching OIDC discovery config", slog.String("url", discoveryURL))
+	s.logger.Debug("Fetching OIDC discovery config",
+		slog.String("url", discoveryURL),
+		slog.String("provider_name", client.config.ProviderName))
 
 	// Make request to Authentik
 	req, err := http.NewRequestWithContext(ctx, "GET", discoveryURL, nil)
@@ -625,7 +730,7 @@ func (s *AuthentikAuthService) GetOIDCConfig(ctx context.Context) (map[string]in
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		s.logger.Error("Failed to fetch OIDC config from Authentik", 
+		s.logger.Error("Failed to fetch OIDC config from Authentik",
 			slog.String("error", err.Error()),
 			slog.String("url", discoveryURL))
 		return nil, fmt.Errorf("failed to fetch OIDC configuration: %w", err)
@@ -657,8 +762,9 @@ func (s *AuthentikAuthService) GetOIDCConfig(ctx context.Context) (map[string]in
 	}
 	oidcConfig["token_endpoint"] = fmt.Sprintf("%s/auth/token", backendURL)
 
-	s.logger.Debug("OIDC config fetched successfully", 
-		slog.String("token_endpoint", oidcConfig["token_endpoint"].(string)))
+	s.logger.Debug("OIDC config fetched successfully",
+		slog.String("token_endpoint", oidcConfig["token_endpoint"].(string)),
+		slog.String("provider_name", client.config.ProviderName))
 
 	return oidcConfig, nil
 }
@@ -668,12 +774,20 @@ func (s *AuthentikAuthService) ProxyTokenExchange(ctx context.Context, tokenRequ
 	s.logger.Debug("Processing token exchange request",
 		slog.String("grant_type", fmt.Sprintf("%v", tokenRequest["grant_type"])))
 
-	// Add client credentials from config
-	tokenRequest["client_id"] = s.config.ClientID
-	tokenRequest["client_secret"] = s.config.ClientSecret
+	// Determine which client to use based on redirect_uri
+	redirectURI, _ := tokenRequest["redirect_uri"].(string)
+	client, err := s.getClientByRedirectURL(redirectURI)
+	if err != nil {
+		s.logger.Error("Failed to determine OAuth client", slog.String("error", err.Error()))
+		return nil, http.StatusBadRequest, fmt.Errorf("failed to determine OAuth client: %w", err)
+	}
+
+	// Add client credentials from matched client config
+	tokenRequest["client_id"] = client.config.ClientID
+	tokenRequest["client_secret"] = client.config.ClientSecret
 
 	// Get token URL from OIDC provider configuration
-	tokenURL := s.provider.Endpoint().TokenURL
+	tokenURL := client.provider.Endpoint().TokenURL
 
 	// Convert to form data
 	formData := url.Values{}
@@ -681,7 +795,9 @@ func (s *AuthentikAuthService) ProxyTokenExchange(ctx context.Context, tokenRequ
 		formData.Set(key, fmt.Sprintf("%v", value))
 	}
 
-	s.logger.Debug("Forwarding token request to Authentik", slog.String("url", tokenURL))
+	s.logger.Debug("Forwarding token request to Authentik",
+		slog.String("url", tokenURL),
+		slog.String("provider_name", client.config.ProviderName))
 
 	// Create request
 	req, err := http.NewRequestWithContext(ctx, "POST", tokenURL, strings.NewReader(formData.Encode()))
@@ -709,7 +825,8 @@ func (s *AuthentikAuthService) ProxyTokenExchange(ctx context.Context, tokenRequ
 
 	s.logger.Debug("Token exchange completed",
 		slog.Int("status_code", resp.StatusCode),
-		slog.Int("response_size", len(body)))
+		slog.Int("response_size", len(body)),
+		slog.String("provider_name", client.config.ProviderName))
 
 	return body, resp.StatusCode, nil
 }

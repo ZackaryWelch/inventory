@@ -1,3 +1,5 @@
+//go:build js && wasm
+
 package app
 
 import (
@@ -12,6 +14,9 @@ import (
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/units"
+
+	"github.com/nishiki/frontend/ui/layouts"
+	appstyles "github.com/nishiki/frontend/ui/styles"
 )
 
 // Container Detail View with Objects Management
@@ -20,17 +25,19 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 	app.currentView = "container_detail"
 
 	// Header with back button
-	header := app.createHeader(container.Name, true)
+	layouts.SimpleHeader(app.mainContainer, container.Name, true, func() {
+		app.showCollectionDetailView(collection)
+	})
 
 	// Main content
 	content := core.NewFrame(app.mainContainer)
-	content.Styler(StyleContentColumn)
+	content.Styler(appstyles.StyleContentColumn)
 
 	// Container info card
 	infoCard := core.NewFrame(content)
 	infoCard.Styler(func(s *styles.Style) {
 		s.Direction = styles.Column
-		s.Background = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(16))
 		s.Gap.Set(units.Dp(12))
@@ -46,7 +53,7 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 
 	collectionLink := core.NewText(breadcrumb).SetText(collection.Name)
 	collectionLink.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorPrimary)
+		s.Color = colors.Uniform(appstyles.ColorPrimary)
 		s.Cursor = cursors.Pointer
 	})
 	collectionLink.OnClick(func(e events.Event) {
@@ -55,19 +62,19 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 
 	arrow := core.NewText(breadcrumb).SetText(">")
 	arrow.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorGrayDark)
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
 	})
 
 	containerText := core.NewText(breadcrumb).SetText(container.Name)
 	containerText.Styler(func(s *styles.Style) {
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	// Container description
 	if container.Description != "" {
 		desc := core.NewText(infoCard).SetText(container.Description)
 		desc.Styler(func(s *styles.Style) {
-			s.Color = colors.Uniform(ColorGrayDark)
+			s.Color = colors.Uniform(appstyles.ColorGrayDark)
 		})
 	}
 
@@ -109,8 +116,8 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 
 	addObjectBtn := core.NewButton(addSection).SetText("Add Object").SetIcon(icons.Add)
 	addObjectBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorPrimary)
-		s.Color = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorPrimary)
+		s.Color = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(12), units.Dp(16))
 		s.Gap.Set(units.Dp(8))
@@ -121,8 +128,8 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 
 	bulkImportBtn := core.NewButton(addSection).SetText("Bulk Import").SetIcon(icons.Upload)
 	bulkImportBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorAccent)
-		s.Color = colors.Uniform(ColorBlack)
+		s.Background = colors.Uniform(appstyles.ColorAccent)
+		s.Color = colors.Uniform(appstyles.ColorBlack)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(12), units.Dp(16))
 		s.Gap.Set(units.Dp(8))
@@ -132,7 +139,7 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 	objectsTitle := core.NewText(content).SetText("Objects")
 	objectsTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	// Mock objects for demonstration
@@ -178,8 +185,8 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 
 		gridViewBtn := core.NewButton(viewModeRow).SetIcon(icons.GridView)
 		gridViewBtn.Styler(func(s *styles.Style) {
-			s.Background = colors.Uniform(ColorPrimary)
-			s.Color = colors.Uniform(ColorWhite)
+			s.Background = colors.Uniform(appstyles.ColorPrimary)
+			s.Color = colors.Uniform(appstyles.ColorWhite)
 			s.Border.Radius = styles.BorderRadiusMedium
 			s.Padding.Set(units.Dp(8))
 		})
@@ -204,186 +211,119 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 		}
 	}
 
-	_ = header
 	app.mainContainer.Update()
 }
 
 // Create object card for container view
 func (app *App) createObjectCard(parent core.Widget, object Object, container Container, collection Collection) *core.Frame {
-	card := core.NewFrame(parent)
-	card.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Background = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(16))
-		s.Border.Style.Set(styles.BorderSolid)
-		s.Border.Width.Set(units.Dp(1))
-		s.Border.Color.Set(colors.Uniform(ColorGrayLight))
-		s.Min.X.Set(250, units.UnitDp)
-		s.Max.X.Set(300, units.UnitDp)
-		s.Gap.Set(units.Dp(12))
-		s.Cursor = cursors.Pointer
-	})
+	typeIcon := app.getIcon(collection.ObjectType)
+	typeColor := app.getCollectionTypeColor(collection.ObjectType)
 
-	// Header with name and actions
-	cardHeader := core.NewFrame(card)
-	cardHeader.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Align.Items = styles.Center
-		s.Justify.Content = styles.SpaceBetween
-	})
+	return app.createCard(parent, CardConfig{
+		Icon:        typeIcon,
+		IconColor:   typeColor,
+		Title:       object.Name,
+		Description: object.Description,
+		OnClick: func() {
+			app.showObjectDetailView(object, container, collection)
+		},
+		Actions: []CardAction{
+			{Icon: icons.Edit, Color: appstyles.ColorAccent, Tooltip: "Edit object", OnClick: func() {
+				app.showEditObjectDialog(object, container, collection)
+			}},
+			{Icon: icons.Delete, Color: appstyles.ColorDanger, Tooltip: "Delete object", OnClick: func() {
+				app.showDeleteObjectDialog(object, container, collection)
+			}},
+		},
+		Content: func(card core.Widget) {
+			// Properties section (show first 3)
+			if len(object.Properties) > 0 {
+				propsContainer := core.NewFrame(card)
+				propsContainer.Styler(func(s *styles.Style) {
+					s.Direction = styles.Column
+					s.Gap.Set(units.Dp(4))
+				})
 
-	// Object name and type icon
-	nameSection := core.NewFrame(cardHeader)
-	nameSection.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Align.Items = styles.Center
-		s.Gap.Set(units.Dp(8))
-		s.Grow.Set(1, 0)
-	})
-	nameSection.OnClick(func(e events.Event) {
-		app.showObjectDetailView(object, container, collection)
-	})
+				propsTitle := core.NewText(propsContainer).SetText("Properties")
+				propsTitle.Styler(func(s *styles.Style) {
+					s.Font.Size = units.Dp(12)
+					s.Font.Weight = appstyles.WeightSemiBold
+					s.Color = colors.Uniform(appstyles.ColorGrayDark)
+				})
 
-	objectIcon := core.NewIcon(nameSection).SetIcon(app.getIcon(collection.ObjectType))
-	objectIcon.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(app.getCollectionTypeColor(collection.ObjectType))
-	})
+				count := 0
+				for key, value := range object.Properties {
+					if count >= 3 {
+						break
+					}
 
-	objectName := core.NewText(nameSection).SetText(object.Name)
-	objectName.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(16)
-		s.Font.Weight = WeightSemiBold
-		s.Color = colors.Uniform(ColorBlack)
-	})
+					propRow := core.NewFrame(propsContainer)
+					propRow.Styler(func(s *styles.Style) {
+						s.Direction = styles.Row
+						s.Justify.Content = styles.SpaceBetween
+					})
 
-	// Actions menu
-	actionsMenu := core.NewFrame(cardHeader)
-	actionsMenu.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(4))
-	})
+					propKey := core.NewText(propRow).SetText(strings.Title(strings.ReplaceAll(key, "_", " ")) + ":")
+					propKey.Styler(func(s *styles.Style) {
+						s.Font.Size = units.Dp(12)
+						s.Color = colors.Uniform(appstyles.ColorGrayDark)
+					})
 
-	editBtn := core.NewButton(actionsMenu).SetIcon(icons.Edit)
-	editBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorAccent)
-		s.Color = colors.Uniform(ColorBlack)
-		s.Border.Radius = styles.BorderRadiusFull
-		s.Padding.Set(units.Dp(6))
-	})
-	editBtn.OnClick(func(e events.Event) {
-		app.showEditObjectDialog(object, container, collection)
-	})
+					propValue := core.NewText(propRow).SetText(fmt.Sprintf("%v", value))
+					propValue.Styler(func(s *styles.Style) {
+						s.Font.Size = units.Dp(12)
+						s.Font.Weight = appstyles.WeightMedium
+					})
 
-	deleteBtn := core.NewButton(actionsMenu).SetIcon(icons.Delete)
-	deleteBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorDanger)
-		s.Color = colors.Uniform(ColorWhite)
-		s.Border.Radius = styles.BorderRadiusFull
-		s.Padding.Set(units.Dp(6))
-	})
-	deleteBtn.OnClick(func(e events.Event) {
-		app.showDeleteObjectDialog(object, container, collection)
-	})
+					count++
+				}
 
-	// Description
-	if object.Description != "" {
-		desc := core.NewText(card).SetText(object.Description)
-		desc.Styler(func(s *styles.Style) {
-			s.Font.Size = units.Dp(14)
-			s.Color = colors.Uniform(ColorGrayDark)
-		})
-	}
-
-	// Properties
-	if len(object.Properties) > 0 {
-		propsContainer := core.NewFrame(card)
-		propsContainer.Styler(func(s *styles.Style) {
-			s.Direction = styles.Column
-			s.Gap.Set(units.Dp(4))
-		})
-
-		propsTitle := core.NewText(propsContainer).SetText("Properties")
-		propsTitle.Styler(func(s *styles.Style) {
-			s.Font.Size = units.Dp(12)
-			s.Font.Weight = WeightSemiBold
-			s.Color = colors.Uniform(ColorGrayDark)
-		})
-
-		// Show first few properties
-		count := 0
-		for key, value := range object.Properties {
-			if count >= 3 {
-				break
+				if len(object.Properties) > 3 {
+					moreText := core.NewText(propsContainer).SetText(fmt.Sprintf("... %d more", len(object.Properties)-3))
+					moreText.Styler(func(s *styles.Style) {
+						s.Font.Size = units.Dp(10)
+						s.Color = colors.Uniform(appstyles.ColorGrayDark)
+					})
+				}
 			}
 
-			propRow := core.NewFrame(propsContainer)
-			propRow.Styler(func(s *styles.Style) {
-				s.Direction = styles.Row
-				s.Justify.Content = styles.SpaceBetween
-			})
+			// Tags section (show first 3)
+			if len(object.Tags) > 0 {
+				tagsContainer := core.NewFrame(card)
+				tagsContainer.Styler(func(s *styles.Style) {
+					s.Direction = styles.Row
+					s.Wrap = true
+					s.Gap.Set(units.Dp(4))
+				})
 
-			propKey := core.NewText(propRow).SetText(strings.Title(strings.ReplaceAll(key, "_", " ")) + ":")
-			propKey.Styler(func(s *styles.Style) {
-				s.Font.Size = units.Dp(12)
-				s.Color = colors.Uniform(ColorGrayDark)
-			})
+				for i, tag := range object.Tags {
+					if i >= 3 {
+						break
+					}
 
-			propValue := core.NewText(propRow).SetText(fmt.Sprintf("%v", value))
-			propValue.Styler(func(s *styles.Style) {
-				s.Font.Size = units.Dp(12)
-				s.Font.Weight = WeightMedium
-			})
+					tagBadge := core.NewText(tagsContainer).SetText(tag)
+					tagBadge.Styler(func(s *styles.Style) {
+						s.Font.Size = units.Dp(10)
+						s.Background = colors.Uniform(appstyles.ColorPrimaryLightest)
+						s.Color = colors.Uniform(appstyles.ColorPrimary)
+						s.Padding.Set(units.Dp(4), units.Dp(8))
+						s.Border.Radius = styles.BorderRadiusFull
+					})
+				}
 
-			count++
-		}
-
-		if len(object.Properties) > 3 {
-			moreText := core.NewText(propsContainer).SetText(fmt.Sprintf("... %d more", len(object.Properties)-3))
-			moreText.Styler(func(s *styles.Style) {
-				s.Font.Size = units.Dp(10)
-				s.Color = colors.Uniform(ColorGrayDark)
-			})
-		}
-	}
-
-	// Tags
-	if len(object.Tags) > 0 {
-		tagsContainer := core.NewFrame(card)
-		tagsContainer.Styler(func(s *styles.Style) {
-			s.Direction = styles.Row
-			s.Wrap = true
-			s.Gap.Set(units.Dp(4))
-		})
-
-		for i, tag := range object.Tags {
-			if i >= 3 {
-				break
+				if len(object.Tags) > 3 {
+					moreTags := core.NewText(tagsContainer).SetText(fmt.Sprintf("+%d", len(object.Tags)-3))
+					moreTags.Styler(func(s *styles.Style) {
+						s.Font.Size = units.Dp(10)
+						s.Background = colors.Uniform(color.RGBA{R: 240, G: 240, B: 240, A: 255})
+						s.Color = colors.Uniform(appstyles.ColorGrayDark)
+						s.Padding.Set(units.Dp(4), units.Dp(8))
+						s.Border.Radius = styles.BorderRadiusFull
+					})
+				}
 			}
-
-			tagBadge := core.NewText(tagsContainer).SetText(tag)
-			tagBadge.Styler(func(s *styles.Style) {
-				s.Font.Size = units.Dp(10)
-				s.Background = colors.Uniform(ColorPrimaryLightest)
-				s.Color = colors.Uniform(ColorPrimary)
-				s.Padding.Set(units.Dp(4), units.Dp(8))
-				s.Border.Radius = styles.BorderRadiusFull
-			})
-		}
-
-		if len(object.Tags) > 3 {
-			moreTags := core.NewText(tagsContainer).SetText(fmt.Sprintf("+%d", len(object.Tags)-3))
-			moreTags.Styler(func(s *styles.Style) {
-				s.Font.Size = units.Dp(10)
-				s.Background = colors.Uniform(color.RGBA{R: 240, G: 240, B: 240, A: 255})
-				s.Color = colors.Uniform(ColorGrayDark)
-				s.Padding.Set(units.Dp(4), units.Dp(8))
-				s.Border.Radius = styles.BorderRadiusFull
-			})
-		}
-	}
-
-	return card
+		},
+	})
 }
 
 // Object Detail View
@@ -392,7 +332,9 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 	app.currentView = "object_detail"
 
 	// Header with back button
-	header := app.createHeader(object.Name, true)
+	layouts.SimpleHeader(app.mainContainer, object.Name, true, func() {
+		app.showContainerDetailView(container, collection)
+	})
 
 	// Main content
 	content := core.NewFrame(app.mainContainer)
@@ -406,7 +348,7 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 	// Breadcrumb navigation
 	breadcrumbCard := core.NewFrame(content)
 	breadcrumbCard.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(16))
 	})
@@ -420,7 +362,7 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 
 	collectionLink := core.NewText(breadcrumb).SetText(collection.Name)
 	collectionLink.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorPrimary)
+		s.Color = colors.Uniform(appstyles.ColorPrimary)
 		s.Cursor = cursors.Pointer
 	})
 	collectionLink.OnClick(func(e events.Event) {
@@ -429,12 +371,12 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 
 	arrow1 := core.NewText(breadcrumb).SetText(">")
 	arrow1.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorGrayDark)
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
 	})
 
 	containerLink := core.NewText(breadcrumb).SetText(container.Name)
 	containerLink.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorPrimary)
+		s.Color = colors.Uniform(appstyles.ColorPrimary)
 		s.Cursor = cursors.Pointer
 	})
 	containerLink.OnClick(func(e events.Event) {
@@ -443,19 +385,19 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 
 	arrow2 := core.NewText(breadcrumb).SetText(">")
 	arrow2.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorGrayDark)
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
 	})
 
 	objectText := core.NewText(breadcrumb).SetText(object.Name)
 	objectText.Styler(func(s *styles.Style) {
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	// Object info card
 	infoCard := core.NewFrame(content)
 	infoCard.Styler(func(s *styles.Style) {
 		s.Direction = styles.Column
-		s.Background = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(16))
 		s.Gap.Set(units.Dp(12))
@@ -484,13 +426,13 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 	objectName := core.NewText(titleContainer).SetText(object.Name)
 	objectName.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(20)
-		s.Font.Weight = WeightBold
+		s.Font.Weight = appstyles.WeightBold
 	})
 
 	if object.Description != "" {
 		objectDesc := core.NewText(titleContainer).SetText(object.Description)
 		objectDesc.Styler(func(s *styles.Style) {
-			s.Color = colors.Uniform(ColorGrayDark)
+			s.Color = colors.Uniform(appstyles.ColorGrayDark)
 		})
 	}
 
@@ -504,8 +446,8 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 
 	editBtn := core.NewButton(actionsRow).SetText("Edit Object").SetIcon(icons.Edit)
 	editBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorAccent)
-		s.Color = colors.Uniform(ColorBlack)
+		s.Background = colors.Uniform(appstyles.ColorAccent)
+		s.Color = colors.Uniform(appstyles.ColorBlack)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(12), units.Dp(16))
 		s.Gap.Set(units.Dp(8))
@@ -513,8 +455,8 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 
 	deleteBtn := core.NewButton(actionsRow).SetText("Delete Object").SetIcon(icons.Delete)
 	deleteBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorDanger)
-		s.Color = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorDanger)
+		s.Color = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(12), units.Dp(16))
 		s.Gap.Set(units.Dp(8))
@@ -525,7 +467,7 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 		propsCard := core.NewFrame(content)
 		propsCard.Styler(func(s *styles.Style) {
 			s.Direction = styles.Column
-			s.Background = colors.Uniform(ColorWhite)
+			s.Background = colors.Uniform(appstyles.ColorWhite)
 			s.Border.Radius = styles.BorderRadiusLarge
 			s.Padding.Set(units.Dp(16))
 			s.Gap.Set(units.Dp(12))
@@ -534,7 +476,7 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 		propsTitle := core.NewText(propsCard).SetText("Properties")
 		propsTitle.Styler(func(s *styles.Style) {
 			s.Font.Size = units.Dp(18)
-			s.Font.Weight = WeightSemiBold
+			s.Font.Weight = appstyles.WeightSemiBold
 		})
 
 		for key, value := range object.Properties {
@@ -543,18 +485,18 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 				s.Direction = styles.Row
 				s.Justify.Content = styles.SpaceBetween
 				s.Padding.Set(units.Dp(8))
-				s.Background = colors.Uniform(ColorGrayLightest)
+				s.Background = colors.Uniform(appstyles.ColorGrayLightest)
 				s.Border.Radius = styles.BorderRadiusMedium
 			})
 
 			propKey := core.NewText(propRow).SetText(strings.Title(strings.ReplaceAll(key, "_", " ")) + ":")
 			propKey.Styler(func(s *styles.Style) {
-				s.Font.Weight = WeightMedium
+				s.Font.Weight = appstyles.WeightMedium
 			})
 
 			propValue := core.NewText(propRow).SetText(fmt.Sprintf("%v", value))
 			propValue.Styler(func(s *styles.Style) {
-				s.Color = colors.Uniform(ColorGrayDark)
+				s.Color = colors.Uniform(appstyles.ColorGrayDark)
 			})
 		}
 	}
@@ -564,7 +506,7 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 		tagsCard := core.NewFrame(content)
 		tagsCard.Styler(func(s *styles.Style) {
 			s.Direction = styles.Column
-			s.Background = colors.Uniform(ColorWhite)
+			s.Background = colors.Uniform(appstyles.ColorWhite)
 			s.Border.Radius = styles.BorderRadiusLarge
 			s.Padding.Set(units.Dp(16))
 			s.Gap.Set(units.Dp(12))
@@ -573,7 +515,7 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 		tagsTitle := core.NewText(tagsCard).SetText("Tags")
 		tagsTitle.Styler(func(s *styles.Style) {
 			s.Font.Size = units.Dp(18)
-			s.Font.Weight = WeightSemiBold
+			s.Font.Weight = appstyles.WeightSemiBold
 		})
 
 		tagsContainer := core.NewFrame(tagsCard)
@@ -587,15 +529,14 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 			tagBadge := core.NewText(tagsContainer).SetText(tag)
 			tagBadge.Styler(func(s *styles.Style) {
 				s.Font.Size = units.Dp(14)
-				s.Background = colors.Uniform(ColorPrimaryLightest)
-				s.Color = colors.Uniform(ColorPrimary)
+				s.Background = colors.Uniform(appstyles.ColorPrimaryLightest)
+				s.Color = colors.Uniform(appstyles.ColorPrimary)
 				s.Padding.Set(units.Dp(8), units.Dp(16))
 				s.Border.Radius = styles.BorderRadiusFull
 			})
 		}
 	}
 
-	_ = header
 	app.mainContainer.Update()
 }
 
@@ -605,7 +546,7 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 
 	dialog := core.NewFrame(overlay)
 	dialog.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorWhite)
 		s.Border.Radius = styles.BorderRadiusLarge
 		s.Padding.Set(units.Dp(24))
 		s.Gap.Set(units.Dp(16))
@@ -618,7 +559,7 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 	title := core.NewText(dialog).SetText("Add New Object")
 	title.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(20)
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	// Basic fields
@@ -631,7 +572,7 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 	// Properties section
 	propsTitle := core.NewText(dialog).SetText("Properties")
 	propsTitle.Styler(func(s *styles.Style) {
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	// Create property fields based on object type
@@ -639,7 +580,7 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 	propsContainer.Styler(func(s *styles.Style) {
 		s.Direction = styles.Column
 		s.Gap.Set(units.Dp(8))
-		s.Background = colors.Uniform(ColorGrayLightest)
+		s.Background = colors.Uniform(appstyles.ColorGrayLightest)
 		s.Border.Radius = styles.BorderRadiusMedium
 		s.Padding.Set(units.Dp(12))
 	})
@@ -649,7 +590,7 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 	// Tags section
 	tagsTitle := core.NewText(dialog).SetText("Tags")
 	tagsTitle.Styler(func(s *styles.Style) {
-		s.Font.Weight = WeightSemiBold
+		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
 	tagsField := core.NewTextField(dialog)
@@ -670,8 +611,8 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 
 	addBtn := core.NewButton(buttonRow).SetText("Add Object")
 	addBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(ColorPrimary)
-		s.Color = colors.Uniform(ColorWhite)
+		s.Background = colors.Uniform(appstyles.ColorPrimary)
+		s.Color = colors.Uniform(appstyles.ColorWhite)
 	})
 	addBtn.OnClick(func(e events.Event) {
 		app.handleCreateObject(nameField.Text(), descField.Text(), tagsField.Text(), container, collection)

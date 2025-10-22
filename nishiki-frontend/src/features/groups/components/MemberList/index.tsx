@@ -25,7 +25,7 @@ export const MemberList = ({ groupId }: IMemberListProps) => {
     const fetchUsers = async () => {
       try {
         const usersResult = await fetchUserList(groupId);
-        const users: IUser[] = usersResult.ok ? usersResult.value : [];
+        const users: IUser[] = usersResult.ok ? (usersResult.value || []) : [];
         setUsers(users);
       } catch (error) {
         console.error('Failed to fetch users:', error);
