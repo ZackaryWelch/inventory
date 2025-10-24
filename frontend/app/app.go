@@ -3,7 +3,6 @@
 package app
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -123,31 +122,6 @@ func (cw consoleWriter) Write(p []byte) (n int, err error) {
 	// Use fmt.Print for now, but this goes to console in WebAssembly
 	fmt.Print(string(p))
 	return len(p), nil
-}
-
-// RunDesktop runs the desktop application
-func (app *App) RunDesktop(ctx context.Context, logger *slog.Logger) {
-	// Create and run the UI
-	core.TheApp.SetName("Nishiki Inventory")
-	core.AppAbout = "A cross-platform inventory management application built with Cogent Core"
-
-	body := core.NewBody("Nishiki Inventory")
-	body.AddTopBar(func(tb *core.Frame) {
-		// App bar customization if needed
-	})
-	app.createMainUI(body)
-	logger.Info("Running main window")
-	go func() {
-		body.RunMainWindow()
-		logger.Info("Main window closed")
-	}()
-	select {
-	case <-ctx.Done():
-		logger.Info("Context canceled")
-		body.Close()
-		break
-	}
-	logger.Info("Closing")
 }
 
 // initializeAuthState checks authentication state on app startup

@@ -7,13 +7,15 @@ import (
 
 // Client handles authentication-related API calls
 type Client struct {
-	common *common.Client
+	common   *common.Client
+	clientID string
 }
 
 // NewClient creates a new auth API client
-func NewClient(commonClient *common.Client) *Client {
+func NewClient(commonClient *common.Client, clientID string) *Client {
 	return &Client{
-		common: commonClient,
+		common:   commonClient,
+		clientID: clientID,
 	}
 }
 
@@ -29,7 +31,9 @@ func (c *Client) GetCurrentUser() (*types.User, error) {
 
 // GetOIDCConfig gets the OIDC configuration from the backend
 func (c *Client) GetOIDCConfig() (*map[string]interface{}, error) {
-	resp, err := c.common.Get("/auth/oidc-config")
+	// Add client_id query parameter as required by backend
+	endpoint := "/auth/oidc-config?client_id=" + c.clientID
+	resp, err := c.common.Get(endpoint)
 	if err != nil {
 		return nil, err
 	}

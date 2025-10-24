@@ -822,3 +822,43 @@ func StyleSelectNone(s *styles.Style) {
 	// Note: text selection control would need additional implementation
 	// This is a placeholder for the select-none class behavior
 }
+
+// ====================================================================================
+// Stat Card Stylers (migrated from app/styles.go)
+// ====================================================================================
+
+// StyleStatCard creates a colored stat card with customizable background color
+// Used for dashboard statistics (matches nishiki-frontend stat card pattern)
+func StyleStatCard(cardColor color.RGBA) func(*styles.Style) {
+	return func(s *styles.Style) {
+		s.Direction = styles.Column
+		s.Align.Items = styles.Center
+		s.Background = colors.Uniform(cardColor)
+		s.Border.Radius = sides.NewValues(units.Dp(RadiusDefault)) // rounded
+		s.Padding.Set(units.Dp(Spacing4))
+		s.Gap.Set(units.Dp(Spacing1))
+		s.Min.X.Set(100, units.UnitDp)
+	}
+}
+
+// ====================================================================================
+// Hover State Stylers (migrated from app/styles.go)
+// ====================================================================================
+
+// StyleHoverPrimary applies primary color hover effect
+func StyleHoverPrimary(s *styles.Style) {
+	s.Cursor = cursors.Pointer
+	// TODO: Add hover color change when Cogent Core supports it
+}
+
+// StyleHoverDanger applies danger color hover effect
+func StyleHoverDanger(s *styles.Style) {
+	s.Cursor = cursors.Pointer
+	// TODO: Add hover color change when Cogent Core supports it
+}
+
+// StyleHoverGrayLight applies gray light hover effect
+func StyleHoverGrayLight(s *styles.Style) {
+	s.Cursor = cursors.Pointer
+	s.Background = colors.Uniform(ColorGrayLight)
+}

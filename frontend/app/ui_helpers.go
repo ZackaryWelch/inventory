@@ -1,14 +1,18 @@
+//go:build js && wasm
+
 package app
 
 import (
 	"cogentcore.org/core/colors"
 	"cogentcore.org/core/core"
+	"cogentcore.org/core/cursors"
 	"cogentcore.org/core/events"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/units"
-	appstyles "github.com/nwelchr/nishiki-backend/frontend/app/styles"
 	"image/color"
+
+	appstyles "github.com/nishiki/frontend/ui/styles"
 )
 
 // DialogConfig defines configuration for a generic dialog
@@ -145,7 +149,7 @@ func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 		s.Border.Color.Set(colors.Uniform(appstyles.ColorGrayLight))
 		s.Gap.Set(units.Dp(12))
 		if config.OnClick != nil {
-			s.Cursor = styles.CursorPointer
+			s.Cursor = cursors.Pointer
 		}
 	})
 
@@ -205,7 +209,9 @@ func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 				s.Border.Radius = styles.BorderRadiusLarge
 				s.Padding.Set(units.Dp(8))
 			})
-			actionBtn.OnClick(action.OnClick)
+			actionBtn.OnClick(func(e events.Event) {
+				action.OnClick()
+			})
 		}
 	}
 
@@ -292,122 +298,3 @@ type BreadcrumbItem struct {
 	OnClick func()
 }
 
-// createBreadcrumb creates a breadcrumb navigation component
-func (app *App) createBreadcrumb(parent core.Widget, items []BreadcrumbItem) {
-	breadcrumb := core.NewFrame(parent)
-	breadcrumb.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Align.Items = styles.Center
-		s.Gap.Set(units.Dp(8))
-	})
-
-	for i, item := range items {
-		// Add separator except before first item
-		if i > 0 {
-			arrow := core.NewText(breadcrumb).SetText(">")
-			arrow.Styler(func(s *styles.Style) {
-				s.Color = colors.Uniform(appstyles.ColorTextSecondary)
-			})
-		}
-
-		// Add link
-		link := core.NewText(breadcrumb).SetText(item.Label)
-		if item.OnClick != nil {
-			link.Styler(func(s *styles.Style) {
-				s.Color = colors.Uniform(appstyles.ColorPrimary)
-				s.Cursor = styles.CursorPointer
-			})
-			link.OnClick(func(e events.Event) {
-				item.OnClick()
-			})
-		} else {
-			// Last item (current page) - not clickable
-			link.Styler(func(s *styles.Style) {
-				s.Color = colors.Uniform(appstyles.ColorTextPrimary)
-			})
-		}
-	}
-}
-
-// ViewConfig defines configuration for a standard view
-type ViewConfig struct {
-	Title          string
-	ShowBackButton bool
-	OnBack         func()
-	ContentBuilder func(content core.Widget)
-}
-
-// showView creates a standard view with header and content area
-func (app *App) showView(config ViewConfig) {
-	app.mainContainer.DeleteChildren()
-
-	// Header
-	if config.Title != "" {
-		app.createHeader(config.Title, config.ShowBackButton, config.OnBack)
-	}
-
-	// Content
-	content := core.NewFrame(app.mainContainer)
-	content.Styler(appstyles.StyleContentColumn)
-
-	if config.ContentBuilder != nil {
-		config.ContentBuilder(content)
-	}
-
-	app.mainContainer.Update()
-}
-
-// createHeader creates a consistent header with optional back button
-func (app *App) createHeader(title string, showBack bool, onBack func()) {
-	header := core.NewFrame(app.mainContainer)
-	header.Styler(appstyles.StyleHeaderRow)
-
-	if showBack {
-		backBtn := core.NewButton(header).SetIcon(icons.ArrowBack)
-		backBtn.Styler(appstyles.StyleButtonPrimary)
-		backBtn.OnClick(func(e events.Event) {
-			if onBack != nil {
-				onBack()
-			}
-		})
-	}
-
-	headerText := core.NewText(header).SetText(title)
-	headerText.Styler(appstyles.StyleTextTitle)
-}
-
-// FormField represents a form field configuration
-type FormField struct {
-	Label       string
-	Placeholder string
-	Required    bool
-	Value       *string // Pointer to bind value
-}
-
-// createFormFields creates a set of form fields with labels
-func createFormFields(parent core.Widget, fields []FormField) []*core.TextField {
-	textFields := make([]*core.TextField, len(fields))
-
-	for i, field := range fields {
-		fieldContainer := createFlexColumn(parent, 8)
-
-		// Label
-		if field.Label != "" {
-			labelText := field.Label
-			if field.Required {
-				labelText += " *"
-			}
-			label := core.NewText(fieldContainer).SetText(labelText)
-			label.Styler(func(s *styles.Style) {
-				s.Font.Size = units.Dp(14)
-				s.Font.Weight = appstyles.WeightMedium
-			})
-		}
-
-		// Field
-		textField := createTextField(fieldContainer, field.Placeholder)
-		textFields[i] = textField
-	}
-
-	return textFields
-}

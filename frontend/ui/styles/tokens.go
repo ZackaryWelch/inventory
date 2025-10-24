@@ -42,6 +42,10 @@ var (
 	ColorBlack       = color.RGBA{R: 0, G: 0, B: 0, A: 255}       // #000000
 	ColorOverlay     = color.RGBA{R: 0, G: 0, B: 0, A: 128}       // rgba(0, 0, 0, 0.5)
 	ColorTransparent = color.RGBA{R: 0, G: 0, B: 0, A: 0}         // transparent
+
+	// Text colors (semantic aliases)
+	ColorTextPrimary   = ColorGrayDark // Default text color
+	ColorTextSecondary = ColorGray     // Secondary/muted text color
 )
 
 // ====================================================================================

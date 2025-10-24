@@ -17,6 +17,7 @@ import (
 
 	"github.com/nishiki/frontend/ui/components"
 	"github.com/nishiki/frontend/ui/layouts"
+	appstyles "github.com/nishiki/frontend/ui/styles"
 )
 
 func (app *App) makeAuthenticatedRequest(method, endpoint string, body interface{}) (*http.Response, error) {
@@ -125,11 +126,11 @@ func (app *App) CreateMainUI(b *core.Body) {
 
 // createMainUI creates the main application UI
 func (app *App) createMainUI(b *core.Body) {
-	b.Styler(StyleMainBackground)
+	b.Styler(appstyles.StyleMainBackground)
 
 	// Create main container
 	app.mainContainer = core.NewFrame(b)
-	app.mainContainer.Styler(StyleMainContainer)
+	app.mainContainer.Styler(appstyles.StyleMainContainer)
 
 	if app.currentView == ViewCallback {
 		app.showCallbackView()
@@ -157,15 +158,15 @@ func (app *App) showLoginView() {
 
 	// Login content column
 	loginContent := core.NewFrame(loginContainer)
-	loginContent.Styler(StyleLoginContent) // flex flex-col items-center justify-center
+	loginContent.Styler(appstyles.StyleLoginContent) // flex flex-col items-center justify-center
 
 	// Logo placeholder (would be LogoVerticalPrimary in frontend)
 	logo := core.NewFrame(loginContent)
-	logo.Styler(StyleLoginLogo) // w-32 h-26 mb-20
+	logo.Styler(appstyles.StyleLoginLogo) // w-32 h-26 mb-20
 
 	// App title
 	title := core.NewText(loginContent).SetText("Nishiki Inventory")
-	title.Styler(StyleAppTitle)
+	title.Styler(appstyles.StyleAppTitle)
 
 	// Login button using component library
 	components.Button(loginContent, components.ButtonProps{
@@ -195,18 +196,18 @@ func (app *App) showCallbackView() {
 
 	// Loading content center
 	loadingContent := core.NewFrame(callbackContainer)
-	loadingContent.Styler(StyleTextCenter) // text-center
+	loadingContent.Styler(appstyles.StyleTextCenter) // text-center
 
 	// Loading spinner using component library
 	components.LoadingSpinner(loadingContent)
 
 	// Loading title
 	title := core.NewText(loadingContent).SetText("Completing Sign In...")
-	title.Styler(StyleAppTitle)
+	title.Styler(appstyles.StyleAppTitle)
 
 	// Loading message
 	message := core.NewText(loadingContent).SetText("Please wait while we authenticate you with Authentik.")
-	message.Styler(StyleSubtitle)
+	message.Styler(appstyles.StyleSubtitle)
 
 	app.mainContainer.Update()
 }
@@ -245,7 +246,7 @@ func (app *App) showDashboardView() {
 
 	// Navigation buttons
 	navContainer := core.NewFrame(content)
-	navContainer.Styler(StyleNavContainer)
+	navContainer.Styler(appstyles.StyleNavContainer)
 
 	// Groups button
 	components.Button(navContainer, components.ButtonProps{
@@ -293,125 +294,29 @@ func (app *App) showDashboardView() {
 
 	// Stats section
 	statsContainer := core.NewFrame(content)
-	statsContainer.Styler(StyleStatsContainer)
+	statsContainer.Styler(appstyles.StyleStatsContainer)
 
 	statsTitle := core.NewText(statsContainer).SetText("Quick Stats")
-	statsTitle.Styler(StyleStatsTitle)
+	statsTitle.Styler(appstyles.StyleStatsTitle)
 
 	statsGrid := core.NewFrame(statsContainer)
-	statsGrid.Styler(StyleStatsGrid)
+	statsGrid.Styler(appstyles.StyleStatsGrid)
 
 	// Groups count card
 	groupsCard := components.Card(statsGrid, components.CardProps{})
-	groupsCard.Styler(StyleStatCard(ColorPrimary))
+	groupsCard.Styler(appstyles.StyleStatCard(appstyles.ColorPrimary))
 	groupsValue := core.NewText(groupsCard).SetText(fmt.Sprintf("%d", len(app.groups)))
-	groupsValue.Styler(StyleStatValue)
+	groupsValue.Styler(appstyles.StyleStatValue)
 	groupsLabel := core.NewText(groupsCard).SetText("Groups")
-	groupsLabel.Styler(StyleStatLabel)
+	groupsLabel.Styler(appstyles.StyleStatLabel)
 
 	// Collections count card
 	collectionsCard := components.Card(statsGrid, components.CardProps{})
-	collectionsCard.Styler(StyleStatCard(ColorAccent))
+	collectionsCard.Styler(appstyles.StyleStatCard(appstyles.ColorAccent))
 	collectionsValue := core.NewText(collectionsCard).SetText(fmt.Sprintf("%d", len(app.collections)))
-	collectionsValue.Styler(StyleStatValue)
+	collectionsValue.Styler(appstyles.StyleStatValue)
 	collectionsLabel := core.NewText(collectionsCard).SetText("Collections")
-	collectionsLabel.Styler(StyleStatLabel)
-
-	app.mainContainer.Update()
-}
-
-// showGroupsView displays the groups management view
-func (app *App) showGroupsView() {
-	app.currentView = ViewGroups
-
-	// If UI not initialized yet, just set state and return
-	if app.mainContainer == nil {
-		app.logger.Debug("UI not initialized, deferring showGroupsView")
-		return
-	}
-
-	app.mainContainer.DeleteChildren()
-
-	// Header with back button using layout component
-	layouts.SimpleHeader(app.mainContainer, "Groups", true, func() {
-		app.showDashboardView()
-	})
-
-	// Refresh groups data
-	if err := app.fetchGroups(); err != nil {
-		app.logger.Error("Error fetching groups", "error", err)
-	}
-
-	// Main content
-	content := layouts.ContentColumn(app.mainContainer)
-
-	// Create group button using component library
-	components.Button(content, components.ButtonProps{
-		Text:    "Create Group",
-		Icon:    icons.Add,
-		Variant: components.ButtonPrimary,
-		Size:    components.ButtonSizeMedium,
-		OnClick: func(e events.Event) {
-			// TODO: Show create group dialog
-		},
-	})
-
-	// Groups list
-	if len(app.groups) == 0 {
-		components.EmptyState(content, "No groups found. Create your first group!")
-	} else {
-		for _, group := range app.groups {
-			app.createGroupCard(content, group)
-		}
-	}
-
-	app.mainContainer.Update()
-}
-
-// showCollectionsView displays the collections management view
-func (app *App) showCollectionsView() {
-	app.currentView = ViewCollections
-
-	// If UI not initialized yet, just set state and return
-	if app.mainContainer == nil {
-		app.logger.Debug("UI not initialized, deferring showCollectionsView")
-		return
-	}
-
-	app.mainContainer.DeleteChildren()
-
-	// Header with back button using layout component
-	layouts.SimpleHeader(app.mainContainer, "Collections", true, func() {
-		app.showDashboardView()
-	})
-
-	// Refresh collections data
-	if err := app.fetchCollections(); err != nil {
-		app.logger.Error("Error fetching collections", "error", err)
-	}
-
-	// Main content
-	content := layouts.ContentColumn(app.mainContainer)
-
-	// Create collection button using component library
-	components.Button(content, components.ButtonProps{
-		Text:    "Create Collection",
-		Icon:    icons.Add,
-		Variant: components.ButtonPrimary,
-		Size:    components.ButtonSizeMedium,
-		OnClick: func(e events.Event) {
-			// TODO: Show create collection dialog
-		},
-	})
-
-	// Collections list
-	if len(app.collections) == 0 {
-		components.EmptyState(content, "No collections found. Create your first collection!")
-	} else {
-		for _, collection := range app.collections {
-			app.createCollectionCard(content, collection)
-		}
-	}
+	collectionsLabel.Styler(appstyles.StyleStatLabel)
 
 	app.mainContainer.Update()
 }
@@ -442,18 +347,18 @@ func (app *App) showProfileView() {
 
 		// Username
 		usernameLabel := core.NewText(userCard).SetText("Username:")
-		usernameLabel.Styler(StyleUserFieldLabel)
+		usernameLabel.Styler(appstyles.StyleUserFieldLabel)
 		core.NewText(userCard).SetText(app.currentUser.Username)
 
 		// Email
 		emailLabel := core.NewText(userCard).SetText("Email:")
-		emailLabel.Styler(StyleUserFieldLabel)
+		emailLabel.Styler(appstyles.StyleUserFieldLabel)
 		core.NewText(userCard).SetText(app.currentUser.Email)
 
 		// Name (if available)
 		if app.currentUser.Name != "" {
 			nameLabel := core.NewText(userCard).SetText("Name:")
-			nameLabel.Styler(StyleUserFieldLabel)
+			nameLabel.Styler(appstyles.StyleUserFieldLabel)
 			core.NewText(userCard).SetText(app.currentUser.Name)
 		}
 	}
@@ -471,10 +376,10 @@ func (app *App) showProfileView() {
 
 	// Developer tools section
 	devSection := core.NewFrame(content)
-	devSection.Styler(StyleDevSection)
+	devSection.Styler(appstyles.StyleDevSection)
 
 	devTitle := core.NewText(devSection).SetText("Developer Tools")
-	devTitle.Styler(StyleDevTitle)
+	devTitle.Styler(appstyles.StyleDevTitle)
 
 	// Clear cache button using component library
 	components.Button(devSection, components.ButtonProps{
@@ -490,70 +395,26 @@ func (app *App) showProfileView() {
 	app.mainContainer.Update()
 }
 
-// createGroupCard creates a card for displaying group information
-// Matches nishiki-frontend pattern: Card className="flex justify-between gap-2"
-func (app *App) createGroupCard(parent core.Widget, group Group) *core.Frame {
-	card := core.NewFrame(parent)
-	card.Styler(StyleCardFlexBetween) // Card + flex justify-between gap-2
-
-	// Link content area (flex grow flex-col gap-3 pl-4 py-2)
-	contentArea := core.NewFrame(card)
-	contentArea.Styler(StyleCardContentColumn) // flex grow flex-col gap-3 pl-4 py-2
-	contentArea.OnClick(func(e events.Event) {
-		app.showGroupDetailView(group)
-	})
-
-	// Group name (text-lg leading-6)
-	groupName := core.NewText(contentArea).SetText(group.Name)
-	groupName.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(18) // text-lg
-		s.Text.LineHeight = 24     // leading-6
-	})
-
-	// Stats area (w-full flex justify-between items-center)
-	statsArea := core.NewFrame(contentArea)
-	statsArea.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Justify.Content = styles.SpaceBetween
-		s.Align.Items = styles.Center
-		s.Min.X.Set(100, units.UnitEw) // w-full
-	})
-
-	// Member count (matching frontend pattern)
-	membersText := core.NewText(statsArea).SetText(fmt.Sprintf("%d members", len(group.Members)))
-	membersText.Styler(StyleSmallText)
-
-	// Dropdown menu button (w-12)
-	menuBtn := core.NewButton(card).SetIcon(icons.MoreVert)
-	menuBtn.Styler(func(s *styles.Style) {
-		s.Min.X.Set(48, units.UnitDp) // w-12
-		// variant="ghost" - transparent background
-		s.Background = nil
-	})
-
-	return card
-}
-
 // createCollectionCard creates a card for displaying collection information
 // Matches nishiki-frontend ContainerCard pattern: Card className="flex justify-between gap-2"
 func (app *App) createCollectionCard(parent core.Widget, collection Collection) *core.Frame {
 	card := core.NewFrame(parent)
-	card.Styler(StyleCardFlexBetween) // Card + flex justify-between gap-2
+	card.Styler(appstyles.StyleCardFlexBetween) // Card + flex justify-between gap-2
 
 	// Link content area (flex grow gap-4 items-center pl-4 py-2)
 	contentArea := core.NewFrame(card)
-	contentArea.Styler(StyleCardContentGrow) // flex grow gap-4 items-center pl-4 py-2
+	contentArea.Styler(appstyles.StyleCardContentGrow) // flex grow gap-4 items-center pl-4 py-2
 	contentArea.OnClick(func(e events.Event) {
 		app.showCollectionDetailView(collection)
 	})
 
 	// Icon circle (flex items-center justify-center bg-accent rounded-full w-11 h-11)
 	iconCircle := core.NewFrame(contentArea)
-	iconCircle.Styler(StyleIconCircleAccent) // bg-accent rounded-full w-11 h-11
+	iconCircle.Styler(appstyles.StyleIconCircleAccent) // bg-accent rounded-full w-11 h-11
 
 	icon := core.NewIcon(iconCircle).SetIcon(app.getIcon(collection.ObjectType))
 	icon.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(ColorBlack) // color="black" for accent background
+		s.Color = colors.Uniform(appstyles.ColorBlack) // color="black" for accent background
 		s.Font.Size = units.Dp(24)           // size={6} in frontend (24px)
 	})
 

@@ -9,12 +9,12 @@ import (
 
 	"cogentcore.org/core/colors"
 	"cogentcore.org/core/core"
-	"cogentcore.org/core/cursors"
 	"cogentcore.org/core/events"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/units"
 
+	"github.com/nishiki/frontend/ui/components"
 	"github.com/nishiki/frontend/ui/layouts"
 	appstyles "github.com/nishiki/frontend/ui/styles"
 )
@@ -35,51 +35,41 @@ func (app *App) showEnhancedCollectionsView() {
 	}
 
 	// Main content
-	content := core.NewFrame(app.mainContainer)
-	content.Styler(appstyles.StyleContentColumn)
+	content := layouts.ContentColumn(app.mainContainer)
 
 	// Action buttons row
 	actionsRow := core.NewFrame(content)
-	actionsRow.Styler(appstyles.StyleActionsRow)
+	actionsRow.Styler(appstyles.StyleActionsSplit)
 
-	// Create collection button
-	createBtn := core.NewButton(actionsRow).SetText("Create Collection").SetIcon(icons.Add)
-	createBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorAccent) // var(--color-accent)
-		s.Color = colors.Uniform(appstyles.ColorBlack)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(12), units.Dp(16))
-		s.Gap.Set(units.Dp(8))
-	})
-	createBtn.OnClick(func(e events.Event) {
-		app.showCreateCollectionDialog()
+	// Create collection button using component
+	components.Button(actionsRow, components.ButtonProps{
+		Text:    "Create Collection",
+		Icon:    icons.Add,
+		Variant: components.ButtonAccent,
+		Size:    components.ButtonSizeMedium,
+		OnClick: func(e events.Event) {
+			app.showCreateCollectionDialog()
+		},
 	})
 
-	// Import collection button
-	importBtn := core.NewButton(actionsRow).SetText("Import").SetIcon(icons.Upload)
-	importBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorPrimary)
-		s.Color = colors.Uniform(appstyles.ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(12), units.Dp(16))
-		s.Gap.Set(units.Dp(8))
-	})
-	importBtn.OnClick(func(e events.Event) {
-		app.showImportDialog()
+	// Import collection button using component
+	components.Button(actionsRow, components.ButtonProps{
+		Text:    "Import",
+		Icon:    icons.Upload,
+		Variant: components.ButtonPrimary,
+		Size:    components.ButtonSizeMedium,
+		OnClick: func(e events.Event) {
+			app.showImportDialog()
+		},
 	})
 
 	// Collections grid
 	if len(app.collections) == 0 {
-		emptyState := app.createEmptyState(content, "No collections found", "Create your first collection to start managing your inventory!", icons.FolderOpen)
-		_ = emptyState
+		components.EmptyState(content, "No collections found. Create your first collection to start managing your inventory!")
 	} else {
 		// Collections grid
 		collectionsGrid := core.NewFrame(content)
-		collectionsGrid.Styler(func(s *styles.Style) {
-			s.Direction = styles.Row
-			s.Wrap = true
-			s.Gap.Set(units.Dp(16))
-		})
+		collectionsGrid.Styler(appstyles.StyleCollectionsGrid)
 
 		for _, collection := range app.collections {
 			app.createEnhancedCollectionCard(collectionsGrid, collection)

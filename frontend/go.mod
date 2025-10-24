@@ -4,7 +4,6 @@ go 1.24.0
 
 require (
 	cogentcore.org/core v0.3.12
-	github.com/posener/ctxutil v1.0.0
 	github.com/spf13/viper v1.17.0
 	golang.org/x/oauth2 v0.32.0
 )

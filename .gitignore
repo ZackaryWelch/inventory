@@ -2,7 +2,8 @@ backend
 frontend/verification/*
 *.wasm
 app.toml
-frontend/config.toml
+config.toml
 frontend/frontend
-frontend/bin/desktop
+frontend/bin/*
 frontend/web/app.wasm
+frontend/logs/*

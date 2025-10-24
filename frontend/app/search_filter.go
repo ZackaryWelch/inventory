@@ -8,7 +8,6 @@ import (
 	"cogentcore.org/core/colors"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/cursors"
-	"cogentcore.org/core/events"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/units"
@@ -35,12 +34,6 @@ type DateRange struct {
 }
 
 // Add search filter to App struct
-func (app *App) initSearchFilter() {
-	app.searchFilter = &SearchFilter{
-		SortBy:        "name",
-		SortDirection: "asc",
-	}
-}
 
 // Global search view
 func (app *App) showGlobalSearchView() {
@@ -480,114 +473,3 @@ func (app *App) getMockObjectResults() []SearchResult {
 }
 
 // Advanced filter dialog
-func (app *App) showAdvancedFilterDialog() {
-	overlay := app.createOverlay()
-
-	dialog := core.NewFrame(overlay)
-	dialog.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(24))
-		s.Gap.Set(units.Dp(16))
-		s.Direction = styles.Column
-		s.Min.X.Set(500, units.UnitDp)
-		s.Max.X.Set(600, units.UnitDp)
-		s.Max.Y.Set(500, units.UnitDp)
-	})
-
-	title := core.NewText(dialog).SetText("Advanced Filters")
-	title.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(20)
-		s.Font.Weight = appstyles.WeightSemiBold
-	})
-
-	// Tags filter
-	tagsSection := core.NewFrame(dialog)
-	tagsSection.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Gap.Set(units.Dp(8))
-	})
-
-	tagsTitle := core.NewText(tagsSection).SetText("Filter by Tags")
-	tagsTitle.Styler(func(s *styles.Style) {
-		s.Font.Weight = appstyles.WeightSemiBold
-	})
-
-	// Mock available tags
-	tagsGrid := core.NewFrame(tagsSection)
-	tagsGrid.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Wrap = true
-		s.Gap.Set(units.Dp(8))
-	})
-
-	availableTags := []string{"organic", "dairy", "fruit", "vegetable", "snack", "beverage"}
-	for _, tag := range availableTags {
-		tagBtn := core.NewButton(tagsGrid).SetText(tag)
-		tagBtn.Styler(func(s *styles.Style) {
-			s.Background = colors.Uniform(color.RGBA{R: 240, G: 240, B: 240, A: 255})
-			s.Border.Radius = styles.BorderRadiusFull
-			s.Padding.Set(units.Dp(6), units.Dp(12))
-		})
-	}
-
-	// Property filters
-	propsSection := core.NewFrame(dialog)
-	propsSection.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Gap.Set(units.Dp(8))
-	})
-
-	propsTitle := core.NewText(propsSection).SetText("Property Filters")
-	propsTitle.Styler(func(s *styles.Style) {
-		s.Font.Weight = appstyles.WeightSemiBold
-	})
-
-	// Expiry date filter for food items
-	expiryContainer := core.NewFrame(propsSection)
-	expiryContainer.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(8))
-		s.Align.Items = styles.Center
-	})
-
-	expiryLabel := core.NewText(expiryContainer).SetText("Expires within:")
-	expiryField := core.NewTextField(expiryContainer)
-	expiryField.SetPlaceholder("7")
-	expiryField.Styler(func(s *styles.Style) {
-		s.Min.X.Set(60, units.UnitDp)
-	})
-	dayLabel := core.NewText(expiryContainer).SetText("days")
-
-	// Ensure the labels are properly styled (satisfies unused variable check)
-	expiryLabel.SetTooltip("Filter items by expiration date")
-	dayLabel.SetTooltip("Number of days until expiration")
-
-	// Buttons
-	buttonRow := core.NewFrame(dialog)
-	buttonRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(12))
-		s.Justify.Content = styles.End
-	})
-
-	clearBtn := core.NewButton(buttonRow).SetText("Clear All")
-	clearBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(color.RGBA{R: 240, G: 240, B: 240, A: 255})
-	})
-
-	cancelBtn := core.NewButton(buttonRow).SetText("Cancel")
-	cancelBtn.OnClick(func(e events.Event) {
-		app.hideOverlay()
-	})
-
-	applyBtn := core.NewButton(buttonRow).SetText("Apply Filters")
-	applyBtn.Styler(appstyles.StyleButtonPrimary)
-	applyBtn.Styler(appstyles.StyleButtonMd)
-	applyBtn.OnClick(func(e events.Event) {
-		app.hideOverlay()
-		// Apply filters and refresh search results
-	})
-
-	app.showOverlay(overlay)
-}

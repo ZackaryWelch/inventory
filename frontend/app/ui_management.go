@@ -9,13 +9,13 @@ import (
 
 	"cogentcore.org/core/colors"
 	"cogentcore.org/core/core"
-	"cogentcore.org/core/cursors"
 	"cogentcore.org/core/events"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/units"
 	"cogentcore.org/core/text/rich"
 
+	"github.com/nishiki/frontend/ui/components"
 	"github.com/nishiki/frontend/ui/layouts"
 	appstyles "github.com/nishiki/frontend/ui/styles"
 )
@@ -58,9 +58,6 @@ type DialogState struct {
 }
 
 // Add dialog state to App
-func (app *App) initDialogState() {
-	app.dialogState = &DialogState{}
-}
 
 // Enhanced Groups View with full CRUD operations
 func (app *App) showEnhancedGroupsView() {
@@ -78,37 +75,37 @@ func (app *App) showEnhancedGroupsView() {
 	}
 
 	// Main content
-	content := core.NewFrame(app.mainContainer)
-	content.Styler(appstyles.StyleContentColumn)
+	content := layouts.ContentColumn(app.mainContainer)
 
 	// Action buttons row
 	actionsRow := core.NewFrame(content)
-	actionsRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(12))
-		s.Justify.Content = styles.End
+	actionsRow.Styler(appstyles.StyleActionsSplit)
+
+	// Create group button using component
+	components.Button(actionsRow, components.ButtonProps{
+		Text:    "Create Group",
+		Icon:    icons.Add,
+		Variant: components.ButtonPrimary,
+		Size:    components.ButtonSizeMedium,
+		OnClick: func(e events.Event) {
+			app.showCreateGroupDialog()
+		},
 	})
 
-	// Create group button
-	createBtn := core.NewButton(actionsRow).SetText("Create Group").SetIcon(icons.Add)
-	createBtn.Styler(appstyles.StyleButtonPrimary)
-	createBtn.Styler(appstyles.StyleButtonMd)
-	createBtn.OnClick(func(e events.Event) {
-		app.showCreateGroupDialog()
-	})
-
-	// Join group button
-	joinBtn := core.NewButton(actionsRow).SetText("Join Group").SetIcon(icons.PersonAdd)
-	joinBtn.Styler(appstyles.StyleButtonAccent)
-	joinBtn.Styler(appstyles.StyleButtonMd)
-	joinBtn.OnClick(func(e events.Event) {
-		app.showJoinGroupDialog()
+	// Join group button using component
+	components.Button(actionsRow, components.ButtonProps{
+		Text:    "Join Group",
+		Icon:    icons.PersonAdd,
+		Variant: components.ButtonAccent,
+		Size:    components.ButtonSizeMedium,
+		OnClick: func(e events.Event) {
+			app.showJoinGroupDialog()
+		},
 	})
 
 	// Groups list
 	if len(app.groups) == 0 {
-		emptyState := app.createEmptyState(content, "No groups found", "Create your first group to get started!", icons.Group)
-		_ = emptyState
+		components.EmptyState(content, "No groups found. Create your first group to get started!")
 	} else {
 		for _, group := range app.groups {
 			app.createEnhancedGroupCard(content, group)
@@ -156,48 +153,23 @@ func (app *App) showGroupDetailView(group Group) {
 	})
 
 	// Main content
-	content := core.NewFrame(app.mainContainer)
-	content.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Grow.Set(1, 1)
-		s.Padding.Set(units.Dp(16))
-		s.Gap.Set(units.Dp(16))
-	})
+	content := layouts.ContentColumn(app.mainContainer)
 
-	// Group info card
-	infoCard := core.NewFrame(content)
-	infoCard.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Background = colors.Uniform(appstyles.ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(16))
-		s.Gap.Set(units.Dp(12))
-	})
+	// Group info card using component
+	infoCard := components.Card(content, components.CardProps{})
 
 	// Description
 	if group.Description != "" {
-		descTitle := core.NewText(infoCard).SetText("Description")
-		descTitle.Styler(func(s *styles.Style) {
-			s.Font.Weight = appstyles.WeightSemiBold
-			s.Color = colors.Uniform(appstyles.ColorGrayDark)
-		})
-		desc := core.NewText(infoCard).SetText(group.Description)
-		desc.SetTooltip("Group description")
+		components.CardTitle(infoCard, "Description")
+		components.CardDescription(infoCard, group.Description)
 	}
 
 	// Members section
 	membersTitle := core.NewText(content).SetText("Members")
-	membersTitle.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(18)
-		s.Font.Weight = appstyles.WeightSemiBold
-	})
+	membersTitle.Styler(appstyles.StyleH2)
 
 	if len(group.Members) == 0 {
-		emptyMembers := core.NewText(content).SetText("No members in this group yet.")
-		emptyMembers.Styler(func(s *styles.Style) {
-			s.Color = colors.Uniform(appstyles.ColorGrayDark)
-			s.Align.Self = styles.Center
-		})
+		components.EmptyState(content, "No members in this group yet.")
 	} else {
 		for _, member := range group.Members {
 			app.createMemberCard(content, member, group)
@@ -206,10 +178,7 @@ func (app *App) showGroupDetailView(group Group) {
 
 	// Collections section
 	collectionsTitle := core.NewText(content).SetText("Collections")
-	collectionsTitle.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(18)
-		s.Font.Weight = appstyles.WeightSemiBold
-	})
+	collectionsTitle.Styler(appstyles.StyleH2)
 
 	// Filter collections for this group
 	groupCollections := []Collection{}
