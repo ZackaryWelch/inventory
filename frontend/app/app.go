@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"cogentcore.org/core/core"
+	"github.com/nishiki/backend-go/app/http/response"
 	"github.com/nishiki/frontend/config"
 )
 
@@ -26,13 +27,12 @@ const (
 // Use the shared config type
 type Config = config.Config
 
-// User represents a user in the system
-type User struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Name     string `json:"name"`
-}
+// Import backend response types instead of duplicating
+type (
+	User              = response.UserResponse
+	AuthInfoResponse  = response.AuthInfoResponse
+	ClaimsInfo        = response.ClaimsInfo
+)
 
 // Group represents a group in the system
 type Group struct {

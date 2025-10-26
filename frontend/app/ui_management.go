@@ -9,9 +9,11 @@ import (
 
 	"cogentcore.org/core/colors"
 	"cogentcore.org/core/core"
+	"cogentcore.org/core/cursors"
 	"cogentcore.org/core/events"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/styles"
+	"cogentcore.org/core/styles/sides"
 	"cogentcore.org/core/styles/units"
 	"cogentcore.org/core/text/rich"
 
@@ -64,43 +66,40 @@ func (app *App) showEnhancedGroupsView() {
 	app.mainContainer.DeleteChildren()
 	app.currentView = "groups"
 
-	// Header with back button
-	layouts.SimpleHeader(app.mainContainer, "Groups", true, func() {
-		app.showDashboardView()
-	})
-
 	// Refresh groups data
 	if err := app.fetchGroups(); err != nil {
 		fmt.Printf("Error fetching groups: %v\n", err)
 	}
 
-	// Main content
+	// Page title - using helper function
+	layouts.PageTitle(app.mainContainer, "Groups")
+
+	// Main content - using existing layout function
 	content := layouts.ContentColumn(app.mainContainer)
 
-	// Action buttons row
-	actionsRow := core.NewFrame(content)
-	actionsRow.Styler(appstyles.StyleActionsSplit)
-
-	// Create group button using component
-	components.Button(actionsRow, components.ButtonProps{
-		Text:    "Create Group",
-		Icon:    icons.Add,
-		Variant: components.ButtonPrimary,
-		Size:    components.ButtonSizeMedium,
-		OnClick: func(e events.Event) {
-			app.showCreateGroupDialog()
-		},
+	// Action button row - React pattern: h-12 w-full flex items-center justify-end
+	// This goes BEFORE the group cards list
+	actionRow := core.NewFrame(content)
+	actionRow.Styler(func(s *styles.Style) {
+		s.Direction = styles.Row
+		s.Justify.Content = styles.End // justify-end
+		s.Align.Items = styles.Center   // items-center
+		s.Min.Y.Set(48, units.UnitDp)   // h-12
+		s.Min.X.Set(100, units.UnitEw)  // w-full
+		s.Margin.Bottom = units.Dp(appstyles.Spacing2)
 	})
 
-	// Join group button using component
-	components.Button(actionsRow, components.ButtonProps{
-		Text:    "Join Group",
-		Icon:    icons.PersonAdd,
-		Variant: components.ButtonAccent,
-		Size:    components.ButtonSizeMedium,
-		OnClick: func(e events.Event) {
-			app.showJoinGroupDialog()
-		},
+	// Create Group button (ghost icon button like React)
+	createGroupBtn := core.NewButton(actionRow).SetIcon(icons.Add)
+	createGroupBtn.Styler(func(s *styles.Style) {
+		s.Background = nil // ghost variant
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
+		s.Padding.Set(units.Dp(8))
+		s.Min.X.Set(48, units.UnitDp)
+		s.Min.Y.Set(48, units.UnitDp)
+	})
+	createGroupBtn.OnClick(func(e events.Event) {
+		app.showCreateGroupDialog() // Open dialog directly
 	})
 
 	// Groups list
@@ -112,34 +111,119 @@ func (app *App) showEnhancedGroupsView() {
 		}
 	}
 
+	// Bottom navigation bar - FIXED at bottom (React pattern)
+	layouts.CreateDefaultBottomMenu(app.mainContainer, "groups", app.handleNavigation)
+
 	app.mainContainer.Update()
 }
 
-// Create enhanced group card with action menu
+// Create enhanced group card - EXACTLY matches React GroupCard.tsx structure
 func (app *App) createEnhancedGroupCard(parent core.Widget, group Group) *core.Frame {
-	return app.createCard(parent, CardConfig{
-		Icon:        icons.Group,
-		IconColor:   appstyles.ColorPrimary,
-		Title:       group.Name,
-		Description: group.Description,
-		Stats: []CardStat{
-			{Label: "members", Value: fmt.Sprintf("%d", len(group.Members))},
-		},
-		OnClick: func() {
-			app.showGroupDetailView(group)
-		},
-		Actions: []CardAction{
-			{Icon: icons.Edit, Color: appstyles.ColorAccent, Tooltip: "Edit group", OnClick: func() {
-				app.showEditGroupDialog(group)
-			}},
-			{Icon: icons.Delete, Color: appstyles.ColorDanger, Tooltip: "Delete group", OnClick: func() {
-				app.showDeleteGroupDialog(group)
-			}},
-			{Icon: icons.PersonAdd, Color: appstyles.ColorPrimary, Tooltip: "Invite to group", OnClick: func() {
-				app.showInviteToGroupDialog(group)
-			}},
-		},
+	// Container for group name + card (React structure has name ABOVE card)
+	container := core.NewFrame(parent)
+	container.Styler(func(s *styles.Style) {
+		s.Direction = styles.Column
+		s.Gap.Set(units.Dp(8))
+		s.Margin.Bottom = units.Dp(appstyles.Spacing2)
 	})
+
+	// Group name ABOVE the card (React: text-lg font-semibold mb-2)
+	groupName := core.NewText(container).SetText(group.Name)
+	groupName.Styler(func(s *styles.Style) {
+		s.Font.Size = units.Dp(appstyles.FontSizeLG)
+		s.Font.Weight = appstyles.WeightSemiBold
+		s.Color = colors.Uniform(appstyles.ColorBlack)
+	})
+
+	// Card - single horizontal row (React: className="flex justify-between items-center p-4")
+	card := components.Card(container, components.CardProps{})
+	card.Styler(func(s *styles.Style) {
+		s.Direction = styles.Row
+		s.Justify.Content = styles.SpaceBetween
+		s.Align.Items = styles.Center
+		s.Padding.Set(units.Dp(appstyles.Spacing4))
+		s.Gap.Set(units.Dp(appstyles.Spacing4))
+	})
+
+	// LEFT SECTION: Icon + Container Count (React: flex gap-2 items-center)
+	leftSection := core.NewFrame(card)
+	leftSection.Styler(func(s *styles.Style) {
+		s.Direction = styles.Row
+		s.Align.Items = styles.Center
+		s.Gap.Set(units.Dp(8))
+		s.Cursor = cursors.Pointer
+	})
+	leftSection.OnClick(func(e events.Event) {
+		app.showGroupDetailView(group)
+	})
+
+	// Icon (cheese emoji in React - using folder icon as placeholder)
+	icon := core.NewIcon(leftSection).SetIcon(icons.Folder)
+	icon.Styler(func(s *styles.Style) {
+		s.Font.Size = units.Dp(24)
+		s.Color = colors.Uniform(appstyles.ColorAccent) // Yellow like cheese
+	})
+
+	// Container count
+	containerCount := core.NewText(leftSection).SetText("0")
+	containerCount.Styler(func(s *styles.Style) {
+		s.Font.Size = units.Dp(appstyles.FontSizeBase)
+		s.Color = colors.Uniform(appstyles.ColorBlack)
+	})
+
+	// RIGHT SECTION: User Avatars + User Count + Menu (React: flex gap-2 items-center)
+	rightSection := core.NewFrame(card)
+	rightSection.Styler(func(s *styles.Style) {
+		s.Direction = styles.Row
+		s.Align.Items = styles.Center
+		s.Gap.Set(units.Dp(8))
+	})
+
+	// User avatars (3 gray circles in React)
+	avatarsContainer := core.NewFrame(rightSection)
+	avatarsContainer.Styler(func(s *styles.Style) {
+		s.Direction = styles.Row
+		s.Gap.Set(units.Dp(4))
+	})
+
+	// Show up to 3 avatar circles
+	numAvatars := len(group.Members)
+	if numAvatars > 3 {
+		numAvatars = 3
+	}
+	for i := 0; i < numAvatars; i++ {
+		avatar := core.NewIcon(avatarsContainer).SetIcon(icons.Person)
+		avatar.Styler(func(s *styles.Style) {
+			s.Font.Size = units.Dp(20)
+			s.Color = colors.Uniform(appstyles.ColorGray)
+			s.Background = colors.Uniform(appstyles.ColorGrayLight)
+			s.Border.Radius = sides.NewValues(units.Dp(9999)) // Circular
+			s.Padding.Set(units.Dp(4))
+		})
+	}
+
+	// User count (×N)
+	userCount := core.NewText(rightSection).SetText(fmt.Sprintf("×%d", len(group.Members)))
+	userCount.Styler(func(s *styles.Style) {
+		s.Font.Size = units.Dp(appstyles.FontSizeBase)
+		s.Color = colors.Uniform(appstyles.ColorGrayDark)
+	})
+
+	// Three-dot menu button
+	menuButton := core.NewButton(rightSection).SetIcon(icons.MoreVert)
+	menuButton.Styler(func(s *styles.Style) {
+		s.Background = nil
+		s.Border.Width.Set(units.Dp(1))
+		s.Border.Color.Set(colors.Uniform(appstyles.ColorGray))
+		s.Border.Radius = sides.NewValues(units.Dp(appstyles.RadiusMD))
+		s.Padding.Set(units.Dp(8))
+		s.Color = colors.Uniform(appstyles.ColorGray)
+	})
+	menuButton.OnClick(func(e events.Event) {
+		app.showEditGroupDialog(group)
+	})
+
+	return container
 }
 
 // Group Detail View
@@ -217,11 +301,13 @@ func (app *App) createMemberCard(parent core.Widget, member User, group Group) *
 	return app.createCard(parent, CardConfig{
 		Icon:        icons.Person,
 		IconColor:   appstyles.ColorPrimary,
-		Title:       member.Username,
+		Title:       member.Name,
 		Description: member.Email,
 		Actions:     actions,
 	})
 }
+
+// Removed showGroupActionsMenu - button now opens dialog directly
 
 // Dialog functions
 func (app *App) showCreateGroupDialog() {
@@ -403,7 +489,7 @@ func (app *App) showInviteToGroupDialog(group Group) {
 func (app *App) showRemoveMemberDialog(member User, group Group) {
 	app.showDialog(DialogConfig{
 		Title:            "Remove Member",
-		Message:          fmt.Sprintf("Remove \"%s\" from \"%s\"?", member.Username, group.Name),
+		Message:          fmt.Sprintf("Remove \"%s\" from \"%s\"?", member.Name, group.Name),
 		SubmitButtonText: "Remove",
 		SubmitButtonStyle: appstyles.StyleButtonDanger,
 		OnSubmit: func() {

@@ -7,3 +7,4 @@ frontend/frontend
 frontend/bin/*
 frontend/web/app.wasm
 frontend/logs/*
+.idea

@@ -12,6 +12,7 @@ import (
 	"cogentcore.org/core/events"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/styles"
+	"cogentcore.org/core/styles/sides"
 	"cogentcore.org/core/styles/units"
 
 	"github.com/nishiki/frontend/ui/components"
@@ -24,50 +25,21 @@ func (app *App) showEnhancedCollectionsView() {
 	app.mainContainer.DeleteChildren()
 	app.currentView = "collections"
 
-	// Header with back button
-	layouts.SimpleHeader(app.mainContainer, "Collections", true, func() {
-		app.showDashboardView()
-	})
-
 	// Refresh collections data
 	if err := app.fetchCollections(); err != nil {
 		fmt.Printf("Error fetching collections: %v\n", err)
 	}
 
-	// Main content
+	// Page title - using helper function
+	layouts.PageTitle(app.mainContainer, "Foods")
+
+	// Main content - using existing layout function
 	content := layouts.ContentColumn(app.mainContainer)
-
-	// Action buttons row
-	actionsRow := core.NewFrame(content)
-	actionsRow.Styler(appstyles.StyleActionsSplit)
-
-	// Create collection button using component
-	components.Button(actionsRow, components.ButtonProps{
-		Text:    "Create Collection",
-		Icon:    icons.Add,
-		Variant: components.ButtonAccent,
-		Size:    components.ButtonSizeMedium,
-		OnClick: func(e events.Event) {
-			app.showCreateCollectionDialog()
-		},
-	})
-
-	// Import collection button using component
-	components.Button(actionsRow, components.ButtonProps{
-		Text:    "Import",
-		Icon:    icons.Upload,
-		Variant: components.ButtonPrimary,
-		Size:    components.ButtonSizeMedium,
-		OnClick: func(e events.Event) {
-			app.showImportDialog()
-		},
-	})
 
 	// Collections grid
 	if len(app.collections) == 0 {
 		components.EmptyState(content, "No collections found. Create your first collection to start managing your inventory!")
 	} else {
-		// Collections grid
 		collectionsGrid := core.NewFrame(content)
 		collectionsGrid.Styler(appstyles.StyleCollectionsGrid)
 
@@ -75,6 +47,25 @@ func (app *App) showEnhancedCollectionsView() {
 			app.createEnhancedCollectionCard(collectionsGrid, collection)
 		}
 	}
+
+	// Fixed FAB at bottom-right (React pattern: fixed bottom-[5.5rem] right-4)
+	// Bottom nav is at bottom-0, so FAB is ~88px above it
+	fab := core.NewButton(app.mainContainer).SetIcon(icons.Add)
+	fab.Styler(func(s *styles.Style) {
+		s.Min.X.Set(56, units.UnitDp)                         // w-14 (56px)
+		s.Min.Y.Set(56, units.UnitDp)                         // aspect-square
+		s.Background = colors.Uniform(appstyles.ColorAccent)  // bg-accent (yellow)
+		s.Color = colors.Uniform(appstyles.ColorBlack)        // Black icon
+		s.Border.Radius = sides.NewValues(units.Dp(9999))     // rounded-full
+		// TODO: Need to position fixed at bottom-right
+		// For now it will appear in flow, but ideally: bottom-[5.5rem] right-4
+	})
+	fab.OnClick(func(e events.Event) {
+		app.showCreateCollectionDialog() // Open dialog directly
+	})
+
+	// Bottom navigation bar
+	layouts.CreateDefaultBottomMenu(app.mainContainer, "collections", app.handleNavigation)
 
 	app.mainContainer.Update()
 }
@@ -311,6 +302,8 @@ func (app *App) getCollectionTypeColor(objectType string) color.RGBA {
 	}
 }
 
+// Removed showCollectionActionsMenu - FAB opens Create Collection directly
+
 // Collection dialogs
 func (app *App) showCreateCollectionDialog() {
 	app.showCreateCollectionDialogWithType("")
@@ -332,6 +325,7 @@ func (app *App) showCreateCollectionDialogWithType(selectedType string) {
 			typeLabel := core.NewText(dialog).SetText("Object Type")
 			typeLabel.Styler(func(s *styles.Style) {
 				s.Font.Weight = appstyles.WeightSemiBold
+				s.Color = colors.Uniform(appstyles.ColorBlack) // Ensure label is visible
 			})
 
 			typeContainer := createFlexRow(dialog, 8, styles.Start)

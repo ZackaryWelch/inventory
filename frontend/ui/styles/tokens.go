@@ -18,10 +18,10 @@ import (
 
 var (
 	// Primary colors (matching --color-primary-* from globals.css)
-	ColorPrimaryLightest = color.RGBA{R: 214, G: 234, B: 231, A: 255} // #d6eae7
-	ColorPrimaryLight    = color.RGBA{R: 149, G: 206, B: 198, A: 255} // #95cec6
+	ColorPrimaryLightest = color.RGBA{R: 230, G: 242, B: 241, A: 255} // #e6f2f1 (--color-primary-lightest)
+	ColorPrimaryLight    = color.RGBA{R: 171, G: 212, B: 207, A: 255} // #abd4cf (--color-primary-light)
 	ColorPrimary         = color.RGBA{R: 106, G: 179, B: 171, A: 255} // #6ab3ab (--color-primary)
-	ColorPrimaryDark     = color.RGBA{R: 85, G: 143, B: 137, A: 255}  // #558f89
+	ColorPrimaryDark     = color.RGBA{R: 85, G: 143, B: 137, A: 255}  // #558f89 (--color-primary-dark)
 
 	// Accent colors (matching --color-accent-*)
 	ColorAccent     = color.RGBA{R: 252, G: 216, B: 132, A: 255} // #fcd884 (--color-accent)
@@ -46,6 +46,11 @@ var (
 	// Text colors (semantic aliases)
 	ColorTextPrimary   = ColorGrayDark // Default text color
 	ColorTextSecondary = ColorGray     // Secondary/muted text color
+
+	// Blue colors (for Authentik login button matching React frontend)
+	ColorBlue600 = color.RGBA{R: 37, G: 99, B: 235, A: 255}   // #2563eb - blue-600
+	ColorBlue700 = color.RGBA{R: 29, G: 78, B: 216, A: 255}   // #1d4ed8 - blue-700
+	ColorGray600 = color.RGBA{R: 75, G: 85, B: 99, A: 255}    // #4b5563 - gray-600 (matching React subtitle)
 )
 
 // ====================================================================================

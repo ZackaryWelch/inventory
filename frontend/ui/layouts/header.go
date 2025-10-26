@@ -29,15 +29,11 @@ type HeaderItem struct {
 // Pattern: fixed top-0 z-40 w-full h-12 bg-white flex items-center justify-center
 func Header(parent core.Widget, props HeaderProps) *core.Frame {
 	header := core.NewFrame(parent)
-	header.Styler(styles.StyleHeaderRow) // w-full h-12 bg-white flex items-center justify-between
+	header.Styler(styles.StyleHeaderRow) // w-full h-12 bg-white flex items-center
 
-	// Left side container
-	leftContainer := core.NewFrame(header)
-	leftContainer.Styler(styles.StyleHeaderLeftContainer) // flex items-center gap-3
-
-	// Back button (if enabled)
+	// Back button (if enabled) - positioned on left
 	if props.ShowBack {
-		backBtn := core.NewButton(leftContainer).SetIcon(icons.ArrowBack)
+		backBtn := core.NewButton(header).SetIcon(icons.ArrowBack)
 		backBtn.Styler(styles.StyleBackButton) // rounded-full bg-gray-light p-2
 		if props.OnBack != nil {
 			backBtn.OnClick(func(e events.Event) {
@@ -46,10 +42,10 @@ func Header(parent core.Widget, props HeaderProps) *core.Frame {
 		}
 	}
 
-	// Title
+	// Title - centered in header, not in a container
 	if props.Title != "" {
-		title := core.NewText(leftContainer).SetText(props.Title)
-		title.Styler(styles.StyleSectionTitle) // text-xl font-semibold
+		title := core.NewText(header).SetText(props.Title)
+		title.Styler(styles.StyleHeaderTitle) // Centered title styling
 	}
 
 	// Right side items

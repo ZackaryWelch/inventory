@@ -8,6 +8,7 @@ import (
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/sides"
 	"cogentcore.org/core/styles/units"
+	"cogentcore.org/core/text/text"
 )
 
 // ====================================================================================
@@ -21,13 +22,14 @@ import (
 // Base: 'text-base min-w-[70px] rounded inline-flex items-center justify-center gap-2.5'
 func StyleButtonBase(s *styles.Style) {
 	s.Font.Size = units.Dp(FontSizeBase)             // text-base
-	s.Min.X.Set(70, units.UnitDp)                    // min-w-[70px]
+	// Removed Min.X constraint - let buttons size naturally based on content
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusDefault)) // rounded
 	s.Display = styles.Flex                          // inline-flex
 	s.Align.Items = styles.Center                    // items-center
 	s.Justify.Content = styles.Center                // justify-center
 	s.Gap.Set(units.Dp(Spacing2_5))                  // gap-2.5 (10px)
 	s.Cursor = cursors.Pointer
+	s.Text.WhiteSpace = text.WrapNever               // Button text should never wrap
 }
 
 // variant: 'primary': 'bg-primary text-white enabled:hover:bg-primary-dark disabled:opacity-50'
@@ -65,30 +67,47 @@ func StyleButtonGhost(s *styles.Style) {
 }
 
 // Button Sizes
-// size: 'sm': 'h-8 px-7' (32px height, 28px horizontal padding)
+// size: 'sm': 'px-7' (28px horizontal padding) - height determined by padding
 func StyleButtonSm(s *styles.Style) {
-	s.Min.Y.Set(32, units.UnitDp)
-	s.Padding.Set(units.Dp(0), units.Dp(28))
+	s.Padding.Set(units.Dp(Spacing2), units.Dp(28))
 }
 
-// size: 'md': 'h-10 px-12' (40px height, 48px horizontal padding)
+// size: 'md': 'px-12' (48px horizontal padding) - height determined by padding
 func StyleButtonMd(s *styles.Style) {
-	s.Min.Y.Set(40, units.UnitDp)
-	s.Padding.Set(units.Dp(0), units.Dp(48))
+	s.Padding.Set(units.Dp(Spacing2point5), units.Dp(48))
+	s.Min.X.Set(100, units.UnitEw) // w-full - buttons should be full width in column layouts
 }
 
-// size: 'lg': 'h-12 px-12' (48px height, 48px horizontal padding)
+// size: 'lg': 'px-12' (48px horizontal padding) - height determined by padding
 func StyleButtonLg(s *styles.Style) {
-	s.Min.Y.Set(48, units.UnitDp)
-	s.Padding.Set(units.Dp(0), units.Dp(48))
+	s.Padding.Set(units.Dp(Spacing3), units.Dp(48))
 }
 
-// size: 'icon': 'h-12 w-12 min-w-0' (48px square, no min width)
+// size: 'icon': square button - size determined by padding
 func StyleButtonIcon(s *styles.Style) {
 	StyleButtonBase(s)
-	s.Min.Y.Set(48, units.UnitDp)
-	s.Min.X.Set(48, units.UnitDp)
+	s.Padding.Set(units.Dp(Spacing3))
 	s.Background = colors.Uniform(ColorGrayLight)
+}
+
+// Login button - matching React AuthentikLoginButton.tsx blue button
+// className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700"
+func StyleButtonLogin(s *styles.Style) {
+	// Apply base button styles
+	s.Font.Size = units.Dp(FontSizeBase)                  // text-base
+	s.Border.Radius = sides.NewValues(units.Dp(RadiusMD)) // rounded-md
+	s.Display = styles.Flex                               // flex
+	s.Align.Items = styles.Center                         // items-center
+	s.Justify.Content = styles.Center                     // justify-center
+	s.Gap.Set(units.Dp(Spacing2_5))                       // gap-2.5 (10px)
+	s.Cursor = cursors.Pointer
+
+	// Login-specific styles - natural sizing based on content
+	s.Padding.Set(units.Dp(12), units.Dp(16))             // py-3 px-4 (12px, 16px)
+	s.Background = colors.Uniform(ColorBlue600)           // bg-blue-600
+	s.Color = colors.Uniform(ColorWhite)                  // text-white
+	s.Font.Weight = WeightMedium                          // font-medium
+	// Note: shadow-sm and hover:bg-blue-700 would need additional Cogent Core support
 }
 
 // ====================================================================================
@@ -100,6 +119,14 @@ func StyleCard(s *styles.Style) {
 	s.Background = colors.Uniform(ColorWhite)              // bg-white
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusDefault)) // rounded (DEFAULT = 0.625rem = 10px)
 	s.Margin.Bottom = units.Dp(Spacing2)                   // mb-2 (matching React FoodCard and GroupCard spacing)
+	s.Min.X.Set(100, units.UnitEw)                         // w-full - CRITICAL: cards must span full width
+}
+
+func StyleProfileCard(s *styles.Style) {
+	StyleCard(s)                             // Apply base card styles
+	s.Direction = styles.Column              // Stack fields vertically
+	s.Padding.Set(units.Dp(Spacing4))        // p-4 for spacing inside card
+	s.Gap.Set(units.Dp(Spacing2))            // gap-2 between fields
 }
 
 // Card layout patterns from nishiki-frontend Tailwind classes
@@ -155,7 +182,8 @@ func StyleInputBase(s *styles.Style) {
 func StyleInputRounded(s *styles.Style) {
 	StyleInputBase(s)
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusFull)) // rounded-full
-	s.Background = colors.Uniform(ColorWhite)               // bg-white
+	s.Background = colors.Uniform(ColorWhite)               // bg-white CRITICAL: White background for inputs
+	s.Color = colors.Uniform(ColorBlack)                    // CRITICAL: Black text color for visibility
 	s.Border.Style.Set(styles.BorderSolid)                  // border
 	s.Border.Width.Set(units.Dp(1))                         // border
 	s.Border.Color.Set(colors.Uniform(ColorGray))           // border-gray

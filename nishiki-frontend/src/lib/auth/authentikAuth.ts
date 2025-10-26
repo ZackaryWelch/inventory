@@ -31,7 +31,7 @@ class AuthentikAuthService {
     this.config = {
       authority: `${authentikUrl}/application/o/nishiki/`,
       client_id: clientId,
-      metadataUrl: `${apiBaseUrl}/auth/oidc-config`,
+      metadataUrl: `${apiBaseUrl}/auth/oidc-config?client_id=${clientId}`,
       redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
       post_logout_redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/logout`,
       response_type: 'code',

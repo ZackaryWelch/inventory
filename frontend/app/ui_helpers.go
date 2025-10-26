@@ -30,7 +30,18 @@ type DialogConfig struct {
 
 // showDialog creates and displays a generic dialog with consistent styling
 func (app *App) showDialog(config DialogConfig) {
+	// CRITICAL FIX: Close any existing overlay before creating a new one
+	// This prevents multiple dialogs from stacking on top of each other
+	if app.currentOverlay != nil {
+		app.hideOverlay()
+	}
+
 	overlay := app.createOverlay()
+
+	// Add click handler to overlay background to close dialog when clicking outside
+	overlay.OnClick(func(e events.Event) {
+		app.hideOverlay()
+	})
 
 	dialog := core.NewFrame(overlay)
 	dialog.Styler(func(s *styles.Style) {
@@ -51,11 +62,17 @@ func (app *App) showDialog(config DialogConfig) {
 		}
 	})
 
+	// Prevent clicks on dialog itself from closing the overlay
+	dialog.OnClick(func(e events.Event) {
+		e.SetHandled() // Stop event from propagating to overlay
+	})
+
 	// Title
 	title := core.NewText(dialog).SetText(config.Title)
 	title.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(20)
 		s.Font.Weight = appstyles.WeightSemiBold
+		s.Color = colors.Uniform(appstyles.ColorBlack) // Ensure title is visible
 	})
 
 	// Optional message/description
@@ -190,6 +207,7 @@ func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 	titleText.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
 		s.Font.Weight = appstyles.WeightSemiBold
+		s.Color = colors.Uniform(appstyles.ColorBlack) // Ensure title is visible
 	})
 
 	// Actions
@@ -244,14 +262,14 @@ func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 				statIcon := core.NewIcon(statItem).SetIcon(stat.Icon)
 				statIcon.Styler(func(s *styles.Style) {
 					s.Font.Size = units.Dp(16)
-					s.Color = colors.Uniform(appstyles.ColorTextSecondary)
+					s.Color = colors.Uniform(appstyles.ColorGray) // Use medium grey for icons
 				})
 			}
 
 			statText := core.NewText(statItem).SetText(stat.Label + ": " + stat.Value)
 			statText.Styler(func(s *styles.Style) {
 				s.Font.Size = units.Dp(14)
-				s.Color = colors.Uniform(appstyles.ColorTextSecondary)
+				s.Color = colors.Uniform(appstyles.ColorBlack) // Use black for better visibility
 			})
 		}
 	}
@@ -268,6 +286,7 @@ func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 func createTextField(parent core.Widget, placeholder string) *core.TextField {
 	field := core.NewTextField(parent)
 	field.SetText("").SetPlaceholder(placeholder)
+	field.Styler(appstyles.StyleInputRounded) // Apply proper input styling
 	return field
 }
 

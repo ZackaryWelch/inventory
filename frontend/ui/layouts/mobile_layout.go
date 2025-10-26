@@ -41,6 +41,13 @@ func ContentColumn(parent core.Widget) *core.Frame {
 	return content
 }
 
+// PageTitle creates a centered page title (React MobileLayout pattern)
+func PageTitle(parent core.Widget, title string) *core.Text {
+	pageTitle := core.NewText(parent).SetText(title)
+	pageTitle.Styler(styles.StylePageTitle)
+	return pageTitle
+}
+
 // MainContainer creates the main app container
 func MainContainer(parent core.Widget) *core.Frame {
 	container := core.NewFrame(parent)

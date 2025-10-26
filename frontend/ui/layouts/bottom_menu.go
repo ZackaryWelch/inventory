@@ -1,10 +1,12 @@
 package layouts
 
 import (
+	"cogentcore.org/core/colors"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/events"
 	"cogentcore.org/core/icons"
 	corestyles "cogentcore.org/core/styles"
+	"cogentcore.org/core/styles/units"
 
 	"github.com/nishiki/frontend/ui/styles"
 )
@@ -26,16 +28,12 @@ type BottomMenuItem struct {
 // Pattern: fixed bottom-0 z-40 w-full bg-white border-t border-gray-light
 func BottomMenu(parent core.Widget, props BottomMenuProps) *core.Frame {
 	menu := core.NewFrame(parent)
-	menu.Styler(styles.StyleNavHeader) // Using nav header style for bottom menu
+	menu.Styler(styles.StyleBottomMenu) // Fixed bottom menu styling
 
-	// Menu items container
-	itemsContainer := core.NewFrame(menu)
-	itemsContainer.Styler(styles.StyleNavContainer) // flex gap-3 mx-auto max-w-lg
-
-	// Create menu items
+	// Create menu items directly in menu (no inner container needed for flex layout)
 	for i, item := range props.Items {
 		isActive := i == props.ActiveIndex
-		menuItem := createBottomMenuItem(itemsContainer, item, isActive)
+		menuItem := createBottomMenuItem(menu, item, isActive)
 		_ = menuItem
 	}
 
@@ -43,42 +41,50 @@ func BottomMenu(parent core.Widget, props BottomMenuProps) *core.Frame {
 }
 
 // createBottomMenuItem creates a single bottom menu item
-func createBottomMenuItem(parent core.Widget, item BottomMenuItem, isActive bool) *core.Frame {
-	container := core.NewFrame(parent)
-	container.Styler(styles.StyleNavButton) // Base button style
+func createBottomMenuItem(parent core.Widget, item BottomMenuItem, isActive bool) *core.Button {
+	// Use Button instead of Frame for proper click handling
+	btn := core.NewButton(parent)
+	btn.SetType(core.ButtonAction) // Action button type
 
-	// Icon
-	if item.Icon != "" {
-		icon := core.NewIcon(container).SetIcon(item.Icon)
+	btn.Styler(func(s *corestyles.Style) {
+		// Apply StyleBottomMenuItem styling
+		s.Direction = corestyles.Column        // Stack icon above text
+		s.Align.Items = corestyles.Center      // Center horizontally
+		s.Justify.Content = corestyles.Center  // Center vertically
+		s.Background = nil                     // Transparent background
+		s.Padding.Set(units.Dp(styles.Spacing2))
+		s.Gap.Set(units.Dp(2))                 // Small gap between icon and text
+		s.Text.WhiteSpace = corestyles.WhiteSpaceNowrap // Prevent text wrapping
+
+		// Text sizing
+		s.Font.Size.Set(12, units.UnitDp) // text-xs for label
+
+		// Color based on active state
 		if isActive {
-			icon.Styler(styles.StyleIconPrimary) // Active state uses primary color
+			s.Color = colors.Uniform(styles.ColorPrimary)
 		} else {
-			icon.Styler(styles.StyleIconGray) // Inactive state uses gray
+			s.Color = colors.Uniform(styles.ColorGrayDark)
 		}
+	})
+
+	// Icon - size={6} in React = 24px
+	if item.Icon != "" {
+		btn.SetIcon(item.Icon)
 	}
 
-	// Label
+	// Label - text-xs in React = 12px
 	if item.Label != "" {
-		label := core.NewText(container).SetText(item.Label)
-		if isActive {
-			label.Styler(func(s *corestyles.Style) {
-				// Active text styling (use primary color for active state)
-				// For now, just apply default styling - can enhance later
-			})
-		} else {
-			label.Styler(styles.StyleSmallText) // Inactive text
-		}
-		_ = label
+		btn.SetText(item.Label)
 	}
 
 	// Click handler
 	if item.OnClick != nil {
-		container.OnClick(func(e events.Event) {
+		btn.OnClick(func(e events.Event) {
 			item.OnClick()
 		})
 	}
 
-	return container
+	return btn
 }
 
 // CreateDefaultBottomMenu creates a bottom menu with default navigation items

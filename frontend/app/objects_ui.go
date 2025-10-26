@@ -97,6 +97,7 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 	searchField := core.NewTextField(searchSection)
 	searchField.SetPlaceholder("Search objects...")
 	searchField.Styler(func(s *styles.Style) {
+		appstyles.StyleInputRounded(s) // Apply proper input styling
 		s.Min.X.Set(200, units.UnitDp)
 	})
 

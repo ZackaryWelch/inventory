@@ -73,8 +73,9 @@ func (app *App) showGlobalSearchView() {
 	searchField := core.NewTextField(searchContainer)
 	searchField.SetPlaceholder("Search across all collections, containers, and objects...")
 	searchField.Styler(func(s *styles.Style) {
+		appstyles.StyleInputRounded(s) // Apply proper input styling with white background
 		s.Grow.Set(1, 1)
-		s.Border.Style.Set(styles.BorderNone)
+		// Keep border from StyleInputRounded, don't override to BorderNone
 	})
 
 	// Search button
@@ -150,7 +151,7 @@ func (app *App) createTypeFilter(parent core.Widget) {
 	typeLabel.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(12)
 		s.Font.Weight = appstyles.WeightSemiBold
-		s.Color = colors.Uniform(appstyles.ColorGrayDark)
+		s.Color = colors.Uniform(appstyles.ColorBlack) // Form labels should be black for visibility
 	})
 
 	typeDropdown := core.NewButton(typeFilterContainer).SetText("All Types").SetIcon(icons.ArrowDropDown)
@@ -175,7 +176,7 @@ func (app *App) createSortOptions(parent core.Widget) {
 	sortLabel.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(12)
 		s.Font.Weight = appstyles.WeightSemiBold
-		s.Color = colors.Uniform(appstyles.ColorGrayDark)
+		s.Color = colors.Uniform(appstyles.ColorBlack) // Form labels should be black for visibility
 	})
 
 	sortRow := core.NewFrame(sortContainer)
@@ -212,7 +213,7 @@ func (app *App) createDateRangeFilter(parent core.Widget) {
 	dateLabel.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(12)
 		s.Font.Weight = appstyles.WeightSemiBold
-		s.Color = colors.Uniform(appstyles.ColorGrayDark)
+		s.Color = colors.Uniform(appstyles.ColorBlack) // Form labels should be black for visibility
 	})
 
 	dateRow := core.NewFrame(dateContainer)

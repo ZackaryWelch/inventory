@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"syscall/js"
 
 	"cogentcore.org/core/colors"
 	"cogentcore.org/core/core"
@@ -64,12 +65,13 @@ func (app *App) fetchCurrentUser() error {
 		return fmt.Errorf("failed to get current user: %d", resp.StatusCode)
 	}
 
-	var user User
-	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+	var authInfo AuthInfoResponse
+	if err := json.NewDecoder(resp.Body).Decode(&authInfo); err != nil {
 		return err
 	}
 
-	app.currentUser = &user
+	app.currentUser = &authInfo.User
+	app.logger.Debug("Fetched current user", "user_id", authInfo.User.ID, "name", authInfo.User.Name)
 	return nil
 }
 
@@ -141,7 +143,7 @@ func (app *App) createMainUI(b *core.Body) {
 	}
 }
 
-// showLoginView displays the login screen
+// showLoginView displays the login screen matching React LoginPage.tsx
 func (app *App) showLoginView() {
 	app.currentView = ViewLogin
 
@@ -153,30 +155,32 @@ func (app *App) showLoginView() {
 
 	app.mainContainer.DeleteChildren()
 
-	// Centered layout for login screen
-	loginContainer := layouts.CenteredLayout(app.mainContainer)
+	// Override mainContainer styling for login - className="flex items-center justify-center h-screen"
+	// This replaces the default StyleMainContainer which has padding/column that breaks centering
+	app.mainContainer.Styler(appstyles.StyleLoginContainer)
 
-	// Login content column
-	loginContent := core.NewFrame(loginContainer)
-	loginContent.Styler(appstyles.StyleLoginContent) // flex flex-col items-center justify-center
+	// Logo placeholder - className="w-32 h-26 mb-20"
+	// TODO: Add actual LogoVerticalPrimary SVG when available
+	logo := core.NewFrame(app.mainContainer)
+	logo.Styler(appstyles.StyleLoginLogo)
 
-	// Logo placeholder (would be LogoVerticalPrimary in frontend)
-	logo := core.NewFrame(loginContent)
-	logo.Styler(appstyles.StyleLoginLogo) // w-32 h-26 mb-20
+	// Logo text placeholder (remove when SVG logo is added)
+	logoText := core.NewText(logo).SetText("NISHIKI")
+	logoText.Styler(appstyles.StyleAppTitle) // Reuses existing app title style
 
-	// App title
-	title := core.NewText(loginContent).SetText("Nishiki Inventory")
-	title.Styler(appstyles.StyleAppTitle)
-
-	// Login button using component library
-	components.Button(loginContent, components.ButtonProps{
-		Text:    "Sign In with Authentik",
-		Variant: components.ButtonPrimary,
-		Size:    components.ButtonSizeLarge,
-		OnClick: func(e events.Event) {
-			app.handleLogin()
-		},
+	// Login button - matching React AuthentikLoginButton.tsx
+	// className="w-full flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600"
+	loginBtn := core.NewButton(app.mainContainer)
+	loginBtn.SetText("Sign in with Authentik")
+	loginBtn.SetIcon(icons.Login)
+	loginBtn.Styler(appstyles.StyleButtonLogin)
+	loginBtn.OnClick(func(e events.Event) {
+		app.handleLogin()
 	})
+
+	// Subtitle text - className="mt-4 text-center" > "text-sm text-gray-600"
+	subtitle := core.NewText(app.mainContainer).SetText("Secure authentication powered by Authentik")
+	subtitle.Styler(appstyles.StyleLoginSubtitle)
 
 	app.mainContainer.Update()
 }
@@ -224,10 +228,13 @@ func (app *App) showDashboardView() {
 
 	app.mainContainer.DeleteChildren()
 
+	// Restore mainContainer styling for mobile layout (pt-12 pb-16 min-h-screen)
+	app.mainContainer.Styler(appstyles.StyleMainContainer)
+
 	// Header with user menu button
 	username := "User"
 	if app.currentUser != nil {
-		username = app.currentUser.Username
+		username = app.currentUser.Name
 	}
 	layouts.Header(app.mainContainer, layouts.HeaderProps{
 		Title: "Dashboard",
@@ -318,6 +325,9 @@ func (app *App) showDashboardView() {
 	collectionsLabel := core.NewText(collectionsCard).SetText("Collections")
 	collectionsLabel.Styler(appstyles.StyleStatLabel)
 
+	// Bottom navigation bar
+	layouts.CreateDefaultBottomMenu(app.mainContainer, "dashboard", app.handleNavigation)
+
 	app.mainContainer.Update()
 }
 
@@ -333,34 +343,26 @@ func (app *App) showProfileView() {
 
 	app.mainContainer.DeleteChildren()
 
-	// Header with back button using layout component
-	layouts.SimpleHeader(app.mainContainer, "Profile", true, func() {
-		app.showDashboardView()
-	})
+	// Page title - using helper function
+	layouts.PageTitle(app.mainContainer, "Profile")
 
-	// Main content
+	// Main content - using existing layout function
 	content := layouts.ContentColumn(app.mainContainer)
 
 	if app.currentUser != nil {
 		// User info card using component library
 		userCard := components.Card(content, components.CardProps{})
+		userCard.Styler(appstyles.StyleProfileCard) // Add proper card layout
 
-		// Username
-		usernameLabel := core.NewText(userCard).SetText("Username:")
-		usernameLabel.Styler(appstyles.StyleUserFieldLabel)
-		core.NewText(userCard).SetText(app.currentUser.Username)
+		// Name
+		nameLabel := core.NewText(userCard).SetText("Name:")
+		nameLabel.Styler(appstyles.StyleUserFieldLabel)
+		core.NewText(userCard).SetText(app.currentUser.Name)
 
 		// Email
 		emailLabel := core.NewText(userCard).SetText("Email:")
 		emailLabel.Styler(appstyles.StyleUserFieldLabel)
 		core.NewText(userCard).SetText(app.currentUser.Email)
-
-		// Name (if available)
-		if app.currentUser.Name != "" {
-			nameLabel := core.NewText(userCard).SetText("Name:")
-			nameLabel.Styler(appstyles.StyleUserFieldLabel)
-			core.NewText(userCard).SetText(app.currentUser.Name)
-		}
 	}
 
 	// Logout button using component library
@@ -388,9 +390,12 @@ func (app *App) showProfileView() {
 		Variant: components.ButtonPrimary,
 		Size:    components.ButtonSizeMedium,
 		OnClick: func(e events.Event) {
-			// TODO: Implement cache clearing
+			app.handleClearCacheAndReload()
 		},
 	})
+
+	// Bottom navigation bar
+	layouts.CreateDefaultBottomMenu(app.mainContainer, "profile", app.handleNavigation)
 
 	app.mainContainer.Update()
 }
@@ -463,4 +468,45 @@ func (app *App) handleLogout() {
 	}
 
 	app.showLoginView()
+}
+
+// handleClearCacheAndReload clears browser cache and performs a hard reload
+// This forces the browser to fetch the latest app.wasm instead of using cached version
+func (app *App) handleClearCacheAndReload() {
+	app.logger.Info("Clearing cache and reloading...")
+
+	// Clear localStorage to remove cached tokens
+	localStorage := js.Global().Get("localStorage")
+	if !localStorage.IsUndefined() {
+		localStorage.Call("clear")
+		app.logger.Info("Cleared localStorage")
+	}
+
+	// Clear sessionStorage
+	sessionStorage := js.Global().Get("sessionStorage")
+	if !sessionStorage.IsUndefined() {
+		sessionStorage.Call("clear")
+		app.logger.Info("Cleared sessionStorage")
+	}
+
+	// Perform hard reload to bypass HTTP cache and fetch latest app.wasm
+	// location.reload() in modern browsers already bypasses cache
+	app.logger.Info("Performing page reload to fetch latest app.wasm")
+	js.Global().Get("location").Call("reload")
+}
+
+// handleNavigation handles bottom menu navigation
+func (app *App) handleNavigation(view string) {
+	switch view {
+	case "dashboard":
+		app.showDashboardView()
+	case "groups":
+		app.showEnhancedGroupsView()
+	case "collections":
+		app.showEnhancedCollectionsView()
+	case "search":
+		app.showGlobalSearchView()
+	case "profile":
+		app.showProfileView()
+	}
 }

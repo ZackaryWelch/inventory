@@ -27,34 +27,53 @@ func StyleH1(s *styles.Style) {
 // H2: className="text-xl"
 func StyleH2(s *styles.Style) {
 	s.Font.Size = units.Dp(FontSizeXL) // text-xl
+	s.Font.Weight = WeightSemiBold     // Make section headers semibold
+	s.Color = colors.Uniform(ColorBlack) // Ensure visibility
 }
 
 // H3: className="text-lg"
 func StyleH3(s *styles.Style) {
 	s.Font.Size = units.Dp(FontSizeLG) // text-lg
+	s.Font.Weight = WeightSemiBold    // Make section headers semibold
+	s.Color = colors.Uniform(ColorBlack) // Ensure visibility
 }
 
 func StyleAppTitle(s *styles.Style) {
 	s.Font.Size = units.Dp(FontSize2XL)         // text-2xl
 	s.Font.Weight = WeightBold
 	s.Color = colors.Uniform(ColorPrimary)
+	s.Text.WhiteSpace = text.WrapNever          // Don't wrap title text
 }
 
 func StyleSubtitle(s *styles.Style) {
 	s.Font.Size = units.Dp(FontSizeBase)        // text-base
 	s.Color = colors.Uniform(ColorGrayDark)
+	s.Text.WhiteSpace = text.WrapNever          // Don't wrap subtitle text
 }
 
 func StyleSectionTitle(s *styles.Style) {
 	s.Font.Size = units.Dp(FontSizeXL)          // text-xl (matching H2 component)
 	s.Font.Weight = WeightSemiBold
 	s.Color = colors.Uniform(ColorBlack)
+	s.Text.WhiteSpace = text.WrapNever          // Don't wrap section titles
+}
+
+// StylePageTitle creates centered page titles (Groups, Foods, Profile)
+// Matches React MobileLayout heading pattern: text-center text-2xl font-semibold
+func StylePageTitle(s *styles.Style) {
+	s.Text.Align = text.Center                  // text-center
+	s.Font.Size = units.Dp(FontSize2XL)         // text-2xl
+	s.Font.Weight = WeightSemiBold              // font-semibold
+	s.Color = colors.Uniform(ColorBlack)
+	s.Padding.Set(units.Dp(Spacing4), units.Dp(0)) // py-4
+	s.Background = colors.Uniform(ColorWhite)   // bg-white
 }
 
 func StyleCardTitle(s *styles.Style) {
 	s.Font.Size = units.Dp(FontSizeLG)          // text-lg (matching group card titles)
 	s.Font.Weight = WeightSemiBold
 	s.Margin.Bottom = units.Dp(Spacing0_5)      // Simulate React's "leading-6" line height spacing
+	s.Text.WhiteSpace = text.WrapNever          // Don't wrap card titles
 }
 
 func StyleSmallText(s *styles.Style) {
@@ -93,12 +112,15 @@ func StyleTextSmWithIcon(s *styles.Style) {
 func StyleStatsTitle(s *styles.Style) {
 	s.Font.Size = units.Dp(FontSizeLG)          // text-lg
 	s.Font.Weight = WeightSemiBold
+	s.Color = colors.Uniform(ColorBlack)        // Ensure text is visible
+	s.Text.WhiteSpace = text.WrapNever          // Don't wrap stats title
 }
 
 func StyleDevTitle(s *styles.Style) {
 	s.Font.Size = units.Dp(FontSizeBase)        // text-base
 	s.Font.Weight = WeightSemiBold
 	s.Color = colors.Uniform(ColorGrayDark)
+	s.Text.WhiteSpace = text.WrapNever          // Don't wrap dev section title
 }
 
 func StyleUserFieldLabel(s *styles.Style) {
@@ -524,6 +546,19 @@ func StyleNavButton(s *styles.Style) {
 	s.Border.Color.Set(colors.Uniform(ColorGrayLight))
 }
 
+// StyleBottomMenuItem matches React BottomMenuLink:
+// className="inline-flex flex-col items-center justify-center"
+func StyleBottomMenuItem(s *styles.Style) {
+	s.Display = styles.Flex                  // inline-flex
+	s.Direction = styles.Column              // flex-col
+	s.Align.Items = styles.Center            // items-center
+	s.Justify.Content = styles.Center        // justify-center
+	s.Background = nil                       // transparent
+	s.Padding.Set(units.Dp(Spacing2))        // Padding for clickable area
+	s.Gap.Set(units.Dp(2))                   // Small gap between icon and label (mb-1)
+	s.Cursor = cursors.Pointer               // Clickable cursor
+}
+
 func StyleUserButton(s *styles.Style) {
 	s.Background = colors.Uniform(color.RGBA{R: 240, G: 240, B: 240, A: 255})
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusDefault)) // rounded
@@ -651,10 +686,30 @@ func StyleLoadingSkeleton(s *styles.Style) {
 }
 
 // Logo patterns: className="w-32 h-26 mb-20"
+// Logo patterns: className="w-32 h-26 mb-20"
 func StyleLoginLogo(s *styles.Style) {
-	s.Min.X.Set(128, units.UnitDp)      // w-32
-	s.Min.Y.Set(104, units.UnitDp)      // h-26 (104px)
-	s.Margin.Bottom = units.Dp(Spacing20) // mb-20
+	s.Display = styles.Flex                  // flex (to center logo text)
+	s.Align.Items = styles.Center            // items-center
+	s.Justify.Content = styles.Center        // justify-center
+	s.Min.X.Set(128, units.UnitDp)           // w-32
+	s.Min.Y.Set(104, units.UnitDp)           // h-26 (104px)
+	s.Margin.Bottom = units.Dp(Spacing20)    // mb-20
+}
+
+// Login button container: className="w-full max-w-sm"
+// Natural sizing - no hard constraints, just column direction for button + subtitle
+func StyleLoginButtonContainer(s *styles.Style) {
+	s.Direction = styles.Column
+	s.Align.Items = styles.Center  // Center children horizontally
+	s.Gap.Set(units.Dp(Spacing4))  // gap between button and subtitle
+}
+
+// Login subtitle text: className="mt-4 text-center" with "text-sm text-gray-600"
+func StyleLoginSubtitle(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeSM)       // text-sm
+	s.Color = colors.Uniform(ColorGray600)   // text-gray-600
+	s.Text.Align = AlignCenter               // text-center
+	s.Margin.Top = units.Dp(Spacing4)        // mt-4
 }
 
 // ====================================================================================
@@ -812,9 +867,13 @@ func StyleFilterDot(s *styles.Style) {
 }
 
 // Background stylers
+// Matches React body: className="min-h-screen bg-primary-lightest antialiased font-outfit"
+// In canvas-based rendering, Body automatically fills the viewport
 func StyleMainBackground(s *styles.Style) {
-	s.Direction = styles.Column
-	s.Background = colors.Uniform(ColorGrayLightest) // #f8f8f8 (matching frontend)
+	s.Background = colors.Uniform(ColorPrimaryLightest) // bg-primary-lightest (#e6f2f1)
+	s.Display = styles.Flex                              // Make Body a flex container
+	s.Direction = styles.Column                          // Column layout
+	s.Grow.Set(1, 1)                                     // Fill viewport
 }
 
 // Select-none equivalent for emoji and icons
@@ -837,7 +896,8 @@ func StyleStatCard(cardColor color.RGBA) func(*styles.Style) {
 		s.Border.Radius = sides.NewValues(units.Dp(RadiusDefault)) // rounded
 		s.Padding.Set(units.Dp(Spacing4))
 		s.Gap.Set(units.Dp(Spacing1))
-		s.Min.X.Set(100, units.UnitDp)
+		s.Min.X.Set(120, units.UnitDp) // Reasonable minimum width for stat cards
+		s.Grow.Set(1, 0)                // Allow cards to grow and fill available space equally
 	}
 }
 
