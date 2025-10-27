@@ -325,16 +325,13 @@ func (app *App) createSearchResults(parent core.Widget) {
 		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
-	// Results summary
-	summaryText := core.NewText(parent).SetText("Found 15 results across 3 collections")
-	summaryText.Styler(func(s *styles.Style) {
+	// Empty state - no mock data
+	// TODO: Replace with actual search results from backend API when search is performed
+	emptyText := core.NewText(parent).SetText("Enter a search query to find collections, containers, and objects")
+	emptyText.Styler(func(s *styles.Style) {
 		s.Color = colors.Uniform(appstyles.ColorGrayDark)
+		s.Margin.Top = units.Dp(appstyles.Spacing4)
 	})
-
-	// Group results by type
-	app.createSearchResultsSection(parent, "Collections", app.getMockCollectionResults())
-	app.createSearchResultsSection(parent, "Containers", app.getMockContainerResults())
-	app.createSearchResultsSection(parent, "Objects", app.getMockObjectResults())
 }
 
 // Create a section of search results
@@ -423,54 +420,6 @@ type SearchResult struct {
 	Type        string
 	Icon        icons.Icon
 	Color       color.RGBA
-}
-
-// Mock search results
-func (app *App) getMockCollectionResults() []SearchResult {
-	return []SearchResult{
-		{
-			Title:       "Kitchen Pantry",
-			Description: "Main food storage collection",
-			Path:        "Groups > Home > Kitchen Pantry",
-			Type:        "collection",
-			Icon:        icons.Dining,
-			Color:       color.RGBA{R: 76, G: 175, B: 80, A: 255},
-		},
-	}
-}
-
-func (app *App) getMockContainerResults() []SearchResult {
-	return []SearchResult{
-		{
-			Title:       "Refrigerator",
-			Description: "Cold storage container",
-			Path:        "Groups > Home > Kitchen Pantry > Refrigerator",
-			Type:        "container",
-			Icon:        icons.FolderOpen,
-			Color:       appstyles.ColorPrimary,
-		},
-	}
-}
-
-func (app *App) getMockObjectResults() []SearchResult {
-	return []SearchResult{
-		{
-			Title:       "Organic Bananas",
-			Description: "Fresh organic bananas from Ecuador",
-			Path:        "Groups > Home > Kitchen Pantry > Refrigerator > Organic Bananas",
-			Type:        "object",
-			Icon:        icons.Dining,
-			Color:       appstyles.ColorAccent,
-		},
-		{
-			Title:       "Whole Milk",
-			Description: "Fresh whole milk, expires 2024-02-10",
-			Path:        "Groups > Home > Kitchen Pantry > Refrigerator > Whole Milk",
-			Type:        "object",
-			Icon:        icons.Dining,
-			Color:       appstyles.ColorAccent,
-		},
-	}
 }
 
 // Advanced filter dialog

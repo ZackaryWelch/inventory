@@ -128,11 +128,21 @@ func (app *App) CreateMainUI(b *core.Body) {
 
 // createMainUI creates the main application UI
 func (app *App) createMainUI(b *core.Body) {
-	b.Styler(appstyles.StyleMainBackground)
+	b.Styler(func(s *styles.Style) {
+		appstyles.StyleMainBackground(s)
+		s.Direction = styles.Column // Ensure column layout
+	})
 
-	// Create main container
+	// Store body reference for creating overlays
+	app.body = b
+
+	// Create main container - this will grow to fill space
 	app.mainContainer = core.NewFrame(b)
-	app.mainContainer.Styler(appstyles.StyleMainContainer)
+	app.mainContainer.Styler(func(s *styles.Style) {
+		appstyles.StyleMainContainer(s)
+		s.Grow.Set(1, 1) // Grow to fill available space
+		s.Overflow.Y = styles.OverflowAuto // Allow scrolling if content is tall
+	})
 
 	if app.currentView == ViewCallback {
 		app.showCallbackView()
@@ -141,6 +151,23 @@ func (app *App) createMainUI(b *core.Body) {
 	} else {
 		app.showDashboardView()
 	}
+}
+
+// updateBottomMenu updates or creates the bottom menu at body level
+func (app *App) updateBottomMenu(activeView string) {
+	// Safety check: ensure body is initialized
+	if app.body == nil {
+		app.logger.Error("Cannot create bottom menu: body is nil")
+		return
+	}
+
+	// Remove existing bottom menu if it exists
+	if app.bottomMenu != nil {
+		app.bottomMenu.Delete()
+	}
+
+	// Create bottom menu at body level (after mainContainer)
+	app.bottomMenu = layouts.CreateDefaultBottomMenu(app.body, activeView, app.handleNavigation)
 }
 
 // showLoginView displays the login screen matching React LoginPage.tsx
@@ -326,9 +353,9 @@ func (app *App) showDashboardView() {
 	collectionsLabel.Styler(appstyles.StyleStatLabel)
 
 	// Bottom navigation bar
-	layouts.CreateDefaultBottomMenu(app.mainContainer, "dashboard", app.handleNavigation)
+	app.updateBottomMenu("dashboard")
 
-	app.mainContainer.Update()
+	app.body.Update()
 }
 
 // showProfileView displays the user profile view
@@ -357,12 +384,20 @@ func (app *App) showProfileView() {
 		// Name
 		nameLabel := core.NewText(userCard).SetText("Name:")
 		nameLabel.Styler(appstyles.StyleUserFieldLabel)
-		core.NewText(userCard).SetText(app.currentUser.Name)
+		nameValue := core.NewText(userCard).SetText(app.currentUser.Name)
+		nameValue.Styler(func(s *styles.Style) {
+			s.Color = colors.Uniform(appstyles.ColorBlack) // Ensure text is visible
+			s.Font.Size = units.Dp(appstyles.FontSizeBase)
+		})
 
 		// Email
 		emailLabel := core.NewText(userCard).SetText("Email:")
 		emailLabel.Styler(appstyles.StyleUserFieldLabel)
-		core.NewText(userCard).SetText(app.currentUser.Email)
+		emailValue := core.NewText(userCard).SetText(app.currentUser.Email)
+		emailValue.Styler(func(s *styles.Style) {
+			s.Color = colors.Uniform(appstyles.ColorBlack) // Ensure text is visible
+			s.Font.Size = units.Dp(appstyles.FontSizeBase)
+		})
 	}
 
 	// Logout button using component library
@@ -395,9 +430,9 @@ func (app *App) showProfileView() {
 	})
 
 	// Bottom navigation bar
-	layouts.CreateDefaultBottomMenu(app.mainContainer, "profile", app.handleNavigation)
+	app.updateBottomMenu("profile")
 
-	app.mainContainer.Update()
+	app.body.Update()
 }
 
 // createCollectionCard creates a card for displaying collection information

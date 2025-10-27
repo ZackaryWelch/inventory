@@ -85,7 +85,7 @@ func (app *App) showEnhancedGroupsView() {
 		s.Justify.Content = styles.End // justify-end
 		s.Align.Items = styles.Center   // items-center
 		s.Min.Y.Set(48, units.UnitDp)   // h-12
-		s.Min.X.Set(100, units.UnitEw)  // w-full
+		s.Min.X.Set(100, units.UnitPw)  // w-full (parent width)
 		s.Margin.Bottom = units.Dp(appstyles.Spacing2)
 	})
 
@@ -99,7 +99,7 @@ func (app *App) showEnhancedGroupsView() {
 		s.Min.Y.Set(48, units.UnitDp)
 	})
 	createGroupBtn.OnClick(func(e events.Event) {
-		app.showCreateGroupDialog() // Open dialog directly
+		app.showCreateGroupDialog() // Open dialog using Cogent Core's built-in system
 	})
 
 	// Groups list
@@ -112,9 +112,9 @@ func (app *App) showEnhancedGroupsView() {
 	}
 
 	// Bottom navigation bar - FIXED at bottom (React pattern)
-	layouts.CreateDefaultBottomMenu(app.mainContainer, "groups", app.handleNavigation)
+	app.updateBottomMenu("groups")
 
-	app.mainContainer.Update()
+	app.body.Update()
 }
 
 // Create enhanced group card - EXACTLY matches React GroupCard.tsx structure
@@ -358,32 +358,8 @@ func (app *App) showDeleteGroupDialog(group Group) {
 	})
 }
 
-// Helper functions for overlay management
-func (app *App) createOverlay() *core.Frame {
-	overlay := core.NewFrame(app.mainContainer)
-	overlay.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorOverlay) // Semi-transparent black
-		s.Display = styles.Flex
-		s.Align.Items = styles.Center
-		s.Justify.Content = styles.Center
-		// s.ZIndex = 1000 // ZIndex removed in v0.3.12
-	})
-	return overlay
-}
-
-func (app *App) showOverlay(overlay *core.Frame) {
-	// Store reference for later hiding
-	app.currentOverlay = overlay
-	app.mainContainer.Update()
-}
-
-func (app *App) hideOverlay() {
-	if app.currentOverlay != nil {
-		app.currentOverlay.Delete()
-		app.currentOverlay = nil
-		app.mainContainer.Update()
-	}
-}
+// NOTE: Overlay management removed - using Cogent Core's built-in dialog system
+// See ui_helpers.go showDialog() which uses d.RunDialog(app.body)
 
 // Empty state component
 func (app *App) createEmptyState(parent core.Widget, title, message string, icon icons.Icon) *core.Frame {
@@ -431,7 +407,7 @@ func (app *App) handleCreateGroup(name, description string) {
 	// For now, we'll simulate success
 	fmt.Printf("Creating group: %s - %s\n", name, description)
 	
-	app.hideOverlay()
+	// Dialog closes automatically
 	app.fetchGroups() // Refresh the list
 	app.showEnhancedGroupsView() // Refresh the view
 }
@@ -439,7 +415,7 @@ func (app *App) handleCreateGroup(name, description string) {
 func (app *App) handleEditGroup(groupID, name, description string) {
 	fmt.Printf("Editing group %s: %s - %s\n", groupID, name, description)
 	
-	app.hideOverlay()
+	// Dialog closes automatically
 	app.fetchGroups()
 	app.showEnhancedGroupsView()
 }
@@ -447,7 +423,7 @@ func (app *App) handleEditGroup(groupID, name, description string) {
 func (app *App) handleDeleteGroup(groupID string) {
 	fmt.Printf("Deleting group: %s\n", groupID)
 	
-	app.hideOverlay()
+	// Dialog closes automatically
 	app.fetchGroups()
 	app.showEnhancedGroupsView()
 }
@@ -500,10 +476,10 @@ func (app *App) showRemoveMemberDialog(member User, group Group) {
 
 func (app *App) handleJoinGroup(inviteCode string) {
 	fmt.Printf("Joining group with code: %s\n", inviteCode)
-	app.hideOverlay()
+	// Dialog closes automatically
 }
 
 func (app *App) handleRemoveMember(userID, groupID string) {
 	fmt.Printf("Removing user %s from group %s\n", userID, groupID)
-	app.hideOverlay()
+	// Dialog closes automatically
 }

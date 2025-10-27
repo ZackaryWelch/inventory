@@ -15,6 +15,7 @@ import (
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/units"
 
+	"github.com/nishiki/frontend/ui/components"
 	"github.com/nishiki/frontend/ui/layouts"
 	appstyles "github.com/nishiki/frontend/ui/styles"
 )
@@ -302,25 +303,13 @@ func (app *App) createObjectCard(parent core.Widget, object Object, container Co
 						break
 					}
 
-					tagBadge := core.NewText(tagsContainer).SetText(tag)
-					tagBadge.Styler(func(s *styles.Style) {
-						s.Font.Size = units.Dp(10)
-						s.Background = colors.Uniform(appstyles.ColorPrimaryLightest)
-						s.Color = colors.Uniform(appstyles.ColorPrimary)
-						s.Padding.Set(units.Dp(4), units.Dp(8))
-						s.Border.Radius = styles.BorderRadiusFull
-					})
+					components.TagBadge(tagsContainer, tag)
 				}
 
 				if len(object.Tags) > 3 {
-					moreTags := core.NewText(tagsContainer).SetText(fmt.Sprintf("+%d", len(object.Tags)-3))
-					moreTags.Styler(func(s *styles.Style) {
-						s.Font.Size = units.Dp(10)
-						s.Background = colors.Uniform(color.RGBA{R: 240, G: 240, B: 240, A: 255})
-						s.Color = colors.Uniform(appstyles.ColorGrayDark)
-						s.Padding.Set(units.Dp(4), units.Dp(8))
-						s.Border.Radius = styles.BorderRadiusFull
-					})
+					badge := core.NewFrame(tagsContainer)
+					badge.Styler(appstyles.StyleTagBadgeSecondary)
+					core.NewText(badge).SetText(fmt.Sprintf("+%d", len(object.Tags)-3))
 				}
 			}
 		},
@@ -527,13 +516,11 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 		})
 
 		for _, tag := range object.Tags {
-			tagBadge := core.NewText(tagsContainer).SetText(tag)
-			tagBadge.Styler(func(s *styles.Style) {
+			badge := components.TagBadge(tagsContainer, tag)
+			// Override font size and padding for detail view
+			badge.Styler(func(s *styles.Style) {
 				s.Font.Size = units.Dp(14)
-				s.Background = colors.Uniform(appstyles.ColorPrimaryLightest)
-				s.Color = colors.Uniform(appstyles.ColorPrimary)
 				s.Padding.Set(units.Dp(8), units.Dp(16))
-				s.Border.Radius = styles.BorderRadiusFull
 			})
 		}
 	}
@@ -543,83 +530,48 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 
 // Object creation and editing dialogs
 func (app *App) showCreateObjectDialog(container Container, collection Collection) {
-	overlay := app.createOverlay()
+	var nameField, descField, tagsField *core.TextField
 
-	dialog := core.NewFrame(overlay)
-	dialog.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(24))
-		s.Gap.Set(units.Dp(16))
-		s.Direction = styles.Column
-		s.Min.X.Set(500, units.UnitDp)
-		s.Max.X.Set(600, units.UnitDp)
-		s.Max.Y.Set(500, units.UnitDp)
+	app.showDialog(DialogConfig{
+		Title:            "Add New Object",
+		SubmitButtonText: "Add Object",
+		ContentBuilder: func(dialog core.Widget) {
+			// Basic fields
+			nameField = createTextField(dialog, "Object name")
+			descField = createTextField(dialog, "Description (optional)")
+
+			// Properties section
+			propsTitle := core.NewText(dialog).SetText("Properties")
+			propsTitle.Styler(func(s *styles.Style) {
+				s.Font.Weight = appstyles.WeightSemiBold
+				s.Margin.Top = units.Dp(8)
+			})
+
+			// Create property fields based on object type
+			propsContainer := core.NewFrame(dialog)
+			propsContainer.Styler(func(s *styles.Style) {
+				s.Direction = styles.Column
+				s.Gap.Set(units.Dp(8))
+				s.Background = colors.Uniform(appstyles.ColorGrayLightest)
+				s.Border.Radius = styles.BorderRadiusMedium
+				s.Padding.Set(units.Dp(12))
+			})
+
+			app.createObjectTypeProperties(propsContainer, collection.ObjectType)
+
+			// Tags section
+			tagsTitle := core.NewText(dialog).SetText("Tags")
+			tagsTitle.Styler(func(s *styles.Style) {
+				s.Font.Weight = appstyles.WeightSemiBold
+				s.Margin.Top = units.Dp(8)
+			})
+
+			tagsField = createTextField(dialog, "Tags (comma-separated)")
+		},
+		OnSubmit: func() {
+			app.handleCreateObject(nameField.Text(), descField.Text(), tagsField.Text(), container, collection)
+		},
 	})
-
-	title := core.NewText(dialog).SetText("Add New Object")
-	title.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(20)
-		s.Font.Weight = appstyles.WeightSemiBold
-	})
-
-	// Basic fields
-	nameField := core.NewTextField(dialog)
-	nameField.SetText("").SetPlaceholder("Object name")
-
-	descField := core.NewTextField(dialog)
-	descField.SetText("").SetPlaceholder("Description (optional)")
-
-	// Properties section
-	propsTitle := core.NewText(dialog).SetText("Properties")
-	propsTitle.Styler(func(s *styles.Style) {
-		s.Font.Weight = appstyles.WeightSemiBold
-	})
-
-	// Create property fields based on object type
-	propsContainer := core.NewFrame(dialog)
-	propsContainer.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Gap.Set(units.Dp(8))
-		s.Background = colors.Uniform(appstyles.ColorGrayLightest)
-		s.Border.Radius = styles.BorderRadiusMedium
-		s.Padding.Set(units.Dp(12))
-	})
-
-	app.createObjectTypeProperties(propsContainer, collection.ObjectType)
-
-	// Tags section
-	tagsTitle := core.NewText(dialog).SetText("Tags")
-	tagsTitle.Styler(func(s *styles.Style) {
-		s.Font.Weight = appstyles.WeightSemiBold
-	})
-
-	tagsField := core.NewTextField(dialog)
-	tagsField.SetText("").SetPlaceholder("Tags (comma-separated)")
-
-	// Buttons
-	buttonRow := core.NewFrame(dialog)
-	buttonRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(12))
-		s.Justify.Content = styles.End
-	})
-
-	cancelBtn := core.NewButton(buttonRow).SetText("Cancel")
-	cancelBtn.OnClick(func(e events.Event) {
-		app.hideOverlay()
-	})
-
-	addBtn := core.NewButton(buttonRow).SetText("Add Object")
-	addBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorPrimary)
-		s.Color = colors.Uniform(appstyles.ColorWhite)
-	})
-	addBtn.OnClick(func(e events.Event) {
-		app.handleCreateObject(nameField.Text(), descField.Text(), tagsField.Text(), container, collection)
-	})
-
-	app.showOverlay(overlay)
 }
 
 // Create property fields based on object type
@@ -717,7 +669,7 @@ func (app *App) handleCreateObject(name, description, tags string, container Con
 
 	fmt.Printf("Creating object: %s in container %s\n", name, container.Name)
 
-	app.hideOverlay()
+	// Dialog closes automatically
 	// Refresh the container view
 	app.showContainerDetailView(container, collection)
 }

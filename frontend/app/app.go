@@ -56,19 +56,20 @@ type Collection struct {
 
 // App holds the main application state
 type App struct {
-	config         *Config
-	authService    *AuthService
-	currentUser    *User
-	groups         []Group
-	collections    []Collection
-	httpClient     *http.Client
-	currentView    string
-	isSignedIn     bool
-	mainContainer  *core.Frame
-	currentOverlay *core.Frame
-	dialogState    *DialogState
-	searchFilter   *SearchFilter
-	logger         *slog.Logger
+	config        *Config
+	authService   *AuthService
+	currentUser   *User
+	groups        []Group
+	collections   []Collection
+	httpClient    *http.Client
+	currentView   string
+	isSignedIn    bool
+	body          *core.Body  // Reference to the body for dialogs
+	mainContainer *core.Frame
+	bottomMenu    *core.Frame // Reference to the bottom menu
+	dialogState   *DialogState
+	searchFilter  *SearchFilter
+	logger        *slog.Logger
 }
 
 

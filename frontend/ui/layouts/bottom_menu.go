@@ -54,7 +54,6 @@ func createBottomMenuItem(parent core.Widget, item BottomMenuItem, isActive bool
 		s.Background = nil                     // Transparent background
 		s.Padding.Set(units.Dp(styles.Spacing2))
 		s.Gap.Set(units.Dp(2))                 // Small gap between icon and text
-		s.Text.WhiteSpace = corestyles.WhiteSpaceNowrap // Prevent text wrapping
 
 		// Text sizing
 		s.Font.Size.Set(12, units.UnitDp) // text-xs for label
@@ -106,16 +105,9 @@ func CreateDefaultBottomMenu(parent core.Widget, activeView string, onNavigate f
 		},
 		{
 			Icon:  icons.FolderOpen,
-			Label: "Collections",
+			Label: "Foods",
 			OnClick: func() {
 				onNavigate("collections")
-			},
-		},
-		{
-			Icon:  icons.Search,
-			Label: "Search",
-			OnClick: func() {
-				onNavigate("search")
 			},
 		},
 		{
@@ -136,10 +128,8 @@ func CreateDefaultBottomMenu(parent core.Widget, activeView string, onNavigate f
 		activeIndex = 1
 	case "collections":
 		activeIndex = 2
-	case "search":
-		activeIndex = 3
 	case "profile":
-		activeIndex = 4
+		activeIndex = 3
 	}
 
 	return BottomMenu(parent, BottomMenuProps{

@@ -74,8 +74,8 @@ func StyleButtonSm(s *styles.Style) {
 
 // size: 'md': 'px-12' (48px horizontal padding) - height determined by padding
 func StyleButtonMd(s *styles.Style) {
-	s.Padding.Set(units.Dp(Spacing2point5), units.Dp(48))
-	s.Min.X.Set(100, units.UnitEw) // w-full - buttons should be full width in column layouts
+	s.Padding.Set(units.Dp(10), units.Dp(48)) // 10px = 2.5 spacing
+	s.Min.X.Set(100, units.UnitPw) // w-full (parent width) - buttons should be full width in column layouts
 }
 
 // size: 'lg': 'px-12' (48px horizontal padding) - height determined by padding
@@ -119,7 +119,7 @@ func StyleCard(s *styles.Style) {
 	s.Background = colors.Uniform(ColorWhite)              // bg-white
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusDefault)) // rounded (DEFAULT = 0.625rem = 10px)
 	s.Margin.Bottom = units.Dp(Spacing2)                   // mb-2 (matching React FoodCard and GroupCard spacing)
-	s.Min.X.Set(100, units.UnitEw)                         // w-full - CRITICAL: cards must span full width
+	s.Min.X.Set(100, units.UnitPw)                         // w-full (parent width) - CRITICAL: cards must span full width
 }
 
 func StyleProfileCard(s *styles.Style) {
@@ -173,7 +173,7 @@ func StyleCardInfo(s *styles.Style) {
 // Base: 'flex w-full text-base focus:outline-none disabled:cursor-not-allowed'
 func StyleInputBase(s *styles.Style) {
 	s.Display = styles.Flex           // flex
-	s.Min.X.Set(100, units.UnitEw)    // w-full
+	s.Min.X.Set(100, units.UnitPw)    // w-full (parent width)
 	s.Font.Size = units.Dp(FontSizeBase) // text-base
 	s.Cursor = cursors.Text
 }
@@ -412,7 +412,7 @@ func StyleDrawerTitle(s *styles.Style) {
 
 // DrawerClose button: className="absolute right-0 h-full px-4"
 func StyleDrawerCloseButton(s *styles.Style) {
-	s.Min.Y.Set(100, units.UnitEh)                 // h-full
+	s.Min.Y.Set(100, units.UnitPh)                 // h-full (parent height)
 	s.Padding.Set(units.Dp(0), units.Dp(Spacing4)) // px-4
 	// Note: absolute right-0 positioning would need positioning system
 }
@@ -441,7 +441,7 @@ func StyleDropdownMenuContent(s *styles.Style) {
 func StyleDropdownMenuItem(s *styles.Style) {
 	s.Padding.Set(units.Dp(Spacing2), units.Dp(Spacing3)) // Standard menu item padding
 	s.Cursor = cursors.Pointer
-	s.Min.X.Set(100, units.UnitEw) // w-full for proper clickable area
+	s.Min.X.Set(100, units.UnitPw) // w-full (parent width) for proper clickable area
 }
 
 func StyleDropdownButton(s *styles.Style) {

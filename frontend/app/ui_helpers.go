@@ -28,102 +28,57 @@ type DialogConfig struct {
 	ContentBuilder   func(dialog core.Widget) // Callback to build dialog content
 }
 
-// showDialog creates and displays a generic dialog with consistent styling
+// showDialog creates and displays a generic dialog using Cogent Core's built-in dialog system
 func (app *App) showDialog(config DialogConfig) {
-	// CRITICAL FIX: Close any existing overlay before creating a new one
-	// This prevents multiple dialogs from stacking on top of each other
-	if app.currentOverlay != nil {
-		app.hideOverlay()
-	}
-
-	overlay := app.createOverlay()
-
-	// Add click handler to overlay background to close dialog when clicking outside
-	overlay.OnClick(func(e events.Event) {
-		app.hideOverlay()
-	})
-
-	dialog := core.NewFrame(overlay)
-	dialog.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(24))
-		s.Gap.Set(units.Dp(16))
-		s.Direction = styles.Column
-		if config.MinWidth > 0 {
-			s.Min.X.Set(float32(config.MinWidth), units.UnitDp)
-		} else {
-			s.Min.X.Set(400, units.UnitDp)
-		}
-		if config.MaxWidth > 0 {
-			s.Max.X.Set(float32(config.MaxWidth), units.UnitDp)
-		} else {
-			s.Max.X.Set(500, units.UnitDp)
-		}
-	})
-
-	// Prevent clicks on dialog itself from closing the overlay
-	dialog.OnClick(func(e events.Event) {
-		e.SetHandled() // Stop event from propagating to overlay
-	})
-
-	// Title
-	title := core.NewText(dialog).SetText(config.Title)
-	title.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(20)
-		s.Font.Weight = appstyles.WeightSemiBold
-		s.Color = colors.Uniform(appstyles.ColorBlack) // Ensure title is visible
-	})
+	// Use Cogent Core's built-in dialog system which handles overlay properly
+	d := core.NewBody().SetTitle(config.Title)
 
 	// Optional message/description
 	if config.Message != "" {
-		message := core.NewText(dialog).SetText(config.Message)
-		message.Styler(func(s *styles.Style) {
+		core.NewText(d).SetText(config.Message).Styler(func(s *styles.Style) {
 			s.Color = colors.Uniform(appstyles.ColorTextSecondary)
+			s.Margin.Bottom = units.Dp(16)
 		})
 	}
 
 	// Content (delegate to caller)
 	if config.ContentBuilder != nil {
-		config.ContentBuilder(dialog)
+		config.ContentBuilder(d)
 	}
 
-	// Button row
-	buttonRow := core.NewFrame(dialog)
-	buttonRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(12))
-		s.Justify.Content = styles.End
-	})
-
-	// Cancel button
-	cancelBtn := core.NewButton(buttonRow).SetText("Cancel")
-	cancelBtn.Styler(appstyles.StyleButtonCancel)
-	cancelBtn.OnClick(func(e events.Event) {
-		if config.OnCancel != nil {
-			config.OnCancel()
-		}
-		app.hideOverlay()
-	})
-
-	// Submit button (only show if OnSubmit is provided)
-	if config.OnSubmit != nil {
-		submitText := config.SubmitButtonText
-		if submitText == "" {
-			submitText = "Submit"
-		}
-		submitBtn := core.NewButton(buttonRow).SetText(submitText)
-		if config.SubmitButtonStyle != nil {
-			submitBtn.Styler(config.SubmitButtonStyle)
-		} else {
-			submitBtn.Styler(appstyles.StyleButtonPrimary)
-		}
-		submitBtn.OnClick(func(e events.Event) {
-			config.OnSubmit()
+	// Add dialog buttons
+	d.AddBottomBar(func(bar *core.Frame) {
+		// Cancel button (always shown)
+		cancelBtn := core.NewButton(bar).SetText("Cancel")
+		cancelBtn.Styler(appstyles.StyleButtonCancel)
+		cancelBtn.OnClick(func(e events.Event) {
+			if config.OnCancel != nil {
+				config.OnCancel()
+			}
+			d.Close()
 		})
-	}
 
-	app.showOverlay(overlay)
+		// Submit button (only show if OnSubmit is provided)
+		if config.OnSubmit != nil {
+			submitText := config.SubmitButtonText
+			if submitText == "" {
+				submitText = "Submit"
+			}
+			submitBtn := core.NewButton(bar).SetText(submitText)
+			if config.SubmitButtonStyle != nil {
+				submitBtn.Styler(config.SubmitButtonStyle)
+			} else {
+				submitBtn.Styler(appstyles.StyleButtonPrimary)
+			}
+			submitBtn.OnClick(func(e events.Event) {
+				config.OnSubmit()
+				d.Close()
+			})
+		}
+	})
+
+	// Run the dialog
+	d.RunDialog(app.body)
 }
 
 // CardConfig defines configuration for a generic card
@@ -286,7 +241,13 @@ func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 func createTextField(parent core.Widget, placeholder string) *core.TextField {
 	field := core.NewTextField(parent)
 	field.SetText("").SetPlaceholder(placeholder)
-	field.Styler(appstyles.StyleInputRounded) // Apply proper input styling
+	// Set a name to avoid "Expected source id" errors
+	field.SetName(placeholder)
+	field.Styler(func(s *styles.Style) {
+		appstyles.StyleInputRounded(s)
+		// Ensure input respects parent constraints
+		s.Max.X.Set(100, units.UnitPw) // Don't exceed parent width
+	})
 	return field
 }
 

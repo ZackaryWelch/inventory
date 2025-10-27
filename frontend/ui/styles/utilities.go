@@ -746,9 +746,9 @@ func StyleGrowFull(s *styles.Style) {
 // ====================================================================================
 
 func StyleAspectSquare(s *styles.Style) {
-	// For square aspect ratio, set min width equal to min height
-	// This assumes height is already set on the element
-	s.Min.X.Set(100, units.UnitEh) // aspect-square equivalent
+	// For square aspect ratio, set equal width and height in dp
+	// Note: Cannot use UnitEh for Min size as it's self-referential
+	// Caller should set both Min.X and Min.Y to the same dp value
 }
 
 // ====================================================================================
@@ -793,7 +793,7 @@ func StyleFilterBadgeEmojiCircle(s *styles.Style) {
 
 // FilterBadge close button: className="h-full w-6 flex items-center relative"
 func StyleFilterBadgeCloseButton(s *styles.Style) {
-	s.Min.Y.Set(100, units.UnitEh) // h-full
+	s.Min.Y.Set(100, units.UnitPh) // h-full (parent height)
 	s.Min.X.Set(24, units.UnitDp)  // w-6
 	s.Display = styles.Flex        // flex
 	s.Align.Items = styles.Center  // items-center
@@ -808,7 +808,7 @@ func StyleFilterBadgeCloseButton(s *styles.Style) {
 func StyleFoodCardContainer(s *styles.Style) {
 	StyleCard(s)                       // Apply base card styles
 	s.Margin.Bottom = units.Dp(Spacing2)  // mb-2
-	s.Min.X.Set(100, units.UnitEw)     // w-full
+	s.Min.X.Set(100, units.UnitPw)     // w-full (parent width)
 	s.Display = styles.Flex            // flex
 }
 

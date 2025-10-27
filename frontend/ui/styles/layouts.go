@@ -87,7 +87,7 @@ func StyleMainHeader(s *styles.Style) {
 
 // HeaderBackButton: className="h-full aspect-square pl-4 flex items-center"
 func StyleHeaderBackButton(s *styles.Style) {
-	s.Min.Y.Set(100, units.UnitEh)                 // h-full
+	s.Min.Y.Set(100, units.UnitPh)                 // h-full (parent height)
 	s.Min.X.Set(48, units.UnitDp)                  // aspect-square (48px for h-12)
 	s.Padding.Left = units.Dp(Spacing4)            // pl-4
 	s.Display = styles.Flex                        // flex
@@ -96,7 +96,7 @@ func StyleHeaderBackButton(s *styles.Style) {
 
 // HeaderMenuCircleButton: className="h-full px-4 flex items-center"
 func StyleHeaderMenuButton(s *styles.Style) {
-	s.Min.Y.Set(100, units.UnitEh)                       // h-full
+	s.Min.Y.Set(100, units.UnitPh)                       // h-full (parent height)
 	s.Padding.Set(units.Dp(0), units.Dp(Spacing4))       // px-4
 	s.Display = styles.Flex                              // flex
 	s.Align.Items = styles.Center                        // items-center
@@ -106,7 +106,7 @@ func StyleHeaderRow(s *styles.Style) {
 	s.Direction = styles.Row
 	s.Align.Items = styles.Center
 	s.Justify.Content = styles.Center // Center the title
-	s.Background = colors.Uniform(ColorWhite)
+	// No background - header should be transparent to match React design
 	s.Min.Y.Set(48, units.UnitDp)                        // h-12 (48px)
 	// Let it size naturally to parent width
 	s.Padding.Set(units.Dp(0), units.Dp(Spacing4))       // px-4 for proper edge spacing
@@ -169,7 +169,7 @@ func StyleActionsRow(s *styles.Style) {
 func StyleActionBar(s *styles.Style) {
 	s.Display = styles.Flex
 	s.Min.Y.Set(48, units.UnitDp)                      // h-12 (48px)
-	s.Min.X.Set(100, units.UnitEw)                     // w-full
+	s.Min.X.Set(100, units.UnitPw)                     // w-full (parent width)
 	s.Align.Items = styles.Center                      // items-center
 	s.Justify.Content = styles.End                     // justify-end (matching React GroupsPage)
 }
@@ -179,7 +179,7 @@ func StyleActionsSplit(s *styles.Style) {
 	s.Gap.Set(units.Dp(Spacing3))
 	s.Justify.Content = styles.End  // Align buttons to the right (matching React justify-end)
 	s.Min.Y.Set(48, units.UnitDp)   // h-12 container height
-	s.Min.X.Set(100, units.UnitEw)  // w-full - CRITICAL: container must span full width for justify-end to work
+	s.Min.X.Set(100, units.UnitPw)  // w-full (parent width) - CRITICAL: container must span full width for justify-end to work
 }
 
 // ====================================================================================
@@ -203,7 +203,7 @@ func StyleGrid2Cols(s *styles.Style) {
 func StyleNavGrid(s *styles.Style) {
 	s.Display = styles.Grid                // grid
 	s.Gap.Set(units.Dp(Spacing4))          // gap-4
-	s.Min.X.Set(100, units.UnitEw)         // w-full
+	s.Min.X.Set(100, units.UnitPw)         // w-full (parent width)
 	// Note: grid-cols-2 would need CSS Grid implementation
 }
 
