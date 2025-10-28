@@ -117,25 +117,13 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 	})
 
 	addObjectBtn := core.NewButton(addSection).SetText("Add Object").SetIcon(icons.Add)
-	addObjectBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorPrimary)
-		s.Color = colors.Uniform(appstyles.ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(12), units.Dp(16))
-		s.Gap.Set(units.Dp(8))
-	})
+	addObjectBtn.Styler(appstyles.StyleButtonPrimary)
 	addObjectBtn.OnClick(func(e events.Event) {
 		app.showCreateObjectDialog(container, collection)
 	})
 
 	bulkImportBtn := core.NewButton(addSection).SetText("Bulk Import").SetIcon(icons.Upload)
-	bulkImportBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorAccent)
-		s.Color = colors.Uniform(appstyles.ColorBlack)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(12), units.Dp(16))
-		s.Gap.Set(units.Dp(8))
-	})
+	bulkImportBtn.Styler(appstyles.StyleButtonAccent)
 
 	// Objects section
 	objectsTitle := core.NewText(content).SetText("Objects")
@@ -435,22 +423,10 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 	})
 
 	editBtn := core.NewButton(actionsRow).SetText("Edit Object").SetIcon(icons.Edit)
-	editBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorAccent)
-		s.Color = colors.Uniform(appstyles.ColorBlack)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(12), units.Dp(16))
-		s.Gap.Set(units.Dp(8))
-	})
+	editBtn.Styler(appstyles.StyleButtonAccent)
 
 	deleteBtn := core.NewButton(actionsRow).SetText("Delete Object").SetIcon(icons.Delete)
-	deleteBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorDanger)
-		s.Color = colors.Uniform(appstyles.ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(12), units.Dp(16))
-		s.Gap.Set(units.Dp(8))
-	})
+	deleteBtn.Styler(appstyles.StyleButtonDanger)
 
 	// Properties section
 	if len(object.Properties) > 0 {

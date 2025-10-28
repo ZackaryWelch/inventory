@@ -262,26 +262,14 @@ func (app *App) showCollectionDetailView(collection Collection) {
 
 	// Add container button
 	addContainerBtn := core.NewButton(actionsRow).SetText("Add Container").SetIcon(icons.Add)
-	addContainerBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorPrimary)
-		s.Color = colors.Uniform(appstyles.ColorWhite)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(12), units.Dp(16))
-		s.Gap.Set(units.Dp(8))
-	})
+	addContainerBtn.Styler(appstyles.StyleButtonPrimary)
 	addContainerBtn.OnClick(func(e events.Event) {
 		app.showCreateContainerDialog(collection)
 	})
 
 	// Import objects button
 	importObjectsBtn := core.NewButton(actionsRow).SetText("Import Objects").SetIcon(icons.Upload)
-	importObjectsBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(appstyles.ColorAccent)
-		s.Color = colors.Uniform(appstyles.ColorBlack)
-		s.Border.Radius = styles.BorderRadiusLarge
-		s.Padding.Set(units.Dp(12), units.Dp(16))
-		s.Gap.Set(units.Dp(8))
-	})
+	importObjectsBtn.Styler(appstyles.StyleButtonAccent)
 
 	// Containers section
 	containersTitle := core.NewText(content).SetText("Containers")
