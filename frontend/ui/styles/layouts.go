@@ -533,26 +533,6 @@ func StyleEmptyState(s *styles.Style) {
 	s.Max.X.Set(400, units.UnitDp)          // Max width to prevent awkward text wrapping
 }
 
-// Overlay and Modal Background
-func StyleOverlayBackground(s *styles.Style) {
-	s.Background = colors.Uniform(ColorOverlay) // Semi-transparent black
-	s.Display = styles.Flex
-	s.Align.Items = styles.Center
-	s.Justify.Content = styles.Center
-}
-
-// Advanced Dialog Styles
-func StyleAdvancedDialogContainer(s *styles.Style) {
-	s.Background = colors.Uniform(ColorWhite)
-	s.Border.Radius = sides.NewValues(units.Dp(Radius2XL)) // BorderRadiusLarge
-	s.Padding.Set(units.Dp(Spacing6))
-	s.Gap.Set(units.Dp(Spacing4))
-	s.Direction = styles.Column
-	s.Min.X.Set(500, units.UnitDp)
-	s.Max.X.Set(600, units.UnitDp)
-	s.Max.Y.Set(500, units.UnitDp)
-}
-
 // ====================================================================================
 // Constants for Spacing Values that Need Specific Values
 // ====================================================================================
