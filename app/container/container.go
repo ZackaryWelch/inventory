@@ -159,3 +159,8 @@ func (c *Container) GetLogger() *slog.Logger {
 func (c *Container) GetAuthMiddleware() *middleware.AuthMiddleware {
 	return middleware.NewAuthMiddleware(c.AuthService, c.logger)
 }
+
+// SetLogger sets the logger (primarily for testing purposes)
+func (c *Container) SetLogger(logger *slog.Logger) {
+	c.logger = logger
+}

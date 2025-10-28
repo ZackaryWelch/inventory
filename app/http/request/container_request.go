@@ -40,6 +40,10 @@ func (r *CreateContainerRequest) GetCollectionID() (entities.CollectionID, error
 func GetContainerIDFromPath(c *gin.Context) (entities.ContainerID, error) {
 	idStr := c.Param("container_id")
 	if idStr == "" {
+		// Fall back to query parameter
+		idStr = c.Query("container_id")
+	}
+	if idStr == "" {
 		return entities.ContainerID{}, fmt.Errorf("missing container ID in path")
 	}
 

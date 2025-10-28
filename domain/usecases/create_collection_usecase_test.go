@@ -56,6 +56,13 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 	})
 
 	t.Run("success - create collection with group", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
+		mockAuthService := mocks.NewMockAuthService(mockCtrl)
+
+		useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
 		userID := entities.NewUserID()
 		groupID := entities.NewGroupID()
 
@@ -100,6 +107,13 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 	})
 
 	t.Run("error - invalid collection name", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
+		mockAuthService := mocks.NewMockAuthService(mockCtrl)
+
+		useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
 		userID := entities.NewUserID()
 
 		req := CreateCollectionRequest{
@@ -120,6 +134,13 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 	})
 
 	t.Run("error - user not member of group", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
+		mockAuthService := mocks.NewMockAuthService(mockCtrl)
+
+		useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
 		userID := entities.NewUserID()
 		groupID := entities.NewGroupID()
 		differentGroupID := entities.NewGroupID()
@@ -157,6 +178,13 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 	})
 
 	t.Run("error - auth service failure", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
+		mockAuthService := mocks.NewMockAuthService(mockCtrl)
+
+		useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
 		userID := entities.NewUserID()
 		groupID := entities.NewGroupID()
 
@@ -184,6 +212,13 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 	})
 
 	t.Run("error - repository failure", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
+		mockAuthService := mocks.NewMockAuthService(mockCtrl)
+
+		useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
 		userID := entities.NewUserID()
 
 		req := CreateCollectionRequest{
@@ -222,6 +257,14 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 
 		for _, objType := range objectTypes {
 			t.Run(string(objType), func(t *testing.T) {
+				mockCtrl := gomock.NewController(t)
+				defer mockCtrl.Finish()
+
+				mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
+				mockAuthService := mocks.NewMockAuthService(mockCtrl)
+
+				useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
+
 				req := CreateCollectionRequest{
 					UserID:     userID,
 					GroupID:    nil,

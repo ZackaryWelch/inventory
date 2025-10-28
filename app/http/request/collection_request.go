@@ -71,7 +71,7 @@ func (r *CreateCollectionRequest) GetObjectType() entities.ObjectType {
 }
 
 func GetCollectionIDFromPath(c *gin.Context) (entities.CollectionID, error) {
-	idStr := c.Param("id")
+	idStr := c.Param("collection_id")
 	if idStr == "" {
 		return entities.CollectionID{}, fmt.Errorf("missing collection ID in path")
 	}

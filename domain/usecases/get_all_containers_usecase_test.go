@@ -33,24 +33,24 @@ func TestGetAllContainersUseCase_Execute(t *testing.T) {
 	// Create test groups
 	groupID1, _ := entities.GroupIDFromString("group-1")
 	groupName1, _ := entities.NewGroupName("Test Group 1")
-	group1 := entities.ReconstructGroup(groupID1, groupName1, []entities.ContainerID{}, []entities.UserID{}, time.Now(), time.Now())
+	group1 := entities.ReconstructGroup(groupID1, groupName1, time.Now(), time.Now())
 	
 	groupID2, _ := entities.GroupIDFromString("group-2") 
 	groupName2, _ := entities.NewGroupName("Test Group 2")
-	group2 := entities.ReconstructGroup(groupID2, groupName2, []entities.ContainerID{}, []entities.UserID{}, time.Now(), time.Now())
+	group2 := entities.ReconstructGroup(groupID2, groupName2, time.Now(), time.Now())
 
 	// Create test containers
 	containerID1, _ := entities.ContainerIDFromString("container-1")
 	containerName1, _ := entities.NewContainerName("Test Container 1")
-	container1 := entities.ReconstructContainer(containerID1, groupID1, containerName1, []entities.Food{}, time.Now(), time.Now())
+	container1 := entities.ReconstructContainer(containerID1, entities.NewCollectionID(), containerName1, nil, []entities.Object{}, "", time.Now(), time.Now())
 
 	containerID2, _ := entities.ContainerIDFromString("container-2")  
 	containerName2, _ := entities.NewContainerName("Test Container 2")
-	container2 := entities.ReconstructContainer(containerID2, groupID1, containerName2, []entities.Food{}, time.Now(), time.Now())
+	container2 := entities.ReconstructContainer(containerID2, entities.NewCollectionID(), containerName2, nil, []entities.Object{}, "", time.Now(), time.Now())
 
 	containerID3, _ := entities.ContainerIDFromString("container-3")
 	containerName3, _ := entities.NewContainerName("Test Container 3") 
-	container3 := entities.ReconstructContainer(containerID3, groupID2, containerName3, []entities.Food{}, time.Now(), time.Now())
+	container3 := entities.ReconstructContainer(containerID3, entities.NewCollectionID(), containerName3, nil, []entities.Object{}, "", time.Now(), time.Now())
 
 	t.Run("Success - Returns containers from all user groups", func(t *testing.T) {
 		// Mock auth service to return user groups

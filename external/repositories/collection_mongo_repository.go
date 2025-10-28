@@ -29,14 +29,16 @@ type collectionDocument struct {
 }
 
 type MongoCollectionRepository struct {
-	db         *adapters.MongoDatabase
-	collection *mongo.Collection
+	db                  *adapters.MongoDatabase
+	collection          *mongo.Collection
+	containerCollection *mongo.Collection
 }
 
 func NewMongoCollectionRepository(db *adapters.MongoDatabase) repositories.CollectionRepository {
 	return &MongoCollectionRepository{
-		db:         db,
-		collection: db.Database().Collection("collections"),
+		db:                  db,
+		collection:          db.Database().Collection("collections"),
+		containerCollection: db.Database().Collection("containers"),
 	}
 }
 
@@ -65,7 +67,7 @@ func (r *MongoCollectionRepository) GetByID(ctx context.Context, id entities.Col
 		return nil, fmt.Errorf("failed to get collection: %w", err)
 	}
 
-	return documentToCollection(&doc)
+	return r.documentToCollection(ctx, &doc)
 }
 
 func (r *MongoCollectionRepository) Update(ctx context.Context, collection *entities.Collection) error {
@@ -117,7 +119,7 @@ func (r *MongoCollectionRepository) GetByUserID(ctx context.Context, userID enti
 			return nil, fmt.Errorf("failed to decode collection: %w", err)
 		}
 
-		collection, err := documentToCollection(&doc)
+		collection, err := r.documentToCollection(ctx, &doc)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert collection: %w", err)
 		}
@@ -148,7 +150,7 @@ func (r *MongoCollectionRepository) GetByGroupID(ctx context.Context, groupID en
 			return nil, fmt.Errorf("failed to decode collection: %w", err)
 		}
 
-		collection, err := documentToCollection(&doc)
+		collection, err := r.documentToCollection(ctx, &doc)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert collection: %w", err)
 		}
@@ -186,7 +188,7 @@ func (r *MongoCollectionRepository) List(ctx context.Context, limit, offset int)
 			return nil, fmt.Errorf("failed to decode collection: %w", err)
 		}
 
-		collection, err := documentToCollection(&doc)
+		collection, err := r.documentToCollection(ctx, &doc)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert collection: %w", err)
 		}
@@ -252,7 +254,7 @@ func objectToDocument(object entities.Object) objectDocument {
 	}
 }
 
-func documentToCollection(doc *collectionDocument) (*entities.Collection, error) {
+func (r *MongoCollectionRepository) documentToCollection(ctx context.Context, doc *collectionDocument) (*entities.Collection, error) {
 	id, err := entities.CollectionIDFromString(doc.ID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid collection ID: %w", err)
@@ -285,9 +287,35 @@ func documentToCollection(doc *collectionDocument) (*entities.Collection, error)
 		}
 	}
 
-	// For now, we'll reconstruct collections with empty containers
-	// In a full implementation, we'd load containers separately
-	containers := make([]entities.Container, 0)
+	// Load containers for this collection
+	containers := make([]entities.Container, 0, len(doc.Containers))
+	if len(doc.Containers) > 0 {
+		cursor, err := r.containerCollection.Find(ctx, bson.M{
+			"_id": bson.M{"$in": doc.Containers},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to load containers: %w", err)
+		}
+		defer cursor.Close(ctx)
+
+		for cursor.Next(ctx) {
+			var containerDoc containerDocument
+			if err := cursor.Decode(&containerDoc); err != nil {
+				return nil, fmt.Errorf("failed to decode container: %w", err)
+			}
+
+			container, err := documentToContainer(&containerDoc)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert container document: %w", err)
+			}
+
+			containers = append(containers, *container)
+		}
+
+		if err := cursor.Err(); err != nil {
+			return nil, fmt.Errorf("cursor error: %w", err)
+		}
+	}
 
 	return entities.ReconstructCollection(
 		id,
