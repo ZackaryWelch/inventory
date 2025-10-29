@@ -198,9 +198,16 @@ cert_file = "./certs/server.crt"
 key_file = "./certs/server.key"
 
 [database]
-uri = "mongodb://localhost:27017"  # Update with your MongoDB URI
-database = "nishiki"
-timeout = 10
+host = "localhost"           # MongoDB host
+port = 27017                 # MongoDB port
+username = "root"            # MongoDB username (leave empty for no auth)
+password = "password"        # MongoDB password (leave empty for no auth)
+auth_source = "admin"        # Authentication database (usually "admin" for root users)
+database = "nishiki"         # Application database name
+timeout = 10                 # Connection timeout in seconds
+
+# Alternative: use a complete URI (overrides individual fields above)
+# uri = "mongodb://username:password@localhost:27017/?authSource=admin"
 
 [auth]
 authentik_url = "https://your-authentik-server.com"  # Update with your Authentik URL
@@ -230,7 +237,12 @@ seq_api_key = "your-seq-api-key"              # Optional Seq API key
 ### Environment Variables
 All configuration can be overridden with `NISHIKI_` prefixed environment variables:
 - `NISHIKI_SERVER_PORT=3001`
-- `NISHIKI_DATABASE_URI=mongodb://...`
+- `NISHIKI_DATABASE_HOST=100.93.246.119`
+- `NISHIKI_DATABASE_PORT=27017`
+- `NISHIKI_DATABASE_USERNAME=root`
+- `NISHIKI_DATABASE_PASSWORD=password`
+- `NISHIKI_DATABASE_AUTH_SOURCE=admin`
+- `NISHIKI_DATABASE_URI=mongodb://...` (alternative to individual fields)
 - `NISHIKI_AUTH_AUTHENTIK_URL=https://...`
 - `NISHIKI_AUTH_API_TOKEN=your-api-token`
 - `NISHIKI_AUTH_ALLOW_SELF_SIGNED=true`

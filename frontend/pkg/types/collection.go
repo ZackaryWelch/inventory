@@ -4,26 +4,40 @@ import "time"
 
 // Collection represents a collection of objects
 type Collection struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	ObjectType  string    `json:"object_type"` // food, book, videogame, music, boardgame, general
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          string      `json:"id"`
+	UserID      string      `json:"user_id"`
+	GroupID     *string     `json:"group_id,omitempty"`
+	Name        string      `json:"name"`
+	CategoryID  *string     `json:"category_id,omitempty"`
+	ObjectType  string      `json:"object_type"` // food, book, videogame, music, boardgame, general
 	Containers  []Container `json:"containers,omitempty"`
+	Tags        []string    `json:"tags"`
+	Location    string      `json:"location"`
+	CreatedAt   time.Time   `json:"created_at"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+}
+
+// CollectionListResponse represents the wrapped list response from the backend
+type CollectionListResponse struct {
+	Collections []Collection `json:"collections"`
+	Total       int          `json:"total"`
 }
 
 // CreateCollectionRequest represents the request to create a new collection
 type CreateCollectionRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	ObjectType  string `json:"object_type"`
+	UserID     string   `json:"user_id" binding:"required"`
+	GroupID    *string  `json:"group_id,omitempty"`
+	Name       string   `json:"name" binding:"required"`
+	ObjectType string   `json:"object_type" binding:"required"`
+	Tags       []string `json:"tags,omitempty"`
+	Location   string   `json:"location,omitempty"`
 }
 
 // UpdateCollectionRequest represents the request to update a collection
 type UpdateCollectionRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name     string   `json:"name"`
+	Tags     []string `json:"tags,omitempty"`
+	Location string   `json:"location,omitempty"`
 }
 
 // ObjectTypeInfo holds display information for object types

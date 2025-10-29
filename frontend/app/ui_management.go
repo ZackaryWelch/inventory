@@ -17,6 +17,7 @@ import (
 	"cogentcore.org/core/styles/units"
 	"cogentcore.org/core/text/rich"
 
+	"github.com/nishiki/frontend/pkg/types"
 	"github.com/nishiki/frontend/ui/components"
 	"github.com/nishiki/frontend/ui/layouts"
 	appstyles "github.com/nishiki/frontend/ui/styles"
@@ -399,30 +400,69 @@ func (app *App) createEmptyState(parent core.Widget, title, message string, icon
 // API handlers (these would make actual HTTP requests)
 func (app *App) handleCreateGroup(name, description string) {
 	if strings.TrimSpace(name) == "" {
-		// Show error message
+		app.logger.Error("Group name cannot be empty")
 		return
 	}
 
-	// Here you would make the API call to create the group
-	// For now, we'll simulate success
-	fmt.Printf("Creating group: %s - %s\n", name, description)
-	
+	// Create request using types
+	req := types.CreateGroupRequest{
+		Name:        name,
+		Description: description,
+	}
+
+	// Make API call to create group using client
+	app.logger.Info("Creating group", "name", name)
+	group, err := app.groupsClient.Create(req)
+	if err != nil {
+		app.logger.Error("Failed to create group", "error", err)
+		return
+	}
+
+	app.logger.Info("Group created successfully", "group_id", group.ID)
+
 	// Dialog closes automatically
 	app.fetchGroups() // Refresh the list
 	app.showEnhancedGroupsView() // Refresh the view
 }
 
 func (app *App) handleEditGroup(groupID, name, description string) {
-	fmt.Printf("Editing group %s: %s - %s\n", groupID, name, description)
-	
+	if strings.TrimSpace(name) == "" {
+		app.logger.Error("Group name cannot be empty")
+		return
+	}
+
+	// Create request using types
+	req := types.UpdateGroupRequest{
+		Name:        name,
+		Description: description,
+	}
+
+	// Make API call to update group using client
+	app.logger.Info("Updating group", "group_id", groupID, "name", name)
+	group, err := app.groupsClient.Update(groupID, req)
+	if err != nil {
+		app.logger.Error("Failed to update group", "error", err)
+		return
+	}
+
+	app.logger.Info("Group updated successfully", "group_id", group.ID)
+
 	// Dialog closes automatically
 	app.fetchGroups()
 	app.showEnhancedGroupsView()
 }
 
 func (app *App) handleDeleteGroup(groupID string) {
-	fmt.Printf("Deleting group: %s\n", groupID)
-	
+	// Make API call to delete group using client
+	app.logger.Info("Deleting group", "group_id", groupID)
+	err := app.groupsClient.Delete(groupID)
+	if err != nil {
+		app.logger.Error("Failed to delete group", "error", err)
+		return
+	}
+
+	app.logger.Info("Group deleted successfully")
+
 	// Dialog closes automatically
 	app.fetchGroups()
 	app.showEnhancedGroupsView()

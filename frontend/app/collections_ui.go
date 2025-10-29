@@ -15,6 +15,7 @@ import (
 	"cogentcore.org/core/styles/sides"
 	"cogentcore.org/core/styles/units"
 
+	"github.com/nishiki/frontend/pkg/types"
 	"github.com/nishiki/frontend/ui/components"
 	"github.com/nishiki/frontend/ui/layouts"
 	appstyles "github.com/nishiki/frontend/ui/styles"
@@ -144,7 +145,7 @@ func (app *App) createEnhancedCollectionCard(parent core.Widget, collection Coll
 		Icon:        typeIcon,
 		IconColor:   typeColor,
 		Title:       collection.Name,
-		Description: collection.Description,
+		Description: collection.Location,
 		OnClick: func() {
 			app.showCollectionDetailView(collection)
 		},
@@ -239,15 +240,15 @@ func (app *App) showCollectionDetailView(collection Collection) {
 		s.Font.Weight = appstyles.WeightMedium
 	})
 
-	// Description
-	if collection.Description != "" {
-		descTitle := core.NewText(infoCard).SetText("Description")
-		descTitle.Styler(func(s *styles.Style) {
+	// Location
+	if collection.Location != "" {
+		locTitle := core.NewText(infoCard).SetText("Location")
+		locTitle.Styler(func(s *styles.Style) {
 			s.Font.Weight = appstyles.WeightSemiBold
 			s.Color = colors.Uniform(appstyles.ColorGrayDark)
 		})
-		desc := core.NewText(infoCard).SetText(collection.Description)
-		desc.Styler(func(s *styles.Style) {
+		loc := core.NewText(infoCard).SetText(collection.Location)
+		loc.Styler(func(s *styles.Style) {
 			s.Color = colors.Uniform(appstyles.ColorGrayDark)
 		})
 	}
@@ -380,7 +381,7 @@ func (app *App) showCreateCollectionDialogWithTypeAndValues(selectedType, curren
 				nameField.SetText(currentName) // Restore previous value
 			}
 
-			descField = createTextField(dialog, "Description (optional)")
+			descField = createTextField(dialog, "Location (optional)")
 			if currentDesc != "" {
 				descField.SetText(currentDesc) // Restore previous value
 			}
@@ -427,25 +428,86 @@ func (app *App) showCreateCollectionDialogWithTypeAndValues(selectedType, curren
 }
 
 // Collection API handlers
-func (app *App) handleCreateCollection(name, description, objectType string) {
+func (app *App) handleCreateCollection(name, location, objectType string) {
 	if strings.TrimSpace(name) == "" {
+		app.logger.Error("Collection name cannot be empty")
 		return
 	}
 
-	fmt.Printf("Creating collection: %s - %s (type: %s)\n", name, description, objectType)
+	if app.currentUser == nil {
+		app.logger.Error("No current user for collection creation")
+		return
+	}
+
+	// Create request using types
+	req := types.CreateCollectionRequest{
+		UserID:     app.currentUser.ID,
+		Name:       name,
+		ObjectType: objectType,
+		Location:   location,
+	}
+
+	// Make API call to create collection using client
+	app.logger.Info("Creating collection", "name", name, "type", objectType)
+	collection, err := app.collectionsClient.Create(app.currentUser.ID, req)
+	if err != nil {
+		app.logger.Error("Failed to create collection", "error", err)
+		return
+	}
+
+	app.logger.Info("Collection created successfully", "collection_id", collection.ID)
 
 	app.fetchCollections()
 	app.showEnhancedCollectionsView()
 }
 
-func (app *App) handleEditCollection(collectionID, name, description string) {
-	fmt.Printf("Editing collection %s: %s - %s\n", collectionID, name, description)
+func (app *App) handleEditCollection(collectionID, name, location string) {
+	if strings.TrimSpace(name) == "" {
+		app.logger.Error("Collection name cannot be empty")
+		return
+	}
+
+	if app.currentUser == nil {
+		app.logger.Error("No current user for collection update")
+		return
+	}
+
+	// Create request using types
+	req := types.UpdateCollectionRequest{
+		Name:     name,
+		Location: location,
+	}
+
+	// Make API call to update collection using client
+	app.logger.Info("Updating collection", "collection_id", collectionID, "name", name)
+	collection, err := app.collectionsClient.Update(app.currentUser.ID, collectionID, req)
+	if err != nil {
+		app.logger.Error("Failed to update collection", "error", err)
+		return
+	}
+
+	app.logger.Info("Collection updated successfully", "collection_id", collection.ID)
+
 	app.fetchCollections()
 	app.showEnhancedCollectionsView()
 }
 
 func (app *App) handleDeleteCollection(collectionID string) {
-	fmt.Printf("Deleting collection: %s\n", collectionID)
+	if app.currentUser == nil {
+		app.logger.Error("No current user for collection deletion")
+		return
+	}
+
+	// Make API call to delete collection using client
+	app.logger.Info("Deleting collection", "collection_id", collectionID)
+	err := app.collectionsClient.Delete(app.currentUser.ID, collectionID)
+	if err != nil {
+		app.logger.Error("Failed to delete collection", "error", err)
+		return
+	}
+
+	app.logger.Info("Collection deleted successfully")
+
 	app.fetchCollections()
 	app.showEnhancedCollectionsView()
 }
@@ -457,15 +519,85 @@ func (app *App) handleImport(fileData string) {
 }
 
 func (app *App) handleCreateContainer(collectionID, name, description string) {
-	fmt.Printf("Creating container in collection %s: %s - %s\n", collectionID, name, description)
+	if strings.TrimSpace(name) == "" {
+		app.logger.Error("Container name cannot be empty")
+		return
+	}
+
+	if app.currentUser == nil {
+		app.logger.Error("No current user for container creation")
+		return
+	}
+
+	// Create request using types
+	req := types.CreateContainerRequest{
+		Name:        name,
+		Description: description,
+	}
+
+	// Make API call to create container using client
+	app.logger.Info("Creating container", "collection_id", collectionID, "name", name)
+	container, err := app.containersClient.Create(app.currentUser.ID, collectionID, req)
+	if err != nil {
+		app.logger.Error("Failed to create container", "error", err)
+		return
+	}
+
+	app.logger.Info("Container created successfully", "container_id", container.ID)
+
+	// Refresh the collection view
+	app.fetchCollections()
 }
 
 func (app *App) handleEditContainer(collectionID, containerID, name, description string) {
-	fmt.Printf("Editing container %s in collection %s: %s - %s\n", containerID, collectionID, name, description)
+	if strings.TrimSpace(name) == "" {
+		app.logger.Error("Container name cannot be empty")
+		return
+	}
+
+	if app.currentUser == nil {
+		app.logger.Error("No current user for container update")
+		return
+	}
+
+	// Create request using types
+	req := types.UpdateContainerRequest{
+		Name:        name,
+		Description: description,
+	}
+
+	// Make API call to update container using client
+	app.logger.Info("Updating container", "collection_id", collectionID, "container_id", containerID, "name", name)
+	container, err := app.containersClient.Update(app.currentUser.ID, collectionID, containerID, req)
+	if err != nil {
+		app.logger.Error("Failed to update container", "error", err)
+		return
+	}
+
+	app.logger.Info("Container updated successfully", "container_id", container.ID)
+
+	// Refresh the collection view
+	app.fetchCollections()
 }
 
 func (app *App) handleDeleteContainer(collectionID, containerID string) {
-	fmt.Printf("Deleting container %s from collection %s\n", containerID, collectionID)
+	if app.currentUser == nil {
+		app.logger.Error("No current user for container deletion")
+		return
+	}
+
+	// Make API call to delete container using client
+	app.logger.Info("Deleting container", "collection_id", collectionID, "container_id", containerID)
+	err := app.containersClient.Delete(app.currentUser.ID, collectionID, containerID)
+	if err != nil {
+		app.logger.Error("Failed to delete container", "error", err)
+		return
+	}
+
+	app.logger.Info("Container deleted successfully")
+
+	// Refresh the collection view
+	app.fetchCollections()
 }
 
 func (app *App) showEditCollectionDialog(collection Collection) {
@@ -478,8 +610,8 @@ func (app *App) showEditCollectionDialog(collection Collection) {
 		ContentBuilder: func(dialog core.Widget) {
 			nameField = createTextField(dialog, "Collection name")
 			nameField.SetText(collection.Name)
-			descField = createTextField(dialog, "Description (optional)")
-			descField.SetText(collection.Description)
+			descField = createTextField(dialog, "Location (optional)")
+			descField.SetText(collection.Location)
 		},
 		OnSubmit: func() {
 			app.handleEditCollection(collection.ID, nameField.Text(), descField.Text())

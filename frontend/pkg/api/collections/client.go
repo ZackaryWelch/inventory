@@ -26,7 +26,13 @@ func (c *Client) List(accountID string) ([]types.Collection, error) {
 		return nil, err
 	}
 
-	return common.DecodeResponseList[types.Collection](resp)
+	// Backend returns wrapped response: {collections: [...], total: N}
+	listResp, err := common.DecodeResponse[types.CollectionListResponse](resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return listResp.Collections, nil
 }
 
 // Get gets a specific collection by ID

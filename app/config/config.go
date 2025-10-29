@@ -27,9 +27,49 @@ type TLSConfig struct {
 }
 
 type DatabaseConfig struct {
-	URI      string `toml:"uri" mapstructure:"uri"`
+	// Individual connection parameters (preferred)
+	Host       string `toml:"host" mapstructure:"host"`
+	Port       int    `toml:"port" mapstructure:"port"`
+	Username   string `toml:"username" mapstructure:"username"`
+	Password   string `toml:"password" mapstructure:"password"`
+	AuthSource string `toml:"auth_source" mapstructure:"auth_source"`
+
+	// Database name
 	Database string `toml:"database" mapstructure:"database"`
 	Timeout  int    `toml:"timeout" mapstructure:"timeout"`
+
+	// Legacy URI field (optional, overrides individual fields if provided)
+	URI string `toml:"uri" mapstructure:"uri"`
+}
+
+// GetURI constructs or returns the MongoDB connection URI
+func (c *DatabaseConfig) GetURI() string {
+	// If URI is explicitly provided, use it
+	if c.URI != "" {
+		return c.URI
+	}
+
+	// Construct URI from individual fields
+	uri := "mongodb://"
+
+	// Add credentials if provided
+	if c.Username != "" {
+		uri += c.Username
+		if c.Password != "" {
+			uri += ":" + c.Password
+		}
+		uri += "@"
+	}
+
+	// Add host and port
+	uri += fmt.Sprintf("%s:%d", c.Host, c.Port)
+
+	// Add auth source if credentials are provided
+	if c.Username != "" && c.AuthSource != "" {
+		uri += "/?authSource=" + c.AuthSource
+	}
+
+	return uri
 }
 
 type OAuthClient struct {
@@ -100,9 +140,14 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("server.tls.key_file", "./certs/server.key")
 
 	// Database defaults
-	v.SetDefault("database.uri", "mongodb://localhost:27017")
+	v.SetDefault("database.host", "localhost")
+	v.SetDefault("database.port", 27017)
+	v.SetDefault("database.username", "")
+	v.SetDefault("database.password", "")
+	v.SetDefault("database.auth_source", "admin")
 	v.SetDefault("database.database", "nishiki")
 	v.SetDefault("database.timeout", 10)
+	v.SetDefault("database.uri", "") // Legacy field
 
 	// Auth defaults
 	v.SetDefault("auth.authentik_url", "")
@@ -122,8 +167,9 @@ func validate(config *Config) error {
 		return fmt.Errorf("server port must be between 1 and 65535")
 	}
 
-	if config.Database.URI == "" {
-		return fmt.Errorf("database URI is required")
+	// Validate database configuration
+	if config.Database.URI == "" && config.Database.Host == "" {
+		return fmt.Errorf("either database URI or host must be provided")
 	}
 
 	if config.Database.Database == "" {

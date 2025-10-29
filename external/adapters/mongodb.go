@@ -32,7 +32,8 @@ func NewMongoDatabase(config config.DatabaseConfig) *MongoDatabase {
 
 func (m *MongoDatabase) Connect(ctx context.Context) error {
 	timeout := time.Duration(m.config.Timeout) * time.Second
-	clientOptions := options.Client().ApplyURI(m.config.URI).SetTimeout(timeout)
+	uri := m.config.GetURI()
+	clientOptions := options.Client().ApplyURI(uri).SetTimeout(timeout)
 
 	client, err := mongo.Connect(clientOptions)
 	if err != nil {

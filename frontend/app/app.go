@@ -5,13 +5,16 @@ package app
 import (
 	"fmt"
 	"log/slog"
-	"net/http"
 	"syscall/js"
-	"time"
 
 	"cogentcore.org/core/core"
-	"github.com/nishiki/backend-go/app/http/response"
 	"github.com/nishiki/frontend/config"
+	authAPI "github.com/nishiki/frontend/pkg/api/auth"
+	collectionsAPI "github.com/nishiki/frontend/pkg/api/collections"
+	apiCommon "github.com/nishiki/frontend/pkg/api/common"
+	containersAPI "github.com/nishiki/frontend/pkg/api/containers"
+	groupsAPI "github.com/nishiki/frontend/pkg/api/groups"
+	"github.com/nishiki/frontend/pkg/types"
 )
 
 // View constants
@@ -27,32 +30,14 @@ const (
 // Use the shared config type
 type Config = config.Config
 
-// Import backend response types instead of duplicating
+// Type aliases for convenience
 type (
-	User              = response.UserResponse
-	AuthInfoResponse  = response.AuthInfoResponse
-	ClaimsInfo        = response.ClaimsInfo
+	User             = types.User
+	AuthInfoResponse = types.AuthInfoResponse
+	ClaimsInfo       = types.ClaimsInfo
+	Group            = types.Group
+	Collection       = types.Collection
 )
-
-// Group represents a group in the system
-type Group struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	Members     []User    `json:"members,omitempty"`
-}
-
-// Collection represents a collection of objects
-type Collection struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	ObjectType  string    `json:"object_type"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-}
 
 // App holds the main application state
 type App struct {
@@ -61,17 +46,21 @@ type App struct {
 	currentUser   *User
 	groups        []Group
 	collections   []Collection
-	httpClient    *http.Client
 	currentView   string
 	isSignedIn    bool
-	body          *core.Body  // Reference to the body for dialogs
+	body          *core.Body // Reference to the body for dialogs
 	mainContainer *core.Frame
 	bottomMenu    *core.Frame // Reference to the bottom menu
 	dialogState   *DialogState
 	searchFilter  *SearchFilter
 	logger        *slog.Logger
+	// API clients
+	apiClient         *apiCommon.Client
+	authClient        *authAPI.Client
+	groupsClient      *groupsAPI.Client
+	collectionsClient *collectionsAPI.Client
+	containersClient  *containersAPI.Client
 }
-
 
 // NewApp creates a new application instance
 func NewApp() *App {
@@ -85,13 +74,24 @@ func NewApp() *App {
 	// Create authentication service
 	authService := NewAuthService(config, logger)
 
+	// Initialize API clients
+	apiClient := apiCommon.NewClient(config.BackendURL, authService)
+	authClient := authAPI.NewClient(apiClient, config.ClientID)
+	groupsClient := groupsAPI.NewClient(apiClient)
+	collectionsClient := collectionsAPI.NewClient(apiClient)
+	containersClient := containersAPI.NewClient(apiClient)
+
 	app := &App{
-		config:      config,
-		authService: authService,
-		httpClient:  &http.Client{Timeout: 30 * time.Second},
-		currentView: ViewLogin,
-		isSignedIn:  false,
-		logger:      logger,
+		config:            config,
+		authService:       authService,
+		currentView:       ViewLogin,
+		isSignedIn:        false,
+		logger:            logger,
+		apiClient:         apiClient,
+		authClient:        authClient,
+		groupsClient:      groupsClient,
+		collectionsClient: collectionsClient,
+		containersClient:  containersClient,
 	}
 
 	// Initialize dialog state
@@ -119,7 +119,7 @@ func (cw consoleWriter) Write(p []byte) (n int, err error) {
 	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
 		msg = msg[:len(msg)-1]
 	}
-	
+
 	// Use fmt.Print for now, but this goes to console in WebAssembly
 	fmt.Print(string(p))
 	return len(p), nil
@@ -128,7 +128,7 @@ func (cw consoleWriter) Write(p []byte) (n int, err error) {
 // initializeAuthState checks authentication state on app startup
 func (app *App) initializeAuthState() {
 	app.logger.Debug("Initializing auth state")
-	
+
 	// Check if we're on the callback URL
 	if app.isCallbackURL() {
 		app.logger.Info("Detected callback URL, handling auth callback")

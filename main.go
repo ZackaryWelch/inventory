@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	sloggin "github.com/samber/slog-gin"
 
 	"github.com/nishiki/backend-go/app/config"
 	"github.com/nishiki/backend-go/app/container"
@@ -44,9 +43,8 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// Create router with slog middleware
+	// Create router
 	router := gin.New()
-	router.Use(sloggin.New(logger))
 	router.Use(gin.Recovery())
 
 	// Setup routes

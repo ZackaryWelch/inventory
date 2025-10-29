@@ -80,10 +80,6 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 		c.Set(AuthClaimsKey, claims)
 		c.Set(AuthTokenKey, token)
 
-		m.logger.Debug("Authentication successful",
-			slog.String("user_id", user.ID().String()),
-			slog.String("username", user.Username().String()))
-
 		c.Next()
 	}
 }

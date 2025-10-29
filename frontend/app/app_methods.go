@@ -3,10 +3,7 @@
 package app
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"syscall/js"
 
 	"cogentcore.org/core/colors"
@@ -21,53 +18,11 @@ import (
 	appstyles "github.com/nishiki/frontend/ui/styles"
 )
 
-func (app *App) makeAuthenticatedRequest(method, endpoint string, body interface{}) (*http.Response, error) {
-	var reqBody *http.Request
-	var err error
-
-	if body != nil {
-		jsonBody, err := json.Marshal(body)
-		if err != nil {
-			return nil, err
-		}
-		reqBody, err = http.NewRequest(method, app.config.BackendURL+endpoint, bytes.NewBuffer(jsonBody))
-		if err != nil {
-			return nil, err
-		}
-		reqBody.Header.Set("Content-Type", "application/json")
-	} else {
-		reqBody, err = http.NewRequest(method, app.config.BackendURL+endpoint, nil)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Get access token from auth service
-	accessToken, err := app.authService.GetAccessToken()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get access token: %w", err)
-	}
-
-	reqBody.Header.Set("Authorization", "Bearer "+accessToken)
-
-	return app.httpClient.Do(reqBody)
-}
-
 // fetchCurrentUser gets the current user from the backend
 func (app *App) fetchCurrentUser() error {
-	resp, err := app.makeAuthenticatedRequest("GET", "/auth/me", nil)
+	authInfo, err := app.authClient.GetCurrentUser()
 	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to get current user: %d", resp.StatusCode)
-	}
-
-	var authInfo AuthInfoResponse
-	if err := json.NewDecoder(resp.Body).Decode(&authInfo); err != nil {
-		return err
+		return fmt.Errorf("failed to get current user: %w", err)
 	}
 
 	app.currentUser = &authInfo.User
@@ -77,22 +32,13 @@ func (app *App) fetchCurrentUser() error {
 
 // fetchGroups gets the user's groups from the backend
 func (app *App) fetchGroups() error {
-	resp, err := app.makeAuthenticatedRequest("GET", "/groups", nil)
+	groups, err := app.groupsClient.List()
 	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to get groups: %d", resp.StatusCode)
-	}
-
-	var groups []Group
-	if err := json.NewDecoder(resp.Body).Decode(&groups); err != nil {
-		return err
+		return fmt.Errorf("failed to get groups: %w", err)
 	}
 
 	app.groups = groups
+	app.logger.Debug("Fetched groups", "count", len(groups))
 	return nil
 }
 
@@ -102,22 +48,13 @@ func (app *App) fetchCollections() error {
 		return fmt.Errorf("no current user")
 	}
 
-	resp, err := app.makeAuthenticatedRequest("GET", "/accounts/"+app.currentUser.ID+"/collections", nil)
+	collections, err := app.collectionsClient.List(app.currentUser.ID)
 	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to get collections: %d", resp.StatusCode)
-	}
-
-	var collections []Collection
-	if err := json.NewDecoder(resp.Body).Decode(&collections); err != nil {
-		return err
+		return fmt.Errorf("failed to get collections: %w", err)
 	}
 
 	app.collections = collections
+	app.logger.Debug("Fetched collections", "count", len(collections))
 	return nil
 }
 

@@ -19,14 +19,14 @@ func NewClient(commonClient *common.Client, clientID string) *Client {
 	}
 }
 
-// GetCurrentUser gets the currently authenticated user
-func (c *Client) GetCurrentUser() (*types.User, error) {
+// GetCurrentUser gets the currently authenticated user with claims
+func (c *Client) GetCurrentUser() (*types.AuthInfoResponse, error) {
 	resp, err := c.common.Get("/auth/me")
 	if err != nil {
 		return nil, err
 	}
 
-	return common.DecodeResponse[types.User](resp)
+	return common.DecodeResponse[types.AuthInfoResponse](resp)
 }
 
 // GetOIDCConfig gets the OIDC configuration from the backend

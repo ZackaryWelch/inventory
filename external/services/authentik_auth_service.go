@@ -122,16 +122,11 @@ func (s *AuthentikAuthService) ValidateToken(ctx context.Context, tokenString st
 	// Remove "Bearer " prefix if present
 	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 
-	s.logger.Debug("Validating token", slog.String("token_prefix", tokenString[:min(len(tokenString), 20)]+"..."))
-
 	// Try to verify token with each client until one succeeds
 	var lastErr error
 	for clientID, client := range s.clients {
 		idToken, err := client.verifier.Verify(ctx, tokenString)
 		if err != nil {
-			s.logger.Debug("Token verification failed for client",
-				slog.String("client_id", clientID),
-				slog.Any("error", err))
 			lastErr = err
 			continue
 		}
@@ -259,12 +254,6 @@ func (s *AuthentikAuthService) createUserFromClaims(claims *services.AuthClaims)
 	// Create user entity (using ReconstructUser since we have all the data)
 	user := entities.ReconstructUser(userID, username, email, claims.Subject, time.Now(), time.Now())
 
-	s.logger.Debug("Created user from Authentik claims",
-		slog.String("user_id", user.ID().String()),
-		slog.String("username", username.String()),
-		slog.String("email", email.String()),
-		slog.String("authentik_id", claims.Subject))
-
 	return user, nil
 }
 
@@ -316,37 +305,47 @@ type AuthentikUsersResponse struct {
 
 // GetUserGroups fetches groups the user is a member of using JWT token claims and Authentik API with API token
 func (s *AuthentikAuthService) GetUserGroups(ctx context.Context, userToken, userID string) ([]*entities.Group, error) {
-	s.logger.Debug("Extracting user groups from JWT token", 
+	s.logger.Debug("Extracting user groups from JWT token",
 		slog.String("user_id", userID))
 
-	// Validate the token and extract claims
-	claims, err := s.ValidateToken(ctx, userToken)
+	// Parse token without validation (already validated by auth middleware)
+	rawClaims, err := s.ParseTokenClaims(userToken)
 	if err != nil {
-		s.logger.Error("Failed to validate token", slog.Any("error", err))
-		return nil, fmt.Errorf("failed to validate token: %w", err)
+		s.logger.Error("Failed to parse token claims", slog.Any("error", err))
+		return nil, fmt.Errorf("failed to parse token claims: %w", err)
 	}
 
-	s.logger.Debug("Found groups in token claims", 
+	// Extract groups from claims
+	var groupNames []string
+	if groupsRaw, ok := (*rawClaims)["groups"]; ok {
+		if groupsSlice, ok := groupsRaw.([]interface{}); ok {
+			for _, g := range groupsSlice {
+				if groupName, ok := g.(string); ok {
+					groupNames = append(groupNames, groupName)
+				}
+			}
+		}
+	}
+
+	s.logger.Debug("Found groups in token claims",
 		slog.String("user_id", userID),
-		slog.Any("groups", claims.Groups))
+		slog.Any("groups", groupNames))
 
 	// Create authenticated API client using configured API token
 	apiClient := api.NewAPIClient(s.apiConfig)
 	auth := context.WithValue(ctx, api.ContextAccessToken, s.config.APIToken)
 
 	groups := make([]*entities.Group, 0)
-	for _, groupName := range claims.Groups {
+	for _, groupName := range groupNames {
 		// Skip admin groups (authentik Admins, etc.)
 		if strings.Contains(strings.ToLower(groupName), "admin") {
-			s.logger.Debug("Skipping admin group", 
-				slog.String("group_name", groupName))
 			continue
 		}
 
 		// Query Authentik API to get full group details by name
 		groupsResp, _, err := apiClient.CoreApi.CoreGroupsList(auth).Name(groupName).Execute()
 		if err != nil {
-			s.logger.Warn("Failed to fetch group details from Authentik", 
+			s.logger.Warn("Failed to fetch group details from Authentik",
 				slog.String("group_name", groupName),
 				slog.Any("error", err))
 			continue
@@ -356,9 +355,6 @@ func (s *AuthentikAuthService) GetUserGroups(ctx context.Context, userToken, use
 		for _, ag := range groupsResp.Results {
 			// Filter groups to only include those with 'nishiki' role
 			if !s.HasNishikiRoleFromAPI(ag) {
-				s.logger.Debug("Skipping group without nishiki role", 
-					slog.String("group_id", ag.Pk),
-					slog.String("group_name", ag.Name))
 				continue
 			}
 
@@ -377,14 +373,10 @@ func (s *AuthentikAuthService) GetUserGroups(ctx context.Context, userToken, use
 			// Create group entity - using current time as created/updated since Authentik doesn't provide these
 			group := entities.ReconstructGroup(groupID, validGroupName, time.Now(), time.Now())
 			groups = append(groups, group)
-
-			s.logger.Debug("Successfully fetched group details", 
-				slog.String("group_id", ag.Pk),
-				slog.String("group_name", ag.Name))
 		}
 	}
 
-	s.logger.Debug("Successfully processed user groups", 
+	s.logger.Debug("Successfully processed user groups",
 		slog.String("user_id", userID),
 		slog.Int("group_count", len(groups)))
 
@@ -410,9 +402,6 @@ func (s *AuthentikAuthService) HasNishikiRoleFromAPI(group api.Group) bool {
 	if group.RolesObj != nil {
 		for _, role := range group.RolesObj {
 			if role.Name == "nishiki" {
-				s.logger.Debug("Group has nishiki role via roles_obj", 
-					slog.String("group_name", group.Name),
-					slog.String("role_name", role.Name))
 				return true
 			}
 		}
@@ -422,24 +411,16 @@ func (s *AuthentikAuthService) HasNishikiRoleFromAPI(group api.Group) bool {
 	if group.Attributes != nil {
 		if role, exists := group.Attributes["role"]; exists {
 			if roleStr, ok := role.(string); ok && roleStr == "nishiki" {
-				s.logger.Debug("Group has nishiki role via attributes", 
-					slog.String("group_name", group.Name))
 				return true
 			}
 		}
 	}
-	
+
 	// Also check if group name contains 'nishiki' as fallback
 	if strings.Contains(strings.ToLower(group.Name), "nishiki") {
-		s.logger.Debug("Group name contains 'nishiki'", 
-			slog.String("group_name", group.Name))
 		return true
 	}
 
-	s.logger.Debug("Group does not have nishiki role", 
-		slog.String("group_name", group.Name),
-		slog.Any("roles_obj", group.RolesObj),
-		slog.Any("attributes", group.Attributes))
 	return false
 }
 
