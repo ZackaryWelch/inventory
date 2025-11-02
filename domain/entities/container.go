@@ -10,7 +10,42 @@ import (
 var (
 	ErrInvalidContainerID    = errors.New("invalid container ID")
 	ErrInvalidContainerName  = errors.New("container name must be between 1 and 255 characters")
+	ErrInvalidContainerType  = errors.New("invalid container type")
 )
+
+// ContainerType represents the type of physical container
+type ContainerType string
+
+const (
+	ContainerTypeRoom      ContainerType = "room"
+	ContainerTypeBookshelf ContainerType = "bookshelf"
+	ContainerTypeShelf     ContainerType = "shelf"
+	ContainerTypeBinder    ContainerType = "binder"
+	ContainerTypeCabinet   ContainerType = "cabinet"
+	ContainerTypeGeneral   ContainerType = "general" // Default for unspecified type
+)
+
+// ValidContainerTypes returns all valid container types
+func ValidContainerTypes() []ContainerType {
+	return []ContainerType{
+		ContainerTypeRoom,
+		ContainerTypeBookshelf,
+		ContainerTypeShelf,
+		ContainerTypeBinder,
+		ContainerTypeCabinet,
+		ContainerTypeGeneral,
+	}
+}
+
+// IsValidContainerType checks if a string is a valid container type
+func IsValidContainerType(t string) bool {
+	switch ContainerType(t) {
+	case ContainerTypeRoom, ContainerTypeBookshelf, ContainerTypeShelf,
+		ContainerTypeBinder, ContainerTypeCabinet, ContainerTypeGeneral:
+		return true
+	}
+	return false
+}
 
 type ContainerID struct {
 	value string
@@ -58,47 +93,88 @@ func (c ContainerName) Equals(other ContainerName) bool {
 }
 
 type Container struct {
-	id           ContainerID
-	collectionID CollectionID
-	name         ContainerName
-	categoryID   *CategoryID // Optional category for this container
-	objects      []Object    // Objects stored in this container
-	location     string      // Physical location within collection
-	createdAt    time.Time
-	updatedAt    time.Time
+	id                ContainerID
+	collectionID      CollectionID
+	name              ContainerName
+	containerType     ContainerType // Type of container (room, bookshelf, shelf, etc.)
+	parentContainerID *ContainerID  // Optional parent container for hierarchy
+	categoryID        *CategoryID   // Optional category for this container
+	objects           []Object      // Objects stored in this container
+	location          string        // Physical location within collection
+	// Physical dimensions for capacity planning
+	width    *float64 // Width in inches
+	depth    *float64 // Depth in inches
+	rows     *int     // Number of rows/shelves
+	capacity *float64 // Total capacity in units
+	createdAt time.Time
+	updatedAt time.Time
 }
 
 type ContainerProps struct {
-	CollectionID CollectionID
-	Name         ContainerName
-	CategoryID   *CategoryID
-	Location     string
+	CollectionID      CollectionID
+	Name              ContainerName
+	ContainerType     ContainerType
+	ParentContainerID *ContainerID
+	CategoryID        *CategoryID
+	Location          string
+	Width             *float64
+	Depth             *float64
+	Rows              *int
+	Capacity          *float64
 }
 
 func NewContainer(props ContainerProps) (*Container, error) {
+	// Default to general type if not specified
+	containerType := props.ContainerType
+	if containerType == "" {
+		containerType = ContainerTypeGeneral
+	}
+
+	// Validate container type
+	if !IsValidContainerType(string(containerType)) {
+		return nil, ErrInvalidContainerType
+	}
+
 	now := time.Now()
 	return &Container{
-		id:           NewContainerID(),
-		collectionID: props.CollectionID,
-		name:         props.Name,
-		categoryID:   props.CategoryID,
-		objects:      make([]Object, 0),
-		location:     props.Location,
-		createdAt:    now,
-		updatedAt:    now,
+		id:                NewContainerID(),
+		collectionID:      props.CollectionID,
+		name:              props.Name,
+		containerType:     containerType,
+		parentContainerID: props.ParentContainerID,
+		categoryID:        props.CategoryID,
+		objects:           make([]Object, 0),
+		location:          props.Location,
+		width:             props.Width,
+		depth:             props.Depth,
+		rows:              props.Rows,
+		capacity:          props.Capacity,
+		createdAt:         now,
+		updatedAt:         now,
 	}, nil
 }
 
-func ReconstructContainer(id ContainerID, collectionID CollectionID, name ContainerName, categoryID *CategoryID, objects []Object, location string, createdAt, updatedAt time.Time) *Container {
+func ReconstructContainer(id ContainerID, collectionID CollectionID, name ContainerName, containerType ContainerType, parentContainerID *ContainerID, categoryID *CategoryID, objects []Object, location string, width, depth *float64, rows *int, capacity *float64, createdAt, updatedAt time.Time) *Container {
+	// Default to general type if not specified
+	if containerType == "" {
+		containerType = ContainerTypeGeneral
+	}
+
 	return &Container{
-		id:           id,
-		collectionID: collectionID,
-		name:         name,
-		categoryID:   categoryID,
-		objects:      objects,
-		location:     location,
-		createdAt:    createdAt,
-		updatedAt:    updatedAt,
+		id:                id,
+		collectionID:      collectionID,
+		name:              name,
+		containerType:     containerType,
+		parentContainerID: parentContainerID,
+		categoryID:        categoryID,
+		objects:           objects,
+		location:          location,
+		width:             width,
+		depth:             depth,
+		rows:              rows,
+		capacity:          capacity,
+		createdAt:         createdAt,
+		updatedAt:         updatedAt,
 	}
 }
 
@@ -132,6 +208,60 @@ func (c *Container) CreatedAt() time.Time {
 
 func (c *Container) UpdatedAt() time.Time {
 	return c.updatedAt
+}
+
+func (c *Container) ContainerType() ContainerType {
+	return c.containerType
+}
+
+func (c *Container) ParentContainerID() *ContainerID {
+	return c.parentContainerID
+}
+
+func (c *Container) Width() *float64 {
+	return c.width
+}
+
+func (c *Container) Depth() *float64 {
+	return c.depth
+}
+
+func (c *Container) Rows() *int {
+	return c.rows
+}
+
+func (c *Container) Capacity() *float64 {
+	return c.capacity
+}
+
+// IsLeafContainer returns true if this container type cannot have children
+func (c *Container) IsLeafContainer() bool {
+	return c.containerType == ContainerTypeShelf ||
+		c.containerType == ContainerTypeBinder ||
+		c.containerType == ContainerTypeCabinet
+}
+
+// CanHaveChildren returns true if this container type can have child containers
+func (c *Container) CanHaveChildren() bool {
+	return c.containerType == ContainerTypeRoom ||
+		c.containerType == ContainerTypeBookshelf
+}
+
+// CalculateUsedCapacity calculates the currently used capacity based on objects
+func (c *Container) CalculateUsedCapacity() float64 {
+	// For now, each object counts as 1 unit
+	// Can be enhanced to calculate based on object dimensions
+	return float64(len(c.objects))
+}
+
+// GetCapacityUtilization returns the percentage of capacity used (0-100)
+func (c *Container) GetCapacityUtilization() *float64 {
+	if c.capacity == nil || *c.capacity == 0 {
+		return nil
+	}
+	used := c.CalculateUsedCapacity()
+	utilization := (used / *c.capacity) * 100
+	return &utilization
 }
 
 func (c *Container) UpdateName(name ContainerName) error {
@@ -212,6 +342,30 @@ func (c *Container) GetObjectsByType(objectType ObjectType) []Object {
 
 func (c *Container) UpdateCategory(categoryID *CategoryID) error {
 	c.categoryID = categoryID
+	c.updatedAt = time.Now()
+	return nil
+}
+
+func (c *Container) UpdateContainerType(containerType ContainerType) error {
+	if !IsValidContainerType(string(containerType)) {
+		return ErrInvalidContainerType
+	}
+	c.containerType = containerType
+	c.updatedAt = time.Now()
+	return nil
+}
+
+func (c *Container) UpdateParentContainer(parentContainerID *ContainerID) error {
+	c.parentContainerID = parentContainerID
+	c.updatedAt = time.Now()
+	return nil
+}
+
+func (c *Container) UpdateDimensions(width, depth *float64, rows *int, capacity *float64) error {
+	c.width = width
+	c.depth = depth
+	c.rows = rows
+	c.capacity = capacity
 	c.updatedAt = time.Now()
 	return nil
 }

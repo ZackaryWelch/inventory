@@ -12,17 +12,13 @@ type CreateCollectionRequest struct {
 	Name       string   `json:"name" binding:"required,min=1,max=255"`
 	ObjectType string   `json:"object_type" binding:"required"`
 	Tags       []string `json:"tags,omitempty"`
-	Room       string   `json:"room,omitempty"`
-	Bookshelf  string   `json:"bookshelf,omitempty"`
-	Shelf      string   `json:"shelf,omitempty"`
+	Location   string   `json:"location,omitempty"`
 }
 
 type UpdateCollectionRequest struct {
-	Name      string   `json:"name" binding:"required,min=1,max=255"`
-	Tags      []string `json:"tags,omitempty"`
-	Room      string   `json:"room,omitempty"`
-	Bookshelf string   `json:"bookshelf,omitempty"`
-	Shelf     string   `json:"shelf,omitempty"`
+	Name     string   `json:"name" binding:"required,min=1,max=255"`
+	Tags     []string `json:"tags,omitempty"`
+	Location string   `json:"location,omitempty"`
 }
 
 func (r *CreateCollectionRequest) Validate() error {

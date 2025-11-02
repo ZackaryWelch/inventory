@@ -24,14 +24,20 @@ type objectDocument struct {
 }
 
 type containerDocument struct {
-	ID           string           `bson:"_id"`
-	CollectionID string           `bson:"collection_id"`
-	Name         string           `bson:"name"`
-	CategoryID   *string          `bson:"category_id,omitempty"`
-	Objects      []objectDocument `bson:"objects"`
-	Location     string           `bson:"location"`
-	CreatedAt    time.Time        `bson:"created_at"`
-	UpdatedAt    time.Time        `bson:"updated_at"`
+	ID                string           `bson:"_id"`
+	CollectionID      string           `bson:"collection_id"`
+	Name              string           `bson:"name"`
+	Type              string           `bson:"type"`
+	ParentContainerID *string          `bson:"parent_container_id,omitempty"`
+	CategoryID        *string          `bson:"category_id,omitempty"`
+	Objects           []objectDocument `bson:"objects"`
+	Location          string           `bson:"location"`
+	Width             *float64         `bson:"width,omitempty"`
+	Depth             *float64         `bson:"depth,omitempty"`
+	Rows              *int             `bson:"rows,omitempty"`
+	Capacity          *float64         `bson:"capacity,omitempty"`
+	CreatedAt         time.Time        `bson:"created_at"`
+	UpdatedAt         time.Time        `bson:"updated_at"`
 }
 
 type MongoContainerRepository struct {
@@ -113,6 +119,68 @@ func (r *MongoContainerRepository) GetByGroupID(ctx context.Context, groupID ent
 	cursor, err := r.collection.Find(ctx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get containers by group ID: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var containers []*entities.Container
+	for cursor.Next(ctx) {
+		var doc containerDocument
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, fmt.Errorf("failed to decode container: %w", err)
+		}
+
+		container, err := documentToContainer(&doc)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert container: %w", err)
+		}
+
+		containers = append(containers, container)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+
+	return containers, nil
+}
+
+func (r *MongoContainerRepository) GetByCollectionID(ctx context.Context, collectionID entities.CollectionID) ([]*entities.Container, error) {
+	filter := bson.M{"collection_id": collectionID.String()}
+
+	cursor, err := r.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get containers by collection ID: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var containers []*entities.Container
+	for cursor.Next(ctx) {
+		var doc containerDocument
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, fmt.Errorf("failed to decode container: %w", err)
+		}
+
+		container, err := documentToContainer(&doc)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert container: %w", err)
+		}
+
+		containers = append(containers, container)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+
+	return containers, nil
+}
+
+func (r *MongoContainerRepository) GetChildContainers(ctx context.Context, parentID entities.ContainerID) ([]*entities.Container, error) {
+	filter := bson.M{"parent_container_id": parentID.String()}
+
+	cursor, err := r.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get child containers: %w", err)
 	}
 	defer cursor.Close(ctx)
 
@@ -232,15 +300,27 @@ func containerToDocument(container *entities.Container) *containerDocument {
 		categoryID = &id
 	}
 
+	var parentContainerID *string
+	if container.ParentContainerID() != nil {
+		id := container.ParentContainerID().String()
+		parentContainerID = &id
+	}
+
 	return &containerDocument{
-		ID:           container.ID().String(),
-		CollectionID: container.CollectionID().String(),
-		Name:         container.Name().String(),
-		CategoryID:   categoryID,
-		Objects:      objects,
-		Location:     container.Location(),
-		CreatedAt:    container.CreatedAt(),
-		UpdatedAt:    container.UpdatedAt(),
+		ID:                container.ID().String(),
+		CollectionID:      container.CollectionID().String(),
+		Name:              container.Name().String(),
+		Type:              string(container.ContainerType()),
+		ParentContainerID: parentContainerID,
+		CategoryID:        categoryID,
+		Objects:           objects,
+		Location:          container.Location(),
+		Width:             container.Width(),
+		Depth:             container.Depth(),
+		Rows:              container.Rows(),
+		Capacity:          container.Capacity(),
+		CreatedAt:         container.CreatedAt(),
+		UpdatedAt:         container.UpdatedAt(),
 	}
 }
 
@@ -260,11 +340,25 @@ func documentToContainer(doc *containerDocument) (*entities.Container, error) {
 		return nil, fmt.Errorf("invalid container name: %w", err)
 	}
 
+	// Parse container type, default to general if not specified or invalid
+	containerType := entities.ContainerTypeGeneral
+	if doc.Type != "" {
+		containerType = entities.ContainerType(doc.Type)
+	}
+
 	var categoryID *entities.CategoryID
 	if doc.CategoryID != nil {
 		cid, err := entities.CategoryIDFromHex(*doc.CategoryID)
 		if err == nil {
 			categoryID = &cid
+		}
+	}
+
+	var parentContainerID *entities.ContainerID
+	if doc.ParentContainerID != nil {
+		pid, err := entities.ContainerIDFromString(*doc.ParentContainerID)
+		if err == nil {
+			parentContainerID = &pid
 		}
 	}
 
@@ -281,9 +375,15 @@ func documentToContainer(doc *containerDocument) (*entities.Container, error) {
 		id,
 		collectionID,
 		name,
+		containerType,
+		parentContainerID,
 		categoryID,
 		objects,
 		doc.Location,
+		doc.Width,
+		doc.Depth,
+		doc.Rows,
+		doc.Capacity,
 		doc.CreatedAt,
 		doc.UpdatedAt,
 	), nil

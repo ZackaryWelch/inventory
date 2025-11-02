@@ -127,7 +127,7 @@ func (app *App) showEnhancedCollectionsView() {
 		// For now it will appear in flow, but ideally: bottom-[5.5rem] right-4
 	})
 	fab.OnClick(func(e events.Event) {
-		app.showCreateCollectionDialog() // Open dialog using Cogent Core's built-in system
+		app.showCreateCollectionDialog()
 	})
 
 	// Bottom navigation bar
@@ -147,6 +147,7 @@ func (app *App) createEnhancedCollectionCard(parent core.Widget, collection Coll
 		Title:       collection.Name,
 		Description: collection.Location,
 		OnClick: func() {
+			app.logger.Info("Collection card clicked!", "name", collection.Name)
 			app.showCollectionDetailView(collection)
 		},
 		Actions: []CardAction{
@@ -192,10 +193,46 @@ func (app *App) createEnhancedCollectionCard(parent core.Widget, collection Coll
 	})
 }
 
+// refreshCurrentCollectionView re-fetches the current collection and refreshes the detail view
+func (app *App) refreshCurrentCollectionView() {
+	if app.selectedCollection == nil {
+		app.logger.Warn("No selected collection to refresh")
+		return
+	}
+
+	// Re-fetch the collection with updated containers
+	updatedCollection, err := app.collectionsClient.Get(app.currentUser.ID, app.selectedCollection.ID)
+	if err != nil {
+		app.logger.Error("Failed to fetch updated collection", "error", err)
+		return
+	}
+
+	// Refresh the view
+	app.showCollectionDetailView(*updatedCollection)
+}
+
 // Collection Detail View
 func (app *App) showCollectionDetailView(collection Collection) {
+	app.logger.Info("showCollectionDetailView called", "collection_id", collection.ID, "collection_name", collection.Name)
+
+	app.selectedCollection = &collection
 	app.mainContainer.DeleteChildren()
 	app.currentView = "collection_detail"
+
+	// Fetch full collection details with containers
+	fullCollection, err := app.collectionsClient.Get(app.currentUser.ID, collection.ID)
+	if err != nil {
+		app.logger.Error("Failed to fetch collection details", "error", err)
+		// Fall back to using the collection we have
+		fullCollection = &collection
+	} else {
+		// Update selected collection with full details
+		app.selectedCollection = fullCollection
+		collection = *fullCollection
+		app.logger.Info("Fetched collection details",
+			"collection_id", collection.ID,
+			"containers_count", len(collection.Containers))
+	}
 
 	// Header with back button
 	layouts.SimpleHeader(app.mainContainer, collection.Name, true, func() {
@@ -271,30 +308,53 @@ func (app *App) showCollectionDetailView(collection Collection) {
 	// Import objects button
 	importObjectsBtn := core.NewButton(actionsRow).SetText("Import Objects").SetIcon(icons.Upload)
 	importObjectsBtn.Styler(appstyles.StyleButtonAccent)
+	importObjectsBtn.OnClick(func(e events.Event) {
+		app.ShowImportDialog("", collection.ID) // No specific container, will distribute across collection
+	})
 
-	// Containers section
-	containersTitle := core.NewText(content).SetText("Containers")
+	// Containers section header
+	containersHeaderRow := core.NewFrame(content)
+	containersHeaderRow.Styler(func(s *styles.Style) {
+		s.Direction = styles.Row
+		s.Justify.Content = styles.SpaceBetween
+		s.Align.Items = styles.Center
+		s.Margin.Bottom = units.Dp(12)
+	})
+
+	containersTitle := core.NewText(containersHeaderRow).SetText("Containers")
 	containersTitle.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
 		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
-	// Mock containers for now
-	containers := []Container{
-		{ID: "1", Name: "Kitchen Pantry", Description: "Main pantry storage", CollectionID: collection.ID},
-		{ID: "2", Name: "Refrigerator", Description: "Cold storage", CollectionID: collection.ID},
-	}
+	// View toggle (tree vs list)
+	viewToggle := core.NewButton(containersHeaderRow).SetIcon(icons.List)
+	viewToggle.SetTooltip("Hierarchy View")
+	viewToggle.Styler(func(s *styles.Style) {
+		s.Background = colors.Uniform(appstyles.ColorPrimaryLightest)
+		s.Color = colors.Uniform(appstyles.ColorPrimary)
+		s.Padding.Set(units.Dp(8))
+	})
 
-	if len(containers) == 0 {
+	// Render containers
+	if len(collection.Containers) == 0 {
 		emptyContainers := app.createEmptyState(content, "No containers found", "Add containers to organize your objects!", icons.FolderOpen)
 		_ = emptyContainers
 	} else {
-		for _, container := range containers {
-			app.createContainerCard(content, container, collection)
-		}
+		// Build and render container hierarchy
+		hierarchy := app.BuildContainerHierarchy(collection.Containers)
+
+		containersFrame := core.NewFrame(content)
+		containersFrame.Styler(func(s *styles.Style) {
+			s.Direction = styles.Column
+			s.Gap.Set(units.Dp(4))
+		})
+
+		app.RenderContainerTree(containersFrame, hierarchy, 0)
 	}
 
 	app.mainContainer.Update()
+	app.body.Update()
 }
 
 // Container card for collection detail view
@@ -441,7 +501,6 @@ func (app *App) handleCreateCollection(name, location, objectType string) {
 
 	// Create request using types
 	req := types.CreateCollectionRequest{
-		UserID:     app.currentUser.ID,
 		Name:       name,
 		ObjectType: objectType,
 		Location:   location,
@@ -518,7 +577,7 @@ func (app *App) handleImport(fileData string) {
 	app.showEnhancedCollectionsView()
 }
 
-func (app *App) handleCreateContainer(collectionID, name, description string) {
+func (app *App) handleCreateContainer(collectionID, name string) {
 	if strings.TrimSpace(name) == "" {
 		app.logger.Error("Container name cannot be empty")
 		return
@@ -531,8 +590,8 @@ func (app *App) handleCreateContainer(collectionID, name, description string) {
 
 	// Create request using types
 	req := types.CreateContainerRequest{
-		Name:        name,
-		Description: description,
+		CollectionID: collectionID,
+		Name:         name,
 	}
 
 	// Make API call to create container using client
@@ -545,11 +604,11 @@ func (app *App) handleCreateContainer(collectionID, name, description string) {
 
 	app.logger.Info("Container created successfully", "container_id", container.ID)
 
-	// Refresh the collection view
-	app.fetchCollections()
+	// Refresh the collection detail view to show the new container
+	app.refreshCurrentCollectionView()
 }
 
-func (app *App) handleEditContainer(collectionID, containerID, name, description string) {
+func (app *App) handleEditContainer(collectionID, containerID, name string) {
 	if strings.TrimSpace(name) == "" {
 		app.logger.Error("Container name cannot be empty")
 		return
@@ -562,8 +621,7 @@ func (app *App) handleEditContainer(collectionID, containerID, name, description
 
 	// Create request using types
 	req := types.UpdateContainerRequest{
-		Name:        name,
-		Description: description,
+		Name: name,
 	}
 
 	// Make API call to update container using client
@@ -576,8 +634,8 @@ func (app *App) handleEditContainer(collectionID, containerID, name, description
 
 	app.logger.Info("Container updated successfully", "container_id", container.ID)
 
-	// Refresh the collection view
-	app.fetchCollections()
+	// Refresh the collection detail view to show the updated container
+	app.refreshCurrentCollectionView()
 }
 
 func (app *App) handleDeleteContainer(collectionID, containerID string) {
@@ -596,8 +654,8 @@ func (app *App) handleDeleteContainer(collectionID, containerID string) {
 
 	app.logger.Info("Container deleted successfully")
 
-	// Refresh the collection view
-	app.fetchCollections()
+	// Refresh the collection detail view to show updated containers
+	app.refreshCurrentCollectionView()
 }
 
 func (app *App) showEditCollectionDialog(collection Collection) {
@@ -649,7 +707,7 @@ func (app *App) showImportDialog() {
 }
 
 func (app *App) showCreateContainerDialog(collection Collection) {
-	var nameField, descField *core.TextField
+	var nameField *core.TextField
 
 	app.showDialog(DialogConfig{
 		Title:             "Create Container",
@@ -657,16 +715,15 @@ func (app *App) showCreateContainerDialog(collection Collection) {
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
 		ContentBuilder: func(dialog core.Widget) {
 			nameField = createTextField(dialog, "Container name")
-			descField = createTextField(dialog, "Description (optional)")
 		},
 		OnSubmit: func() {
-			app.handleCreateContainer(collection.ID, nameField.Text(), descField.Text())
+			app.handleCreateContainer(collection.ID, nameField.Text())
 		},
 	})
 }
 
 func (app *App) showEditContainerDialog(container Container, collection Collection) {
-	var nameField, descField *core.TextField
+	var nameField *core.TextField
 
 	app.showDialog(DialogConfig{
 		Title:             "Edit Container",
@@ -675,11 +732,9 @@ func (app *App) showEditContainerDialog(container Container, collection Collecti
 		ContentBuilder: func(dialog core.Widget) {
 			nameField = createTextField(dialog, "Container name")
 			nameField.SetText(container.Name)
-			descField = createTextField(dialog, "Description (optional)")
-			descField.SetText(container.Description)
 		},
 		OnSubmit: func() {
-			app.handleEditContainer(collection.ID, container.ID, nameField.Text(), descField.Text())
+			app.handleEditContainer(collection.ID, container.ID, nameField.Text())
 		},
 	})
 }

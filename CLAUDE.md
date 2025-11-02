@@ -4,7 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Nishiki Backend Go is a comprehensive inventory management system built with Go, implementing Clean Architecture and Domain-Driven Design principles. It provides RESTful APIs for managing collections of various object types (food, books, video games, music, board games) with hierarchical organization through containers and categories, plus space management and bulk import features.
+Nishiki is a comprehensive full-stack inventory management system built entirely in Go, implementing Clean Architecture and Domain-Driven Design principles. The project consists of:
+
+- **Backend**: RESTful API server managing collections of various object types (food, books, video games, music, board games) with hierarchical organization through containers and categories, plus space management and bulk import features
+- **Frontend**: Cross-platform UI application built with Cogent Core framework, compiled to WebAssembly for web deployment, featuring OAuth2 PKCE authentication, collection management, object tracking, and advanced search/filtering capabilities
 
 ## Development Commands
 
@@ -28,14 +31,14 @@ go test -race ./...
 
 ### Docker Development
 ```bash
-# Start all services (MongoDB + backend)
+# Build and run backend (MongoDB service currently commented out in docker-compose.yml)
 docker compose up --build
-
-# Start only MongoDB for local development
-docker compose up mongodb -d
 
 # Clean up
 docker compose down -v
+
+# Note: MongoDB is currently configured to connect to an external instance
+# If you need to run MongoDB locally, uncomment the mongodb service in docker-compose.yml
 ```
 
 ### Dependencies
@@ -48,6 +51,25 @@ go mod tidy
 
 # Verify dependencies
 go mod verify
+```
+
+### Frontend Development (in `frontend/` directory)
+```bash
+# Build for web (WebAssembly)
+cd frontend
+go run ./cmd/web
+
+# Serve the web application locally
+go run ./cmd/serve
+
+# Build all binaries
+go build ./...
+
+# Run frontend tests
+go test ./...
+
+# Format frontend code
+gofmt -w .
 ```
 
 ## Architecture Overview
@@ -81,7 +103,7 @@ This project follows Clean Architecture with clear separation of concerns:
 - **Configuration**: TOML-based config with Viper
 - **Dependency Injection**: Container-based DI system
 - **HTTP Transport**: Gin-based REST API
-  - Controllers for auth, groups, users, containers, and foods
+  - 6 Controllers: Auth, Collection, Container, Object, Group, User
   - Authentication and logging middleware
   - Request/response models and validation
   - CORS support for frontend integration
@@ -96,6 +118,105 @@ This project follows Clean Architecture with clear separation of concerns:
 - **Authentik Service**: OIDC token validation and user provisioning
 - **Organization Service**: Space calculation and auto-organization algorithms
 - **Mocks**: Generated mocks for testing (auth service, repositories)
+
+### Frontend Architecture (`frontend/`)
+The frontend is a Go application using the Cogent Core UI framework, compiled to WebAssembly for web deployment.
+
+#### Main Application (`frontend/app/`)
+- **App Management** (~3,600 lines of Go code)
+  - `app.go` (204 lines) - Application initialization and state
+  - `app_methods.go` (484 lines) - Core UI methods and event handlers
+  - `auth_service.go` (275 lines) - OAuth2 PKCE flow implementation (secure client-side auth)
+  - `collections_ui.go` (697 lines) - Collection views and management
+  - `objects_ui.go` (661 lines) - Object management UI with CRUD operations
+  - `ui_management.go` (524 lines) - View state machine and navigation
+  - `search_filter.go` (425 lines) - Advanced object filtering logic
+  - `ui_helpers.go` (280 lines) - UI utility functions
+  - `config_wasm.go` (46 lines) - WebAssembly configuration loader
+
+#### API Clients (`frontend/pkg/api/`)
+- Type-safe API clients for all backend endpoints:
+  - `auth/` - Authentication and token management
+  - `collections/` - Collection CRUD operations
+  - `containers/` - Container management
+  - `objects/` - Object CRUD operations
+  - `categories/` - Category management
+  - `groups/` - Group operations
+  - `common/` - Shared HTTP utilities
+
+#### UI System (`frontend/ui/`)
+- **Components** (`ui/components/`) - Reusable UI components
+  - Button, Card, Badge, Icon components
+- **Layouts** (`ui/layouts/`) - Application layouts
+  - Header, Mobile menu, Bottom navigation
+- **Styles** (~78,000 lines) - Centralized styling system
+  - `tokens.go` - Design tokens (colors, spacing, typography)
+  - `components.go` - Component-specific styles
+  - `layouts.go` - Layout styles
+  - `utilities.go` - Utility style functions
+  - 60+ semantic style functions matching design system
+
+#### Shared Types (`frontend/pkg/types/`)
+- Domain types mirroring backend entities
+  - `User`, `Group`, `Collection`, `Container`, `Object`, `Category`
+  - Request/response models
+  - Common types and utilities
+
+#### Build Tools (`frontend/cmd/`)
+- `web/` - WebAssembly build tool
+- `webmain/` - WebAssembly entry point
+- `serve/` - Local development server
+
+## Repository Structure
+
+```
+/home/zwelch/projects/inventory/
+├── domain/                     # Backend Domain Layer (Clean Architecture)
+│   ├── entities/              # 6 core entities
+│   ├── repositories/          # Repository interfaces
+│   ├── services/              # Service interfaces
+│   ├── usecases/              # 26 use cases with tests
+│   └── util/                  # Domain utilities
+├── app/                       # Backend Application Layer
+│   ├── config/                # Configuration management
+│   ├── container/             # Dependency injection
+│   └── http/                  # HTTP transport (Gin)
+│       ├── controllers/       # 6 REST controllers
+│       ├── middleware/        # Auth & logging
+│       ├── request/           # Request models
+│       └── response/          # Response models
+├── external/                  # Backend Infrastructure Layer
+│   ├── adapters/              # MongoDB adapter
+│   ├── repositories/          # 3 MongoDB repositories
+│   └── services/              # Authentik OIDC service
+├── frontend/                  # Frontend Application (Go + Cogent Core + WASM)
+│   ├── app/                   # Main application (~3,600 lines)
+│   │   ├── config/            # Embedded TOML config
+│   │   ├── app.go             # Initialization
+│   │   ├── auth_service.go    # OAuth2 PKCE
+│   │   ├── collections_ui.go  # Collection views
+│   │   ├── objects_ui.go      # Object management
+│   │   ├── ui_management.go   # View state machine
+│   │   └── search_filter.go   # Filtering logic
+│   ├── cmd/                   # Build tools
+│   │   ├── web/               # WASM build
+│   │   ├── webmain/           # WASM entry
+│   │   └── serve/             # Dev server
+│   ├── pkg/                   # Shared packages
+│   │   ├── api/               # 7 API clients
+│   │   ├── types/             # Domain types
+│   │   └── utils/             # Utilities
+│   └── ui/                    # UI system
+│       ├── components/        # Reusable components
+│       ├── layouts/           # Layout components
+│       └── styles/            # Centralized styles (~78k lines)
+├── test/integration/          # Integration tests
+├── mocks/                     # Generated mocks (5 files)
+├── scripts/                   # Database initialization
+├── app.toml                   # Backend configuration
+├── docker-compose.yml         # Docker setup
+└── main.go                    # Backend entry point
+```
 
 ## Key Features
 
@@ -126,6 +247,17 @@ This project follows Clean Architecture with clear separation of concerns:
 - **Value Object Validation**: Type-safe domain concepts
 - **Use Case Pattern**: Clear business operation boundaries
 - **Error Handling**: Domain-specific error types
+
+### Frontend Features
+- **WebAssembly Deployment**: Browser-based application with near-native performance
+- **OAuth2 PKCE Flow**: Secure authentication without client secrets (suitable for public clients)
+- **Responsive Design**: Mobile-first UI with Cogent Core framework
+- **Collection Management**: Full CRUD operations with real-time updates
+- **Object Management**: Add, edit, delete items with rich metadata
+- **Advanced Filtering**: Search and filter objects by multiple criteria
+- **Centralized Styling**: ~60 semantic style functions matching design token system
+- **Type Safety**: Shared types between frontend and backend for consistency
+- **Offline-First Capable**: WebAssembly architecture supports future offline capabilities
 
 ## API Design
 
@@ -162,7 +294,8 @@ This project follows Clean Architecture with clear separation of concerns:
 - `PUT /accounts/{id}/collections/{id}/containers/{id}` - Update container
 - `DELETE /accounts/{id}/collections/{id}/containers/{id}` - Delete container
 
-#### Object Management (within Containers)
+#### Object Management
+- `GET /accounts/{id}/collections/{collection_id}/objects` - Get all objects in collection
 - `GET /accounts/{id}/collections/{id}/containers/{id}/objects` - Get container objects
 - `POST /accounts/{id}/objects` - Add object to container
 - `PUT /accounts/{id}/objects/{id}` - Update object properties
@@ -267,14 +400,31 @@ Note: OAuth client configuration (clients array) must be defined in the TOML fil
 - End-to-end API workflows
 
 ### Test Files Present
-- `domain/usecases/get_groups_usecase_test.go`
-- `domain/usecases/create_container_usecase_test.go`
+
+#### Unit Tests
+- `domain/usecases/` - 26 use case tests including:
+  - `get_groups_usecase_test.go`
+  - `create_container_usecase_test.go`
+  - `get_all_containers_usecase_test.go`
+  - Collection, object, category use case tests
 - `app/http/controllers/user_controller_test.go`
 - `external/services/authentik_auth_service_test.go`
 
+#### Integration Tests (`test/integration/`)
+- `collection_api_test.go` - Collection endpoint tests
+- `object_api_test.go` - Object endpoint tests
+- `helpers.go` - Test utilities and setup
+
+#### Mocks (`mocks/`)
+- `mock_auth_service.go` - Authentication service mock
+- `mock_collection_repository.go` - Collection repository mock
+- `mock_container_repository.go` - Container repository mock
+- `mock_category_repository.go` - Category repository mock
+- `mock_object_repository.go` - Object repository mock
+
 ### Test Organization
 ```bash
-# Run all tests
+# Run all tests (backend)
 go test ./...
 
 # Run with coverage
@@ -282,6 +432,12 @@ go test -cover ./...
 
 # Run specific package
 go test ./domain/entities
+
+# Run integration tests only
+go test ./test/integration/...
+
+# Run frontend tests
+cd frontend && go test ./...
 ```
 
 ## Security Considerations
@@ -291,6 +447,7 @@ go test ./domain/entities
 - JWT token validation via Authentik JWKS
 - Bearer token authentication
 - Automatic user provisioning
+- **Frontend**: OAuth2 PKCE flow (Proof Key for Code Exchange) for secure public client authentication without client secrets
 
 ### Authorization
 - Group membership required for resource access
@@ -305,17 +462,31 @@ go test ./domain/entities
 
 ## Deployment
 
-### Docker
+### Backend (Docker)
 - Multi-stage build for optimized images
 - Non-root user for security
 - Health checks included
 - TLS certificate support
+- Environment variables for configuration override
 
-### Environment
-- MongoDB database required
-- Authentik OIDC provider required
-- Optional Seq logging endpoint
-- HTTPS certificates for production
+### Frontend (WebAssembly)
+- Build: `cd frontend && go run ./cmd/web`
+- Generated files in `frontend/web/`
+- Serve via static web server (nginx, Apache, etc.)
+- Or use development server: `go run ./cmd/serve`
+- WASM binary: `frontend/web/app.wasm`
+- Supporting files: `frontend/web/wasm_exec.js`, `index.html`
+
+### Environment Requirements
+- **Backend**:
+  - MongoDB database (v5.0+)
+  - Authentik OIDC provider
+  - Optional Seq logging endpoint
+  - HTTPS certificates for production
+- **Frontend**:
+  - Static web server for WASM hosting
+  - HTTPS for OAuth2 redirect (production)
+  - Backend API endpoint configuration
 
 ## Logging and Monitoring
 
@@ -359,32 +530,102 @@ go test ./domain/entities
 
 ## Important Files
 
-### Entry Points
+### Backend Entry Points
 - `main.go` - Application entry point with graceful shutdown
 - `app/container/container.go` - Dependency injection setup
 - `app/http/routes/routes.go` - HTTP route configuration
 
+### Frontend Entry Points
+- `frontend/cmd/webmain/main.go` - WebAssembly entry point
+- `frontend/cmd/web/main.go` - WebAssembly build tool
+- `frontend/cmd/serve/main.go` - Local development server
+- `frontend/app/app.go` - Frontend application initialization
+
 ### Configuration
-- `app.toml` - Application configuration
-- `docker-compose.yml` - Development environment (MongoDB commented out)
+- `app.toml` - Backend application configuration
+- `frontend/app/config/app.toml` - Frontend configuration (embedded for WASM)
+- `docker-compose.yml` - Development environment
 - `scripts/mongo-init.js` - MongoDB initialization script
 
-### Domain Core
-- `domain/entities/` - Core business entities
-- `domain/usecases/` - Business use cases
+### Backend Core
+#### Domain Layer
+- `domain/entities/` - Core business entities (User, Group, Collection, Container, Object, Category)
+- `domain/usecases/` - 26 business use cases with test coverage
 - `domain/repositories/` - Data access interfaces
 
-### Infrastructure
+#### Application Layer
+- `app/http/controllers/` - 6 REST controllers (Auth, Collection, Container, Object, Group, User)
+- `app/http/middleware/` - Authentication and logging middleware
+- `app/http/request/` - Request validation models
+- `app/http/response/` - Response models
+
+#### Infrastructure Layer
 - `external/adapters/mongodb.go` - Database connectivity
 - `external/repositories/` - MongoDB implementations
+  - `collection_mongo_repository.go` - Collection data operations
   - `container_mongo_repository.go` - Container data operations
   - `category_mongo_repository.go` - Category data operations
 - `external/services/authentik_auth_service.go` - OIDC integration
 
+### Frontend Core
+#### Application Layer
+- `frontend/app/app.go` (204 lines) - Application initialization
+- `frontend/app/app_methods.go` (484 lines) - Core UI methods
+- `frontend/app/auth_service.go` (275 lines) - OAuth2 PKCE authentication
+- `frontend/app/collections_ui.go` (697 lines) - Collection management UI
+- `frontend/app/objects_ui.go` (661 lines) - Object management UI
+- `frontend/app/ui_management.go` (524 lines) - View state machine
+- `frontend/app/search_filter.go` (425 lines) - Search and filtering
+
+#### API Clients
+- `frontend/pkg/api/auth/` - Authentication client
+- `frontend/pkg/api/collections/` - Collections client
+- `frontend/pkg/api/containers/` - Containers client
+- `frontend/pkg/api/objects/` - Objects client
+- `frontend/pkg/api/categories/` - Categories client
+- `frontend/pkg/api/groups/` - Groups client
+
+#### UI System
+- `frontend/ui/styles/` - Centralized styling (~78,000 lines)
+  - `tokens.go` - Design tokens
+  - `components.go` - Component styles
+  - `layouts.go` - Layout styles
+  - `utilities.go` - Utility functions
+- `frontend/ui/components/` - Reusable components (Button, Card, Badge, Icon)
+- `frontend/ui/layouts/` - Layout components (Header, Mobile, BottomMenu)
+
+#### Shared Types
+- `frontend/pkg/types/` - Domain types (User, Group, Collection, Container, Object, Category)
+
 ### Testing & Mocks
+- `test/integration/` - Backend integration tests
+  - `collection_api_test.go` - Collection endpoint tests
+  - `object_api_test.go` - Object endpoint tests
+  - `helpers.go` - Test utilities
 - `mocks/` - Generated mock implementations
   - `mock_auth_service.go` - Authentication service mock
+  - `mock_collection_repository.go` - Collection repository mock
   - `mock_container_repository.go` - Container repository mock
   - `mock_category_repository.go` - Category repository mock
+  - `mock_object_repository.go` - Object repository mock
 
-This architecture provides a robust, maintainable foundation for the food inventory management system with clear separation of concerns and comprehensive business logic implementation.
+## Technology Stack
+
+### Backend
+- **Language**: Go 1.24.0
+- **Web Framework**: Gin (HTTP routing and middleware)
+- **Database**: MongoDB v2.2.2 with transactions
+- **Authentication**: Authentik OIDC via JWKS
+- **Configuration**: Viper (TOML-based)
+- **Testing**: Testcontainers, go-mock
+- **Logging**: Zap (structured JSON logging)
+
+### Frontend
+- **Language**: Go 1.24.0
+- **UI Framework**: Cogent Core v0.3.12
+- **Compilation Target**: WebAssembly (WASM)
+- **Authentication**: OAuth2 with PKCE
+- **Module Path**: `github.com/nishiki/frontend`
+- **Backend Reference**: `../` (relative path)
+
+This architecture provides a robust, maintainable foundation for the inventory management system with clear separation of concerns, comprehensive business logic implementation, and a modern cross-platform frontend built entirely in Go.

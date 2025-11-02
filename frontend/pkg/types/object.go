@@ -42,8 +42,3 @@ type UpdateObjectRequest struct {
 	Properties  map[string]interface{} `json:"properties,omitempty"`
 	ExpiresAt   *time.Time             `json:"expires_at,omitempty"`
 }
-
-// BulkImportRequest represents a bulk import of objects
-type BulkImportRequest struct {
-	Objects []CreateObjectRequest `json:"objects"`
-}

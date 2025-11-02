@@ -3,14 +3,16 @@
 package app
 
 import (
+	"image/color"
+
 	"cogentcore.org/core/colors"
 	"cogentcore.org/core/core"
 	"cogentcore.org/core/cursors"
 	"cogentcore.org/core/events"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/styles"
+	"cogentcore.org/core/styles/abilities"
 	"cogentcore.org/core/styles/units"
-	"image/color"
 
 	appstyles "github.com/nishiki/frontend/ui/styles"
 )
@@ -111,6 +113,7 @@ type CardAction struct {
 // createCard creates a generic card with consistent styling
 func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 	card := core.NewFrame(parent)
+
 	card.Styler(func(s *styles.Style) {
 		s.Direction = styles.Column
 		s.Background = colors.Uniform(appstyles.ColorWhite)
@@ -122,14 +125,10 @@ func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 		s.Gap.Set(units.Dp(12))
 		if config.OnClick != nil {
 			s.Cursor = cursors.Pointer
+			// Enable click abilities (THIS WAS THE MISSING PIECE!)
+			s.SetAbilities(true, abilities.Clickable, abilities.Hoverable, abilities.Activatable)
 		}
 	})
-
-	if config.OnClick != nil {
-		card.OnClick(func(e events.Event) {
-			config.OnClick()
-		})
-	}
 
 	// Header row (icon + title + actions)
 	cardHeader := core.NewFrame(card)
@@ -183,6 +182,7 @@ func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 				s.Padding.Set(units.Dp(8))
 			})
 			actionBtn.OnClick(func(e events.Event) {
+				e.SetHandled() // Prevent event from bubbling to card
 				action.OnClick()
 			})
 		}
@@ -232,6 +232,13 @@ func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 	// Custom content
 	if config.Content != nil {
 		config.Content(card)
+	}
+
+	// Register click handler AFTER all children are added
+	if config.OnClick != nil {
+		card.OnClick(func(e events.Event) {
+			config.OnClick()
+		})
 	}
 
 	return card

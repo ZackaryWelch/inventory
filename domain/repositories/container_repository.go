@@ -14,6 +14,8 @@ type ContainerRepository interface {
 	Update(ctx context.Context, container *entities.Container) error
 	Delete(ctx context.Context, id entities.ContainerID) error
 	GetByGroupID(ctx context.Context, groupID entities.GroupID) ([]*entities.Container, error)
+	GetByCollectionID(ctx context.Context, collectionID entities.CollectionID) ([]*entities.Container, error)
+	GetChildContainers(ctx context.Context, parentID entities.ContainerID) ([]*entities.Container, error)
 	List(ctx context.Context, limit, offset int) ([]*entities.Container, error)
 	Exists(ctx context.Context, id entities.ContainerID) (bool, error)
 	GetContainersWithExpiredFood(ctx context.Context, groupID entities.GroupID) ([]*entities.Container, error)

@@ -76,17 +76,10 @@ func (ctrl *CollectionController) CreateCollection(c *gin.Context) {
 		return
 	}
 
-	userID, err := req.GetUserID()
-	if err != nil {
-		ctrl.logger.Warn("Invalid user ID", slog.Any("error", err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
-		return
-	}
-
 	// Validate user matches path parameter
 	pathUserID, err := request.GetUserIDFromPath(c)
-	if err != nil || !pathUserID.Equals(userID) || !pathUserID.Equals(user.ID()) {
-		ctrl.logger.Warn("User ID mismatch", slog.String("path_user", pathUserID.String()), slog.String("req_user", userID.String()))
+	if err != nil || !pathUserID.Equals(user.ID()) {
+		ctrl.logger.Warn("User ID mismatch", slog.String("path_user", pathUserID.String()), slog.String("auth_user", user.ID().String()))
 		c.JSON(http.StatusForbidden, gin.H{"error": "user ID mismatch"})
 		return
 	}
@@ -99,7 +92,7 @@ func (ctrl *CollectionController) CreateCollection(c *gin.Context) {
 	}
 
 	ucReq := usecases.CreateCollectionRequest{
-		UserID:     userID,
+		UserID:     user.ID(),
 		GroupID:    groupID,
 		Name:       req.Name,
 		ObjectType: req.GetObjectType(),

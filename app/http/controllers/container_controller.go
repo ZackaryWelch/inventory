@@ -10,6 +10,7 @@ import (
 	"github.com/nishiki/backend-go/app/http/middleware"
 	"github.com/nishiki/backend-go/app/http/request"
 	"github.com/nishiki/backend-go/app/http/response"
+	"github.com/nishiki/backend-go/domain/entities"
 	"github.com/nishiki/backend-go/domain/usecases"
 )
 
@@ -83,11 +84,36 @@ func (ctrl *ContainerController) CreateContainer(c *gin.Context) {
 		return
 	}
 
+	// Parse parent container ID if provided
+	var parentContainerID *entities.ContainerID
+	if req.ParentContainerID != nil {
+		pid, err := entities.ContainerIDFromString(*req.ParentContainerID)
+		if err != nil {
+			ctrl.logger.Warn("Invalid parent container ID", slog.Any("error", err))
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid parent container ID"})
+			return
+		}
+		parentContainerID = &pid
+	}
+
+	// Parse container type, default to general if not specified
+	containerType := entities.ContainerTypeGeneral
+	if req.Type != "" {
+		containerType = entities.ContainerType(req.Type)
+	}
+
 	ucReq := usecases.CreateContainerRequest{
-		CollectionID: collectionID,
-		Name:         req.Name,
-		UserID:       user.ID(),
-		UserToken:    userToken,
+		CollectionID:      collectionID,
+		Name:              req.Name,
+		ContainerType:     containerType,
+		ParentContainerID: parentContainerID,
+		Location:          req.Location,
+		Width:             req.Width,
+		Depth:             req.Depth,
+		Rows:              req.Rows,
+		Capacity:          req.Capacity,
+		UserID:            user.ID(),
+		UserToken:         userToken,
 	}
 
 	resp, err := ctrl.createContainerUC.Execute(c.Request.Context(), ucReq)

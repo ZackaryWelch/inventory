@@ -19,9 +19,10 @@ func NewClient(commonClient *common.Client) *Client {
 	}
 }
 
-// List gets all containers for a collection
+// List gets all containers (optionally filtered by collection_id)
 func (c *Client) List(accountID, collectionID string) ([]types.Container, error) {
-	resp, err := c.common.Get(fmt.Sprintf("/accounts/%s/collections/%s/containers", accountID, collectionID))
+	// Backend uses /containers with optional collection_id query param
+	resp, err := c.common.Get(fmt.Sprintf("/containers?collection_id=%s", collectionID))
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +32,7 @@ func (c *Client) List(accountID, collectionID string) ([]types.Container, error)
 
 // Get gets a specific container by ID
 func (c *Client) Get(accountID, collectionID, containerID string) (*types.Container, error) {
-	resp, err := c.common.Get(fmt.Sprintf("/accounts/%s/collections/%s/containers/%s", accountID, collectionID, containerID))
+	resp, err := c.common.Get(fmt.Sprintf("/containers/%s", containerID))
 	if err != nil {
 		return nil, err
 	}
@@ -39,9 +40,21 @@ func (c *Client) Get(accountID, collectionID, containerID string) (*types.Contai
 	return common.DecodeResponse[types.Container](resp)
 }
 
+// GetChildren gets all child containers of a parent container
+func (c *Client) GetChildren(accountID, collectionID, parentContainerID string) ([]types.Container, error) {
+	// Filter containers by parent_container_id
+	resp, err := c.common.Get(fmt.Sprintf("/containers?collection_id=%s&parent_id=%s", collectionID, parentContainerID))
+	if err != nil {
+		return nil, err
+	}
+
+	return common.DecodeResponseList[types.Container](resp)
+}
+
 // Create creates a new container
 func (c *Client) Create(accountID, collectionID string, req types.CreateContainerRequest) (*types.Container, error) {
-	resp, err := c.common.Post(fmt.Sprintf("/accounts/%s/collections/%s/containers", accountID, collectionID), req)
+	// Backend uses /containers (collection_id is in request body)
+	resp, err := c.common.Post("/containers", req)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +64,7 @@ func (c *Client) Create(accountID, collectionID string, req types.CreateContaine
 
 // Update updates an existing container
 func (c *Client) Update(accountID, collectionID, containerID string, req types.UpdateContainerRequest) (*types.Container, error) {
-	resp, err := c.common.Put(fmt.Sprintf("/accounts/%s/collections/%s/containers/%s", accountID, collectionID, containerID), req)
+	resp, err := c.common.Put(fmt.Sprintf("/containers/%s", containerID), req)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +74,7 @@ func (c *Client) Update(accountID, collectionID, containerID string, req types.U
 
 // Delete deletes a container
 func (c *Client) Delete(accountID, collectionID, containerID string) error {
-	resp, err := c.common.Delete(fmt.Sprintf("/accounts/%s/collections/%s/containers/%s", accountID, collectionID, containerID))
+	resp, err := c.common.Delete(fmt.Sprintf("/containers/%s", containerID))
 	if err != nil {
 		return err
 	}
@@ -71,7 +84,7 @@ func (c *Client) Delete(accountID, collectionID, containerID string) error {
 
 // GetObjects gets all objects in a container
 func (c *Client) GetObjects(accountID, collectionID, containerID string) ([]types.Object, error) {
-	resp, err := c.common.Get(fmt.Sprintf("/accounts/%s/collections/%s/containers/%s/objects", accountID, collectionID, containerID))
+	resp, err := c.common.Get(fmt.Sprintf("/containers/%s/objects", containerID))
 	if err != nil {
 		return nil, err
 	}

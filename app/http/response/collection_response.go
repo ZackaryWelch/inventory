@@ -20,10 +20,7 @@ type CollectionResponse struct {
 	UpdatedAt  time.Time           `json:"updated_at"`
 }
 
-type CollectionListResponse struct {
-	Collections []CollectionResponse `json:"collections"`
-	Total       int                  `json:"total"`
-}
+type CollectionListResponse []CollectionResponse
 
 type CollectionSummaryResponse struct {
 	ID          string    `json:"id"`
@@ -78,10 +75,7 @@ func NewCollectionListResponse(collections []*entities.Collection) CollectionLis
 		collectionResponses[i] = NewCollectionResponse(collection)
 	}
 
-	return CollectionListResponse{
-		Collections: collectionResponses,
-		Total:       len(collections),
-	}
+	return CollectionListResponse(collectionResponses)
 }
 
 func NewCollectionSummaryResponse(collection *entities.Collection) CollectionSummaryResponse {

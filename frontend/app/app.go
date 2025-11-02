@@ -41,19 +41,20 @@ type (
 
 // App holds the main application state
 type App struct {
-	config        *Config
-	authService   *AuthService
-	currentUser   *User
-	groups        []Group
-	collections   []Collection
-	currentView   string
-	isSignedIn    bool
-	body          *core.Body // Reference to the body for dialogs
-	mainContainer *core.Frame
-	bottomMenu    *core.Frame // Reference to the bottom menu
-	dialogState   *DialogState
-	searchFilter  *SearchFilter
-	logger        *slog.Logger
+	config             *Config
+	authService        *AuthService
+	currentUser        *User
+	groups             []Group
+	collections        []Collection
+	selectedCollection *Collection // Currently selected collection for detail view
+	currentView        string
+	isSignedIn         bool
+	body               *core.Body // Reference to the body for dialogs
+	mainContainer      *core.Frame
+	bottomMenu         *core.Frame // Reference to the bottom menu
+	dialogState        *DialogState
+	searchFilter       *SearchFilter
+	logger             *slog.Logger
 	// API clients
 	apiClient         *apiCommon.Client
 	authClient        *authAPI.Client
