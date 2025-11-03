@@ -33,24 +33,26 @@ func TestGetAllContainersUseCase_Execute(t *testing.T) {
 	// Create test groups
 	groupID1, _ := entities.GroupIDFromString("group-1")
 	groupName1, _ := entities.NewGroupName("Test Group 1")
-	group1 := entities.ReconstructGroup(groupID1, groupName1, time.Now(), time.Now())
-	
-	groupID2, _ := entities.GroupIDFromString("group-2") 
+	groupDesc1 := entities.NewGroupDescription("Test Group 1 Description")
+	group1 := entities.ReconstructGroup(groupID1, groupName1, groupDesc1, time.Now(), time.Now())
+
+	groupID2, _ := entities.GroupIDFromString("group-2")
 	groupName2, _ := entities.NewGroupName("Test Group 2")
-	group2 := entities.ReconstructGroup(groupID2, groupName2, time.Now(), time.Now())
+	groupDesc2 := entities.NewGroupDescription("Test Group 2 Description")
+	group2 := entities.ReconstructGroup(groupID2, groupName2, groupDesc2, time.Now(), time.Now())
 
 	// Create test containers
 	containerID1, _ := entities.ContainerIDFromString("container-1")
 	containerName1, _ := entities.NewContainerName("Test Container 1")
-	container1 := entities.ReconstructContainer(containerID1, entities.NewCollectionID(), containerName1, nil, []entities.Object{}, "", time.Now(), time.Now())
+	container1 := entities.ReconstructContainer(containerID1, entities.NewCollectionID(), containerName1, entities.ContainerTypeGeneral, nil, nil, &groupID1, []entities.Object{}, "", nil, nil, nil, nil, time.Now(), time.Now())
 
-	containerID2, _ := entities.ContainerIDFromString("container-2")  
+	containerID2, _ := entities.ContainerIDFromString("container-2")
 	containerName2, _ := entities.NewContainerName("Test Container 2")
-	container2 := entities.ReconstructContainer(containerID2, entities.NewCollectionID(), containerName2, nil, []entities.Object{}, "", time.Now(), time.Now())
+	container2 := entities.ReconstructContainer(containerID2, entities.NewCollectionID(), containerName2, entities.ContainerTypeGeneral, nil, nil, &groupID1, []entities.Object{}, "", nil, nil, nil, nil, time.Now(), time.Now())
 
 	containerID3, _ := entities.ContainerIDFromString("container-3")
-	containerName3, _ := entities.NewContainerName("Test Container 3") 
-	container3 := entities.ReconstructContainer(containerID3, entities.NewCollectionID(), containerName3, nil, []entities.Object{}, "", time.Now(), time.Now())
+	containerName3, _ := entities.NewContainerName("Test Container 3")
+	container3 := entities.ReconstructContainer(containerID3, entities.NewCollectionID(), containerName3, entities.ContainerTypeGeneral, nil, nil, &groupID2, []entities.Object{}, "", nil, nil, nil, nil, time.Now(), time.Now())
 
 	t.Run("Success - Returns containers from all user groups", func(t *testing.T) {
 		// Mock auth service to return user groups
@@ -215,8 +217,8 @@ func TestGetAllContainersUseCase_Execute(t *testing.T) {
 
 		// Verify we got the right containers
 		for _, container := range resp.Containers {
-			if container.GroupID() != groupID1 {
-				t.Errorf("Expected container from group1, got container from group %s", container.GroupID().String())
+			if container.GroupID() == nil || !container.GroupID().Equals(groupID1) {
+				t.Errorf("Expected container from group1, got container from group %v", container.GroupID())
 			}
 		}
 	})

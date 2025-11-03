@@ -18,6 +18,8 @@ type categoryDocument struct {
 	ID          bson.ObjectID `bson:"_id"`
 	Name        string        `bson:"name"`
 	Description string        `bson:"description"`
+	Icon        string        `bson:"icon"`
+	Color       string        `bson:"color"`
 	CreatedAt   time.Time     `bson:"created_at"`
 	UpdatedAt   time.Time     `bson:"updated_at"`
 }
@@ -161,6 +163,8 @@ func categoryToDocument(category *entities.Category) *categoryDocument {
 		ID:          category.ID().ObjectID(),
 		Name:        category.Name().String(),
 		Description: category.Description().String(),
+		Icon:        category.Icon(),
+		Color:       category.Color(),
 		CreatedAt:   category.CreatedAt(),
 		UpdatedAt:   category.UpdatedAt(),
 	}
@@ -180,6 +184,8 @@ func documentToCategory(doc *categoryDocument) (*entities.Category, error) {
 		id,
 		name,
 		description,
+		doc.Icon,
+		doc.Color,
 		doc.CreatedAt,
 		doc.UpdatedAt,
 	), nil

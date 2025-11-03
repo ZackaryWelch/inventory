@@ -33,13 +33,14 @@ func TestGetGroupsUseCase_Execute(t *testing.T) {
 
 		// Create test groups
 		groupName1, _ := entities.NewGroupName(fake.Company())
+		groupDesc1 := entities.NewGroupDescription("Test Group 1 Description")
 		groupName2, _ := entities.NewGroupName(fake.Company())
+		groupDesc2 := entities.NewGroupDescription("Test Group 2 Description")
 
 		group1 := entities.ReconstructGroup(
 			entities.NewGroupID(),
 			groupName1,
-			[]entities.ContainerID{},
-			[]entities.UserID{userID},
+			groupDesc1,
 			time.Now(),
 			time.Now(),
 		)
@@ -47,8 +48,7 @@ func TestGetGroupsUseCase_Execute(t *testing.T) {
 		group2 := entities.ReconstructGroup(
 			entities.NewGroupID(),
 			groupName2,
-			[]entities.ContainerID{},
-			[]entities.UserID{userID},
+			groupDesc2,
 			time.Now(),
 			time.Now(),
 		)
@@ -146,17 +146,14 @@ func TestGetGroupsUseCase_Execute(t *testing.T) {
 		t.Parallel()
 
 		userID := entities.NewUserID()
-		containerID1 := entities.NewContainerID()
-		containerID2 := entities.NewContainerID()
-		otherUserID := entities.NewUserID()
 
-		// Create test group with containers and users
+		// Create test group
 		groupName, _ := entities.NewGroupName(fake.Company())
+		groupDesc := entities.NewGroupDescription("Test Group Description")
 		group := entities.ReconstructGroup(
 			entities.NewGroupID(),
 			groupName,
-			[]entities.ContainerID{containerID1, containerID2},
-			[]entities.UserID{userID, otherUserID},
+			groupDesc,
 			time.Now(),
 			time.Now(),
 		)
@@ -182,7 +179,5 @@ func TestGetGroupsUseCase_Execute(t *testing.T) {
 		returnedGroup := resp.Groups[0]
 		assert.Equal(t, group.ID().String(), returnedGroup.ID().String())
 		assert.Equal(t, group.Name().String(), returnedGroup.Name().String())
-		assert.Equal(t, 2, returnedGroup.ContainerCount())
-		assert.Equal(t, 2, returnedGroup.UserCount())
 	})
 }

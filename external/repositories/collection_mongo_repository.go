@@ -245,12 +245,17 @@ func collectionToDocument(collection *entities.Collection) *collectionDocument {
 
 func objectToDocument(object entities.Object) objectDocument {
 	return objectDocument{
-		ID:         object.ID().String(),
-		Name:       object.Name().String(),
-		ObjectType: object.ObjectType().String(),
-		Properties: object.Properties(),
-		Tags:       object.Tags(),
-		CreatedAt:  object.CreatedAt(),
+		ID:          object.ID().String(),
+		Name:        object.Name().String(),
+		Description: object.Description().String(),
+		ObjectType:  object.ObjectType().String(),
+		Quantity:    object.Quantity(),
+		Unit:        object.Unit(),
+		Properties:  object.Properties(),
+		Tags:        object.Tags(),
+		ExpiresAt:   object.ExpiresAt(),
+		CreatedAt:   object.CreatedAt(),
+		UpdatedAt:   object.UpdatedAt(),
 	}
 }
 
@@ -343,12 +348,19 @@ func documentToObject(doc objectDocument) (*entities.Object, error) {
 		return nil, fmt.Errorf("invalid object name: %w", err)
 	}
 
+	description := entities.NewObjectDescription(doc.Description)
+
 	return entities.ReconstructObject(
 		id,
 		name,
+		description,
 		entities.ObjectType(doc.ObjectType),
+		doc.Quantity,
+		doc.Unit,
 		doc.Properties,
 		doc.Tags,
+		doc.ExpiresAt,
 		doc.CreatedAt,
+		doc.UpdatedAt,
 	), nil
 }

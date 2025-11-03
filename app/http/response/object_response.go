@@ -7,12 +7,17 @@ import (
 )
 
 type ObjectResponse struct {
-	ID         string                 `json:"id"`
-	Name       string                 `json:"name"`
-	ObjectType string                 `json:"object_type"`
-	Properties map[string]interface{} `json:"properties"`
-	Tags       []string               `json:"tags"`
-	CreatedAt  time.Time              `json:"created_at"`
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	ObjectType  string                 `json:"object_type"`
+	Quantity    *float64               `json:"quantity,omitempty"`
+	Unit        string                 `json:"unit,omitempty"`
+	Properties  map[string]interface{} `json:"properties"`
+	Tags        []string               `json:"tags"`
+	ExpiresAt   *time.Time             `json:"expires_at,omitempty"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
 }
 
 type ObjectListResponse struct {
@@ -22,12 +27,17 @@ type ObjectListResponse struct {
 
 func NewObjectResponse(object entities.Object) ObjectResponse {
 	return ObjectResponse{
-		ID:         object.ID().String(),
-		Name:       object.Name().String(),
-		ObjectType: object.ObjectType().String(),
-		Properties: object.Properties(),
-		Tags:       object.Tags(),
-		CreatedAt:  object.CreatedAt(),
+		ID:          object.ID().String(),
+		Name:        object.Name().String(),
+		Description: object.Description().String(),
+		ObjectType:  object.ObjectType().String(),
+		Quantity:    object.Quantity(),
+		Unit:        object.Unit(),
+		Properties:  object.Properties(),
+		Tags:        object.Tags(),
+		ExpiresAt:   object.ExpiresAt(),
+		CreatedAt:   object.CreatedAt(),
+		UpdatedAt:   object.UpdatedAt(),
 	}
 }
 

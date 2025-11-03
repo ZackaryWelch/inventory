@@ -68,10 +68,8 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 
 		// Create test group
 		groupName, _ := entities.NewGroupName("Test Group")
-		testGroup, _ := entities.NewGroup(entities.GroupProps{
-			Name: groupName,
-		})
-		testGroup = entities.ReconstructGroup(groupID, groupName, time.Now(), time.Now())
+		groupDesc := entities.NewGroupDescription("Test group description")
+		testGroup := entities.ReconstructGroup(groupID, groupName, groupDesc, time.Now(), time.Now())
 
 		req := CreateCollectionRequest{
 			UserID:     userID,
@@ -142,14 +140,16 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 
 		useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
 		userID := entities.NewUserID()
-		groupID := entities.NewGroupID()
-		differentGroupID := entities.NewGroupID()
+		groupID, _ := entities.GroupIDFromString("group-123")
+		differentGroupID, _ := entities.GroupIDFromString("group-456")
 
 		// Create test group with different ID
 		groupName, _ := entities.NewGroupName("Different Group")
+		groupDesc := entities.NewGroupDescription("Different group description")
 		testGroup := entities.ReconstructGroup(
 			differentGroupID,
 			groupName,
+			groupDesc,
 			time.Now(),
 			time.Now(),
 		)

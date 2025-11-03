@@ -16,6 +16,7 @@ import (
 
 type ContainerController struct {
 	createContainerUC  *usecases.CreateContainerUseCase
+	updateContainerUC  *usecases.UpdateContainerUseCase
 	getAllContainersUC *usecases.GetAllContainersUseCase
 	getContainerByIDUC *usecases.GetContainerByIDUseCase
 	getContainersUC    *usecases.GetContainersUseCase
@@ -28,6 +29,7 @@ func NewContainerController(
 ) *ContainerController {
 	return &ContainerController{
 		createContainerUC:  usecases.NewCreateContainerUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
+		updateContainerUC:  usecases.NewUpdateContainerUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
 		getAllContainersUC: usecases.NewGetAllContainersUseCase(c.ContainerRepo, c.AuthService),
 		getContainerByIDUC: usecases.NewGetContainerByIDUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
 		getContainersUC:    usecases.NewGetContainersUseCase(c.ContainerRepo, c.AuthService),
@@ -96,6 +98,18 @@ func (ctrl *ContainerController) CreateContainer(c *gin.Context) {
 		parentContainerID = &pid
 	}
 
+	// Parse group ID if provided
+	var groupID *entities.GroupID
+	if req.GroupID != nil {
+		gid, err := entities.GroupIDFromString(*req.GroupID)
+		if err != nil {
+			ctrl.logger.Warn("Invalid group ID", slog.Any("error", err))
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group ID"})
+			return
+		}
+		groupID = &gid
+	}
+
 	// Parse container type, default to general if not specified
 	containerType := entities.ContainerTypeGeneral
 	if req.Type != "" {
@@ -107,6 +121,7 @@ func (ctrl *ContainerController) CreateContainer(c *gin.Context) {
 		Name:              req.Name,
 		ContainerType:     containerType,
 		ParentContainerID: parentContainerID,
+		GroupID:           groupID,
 		Location:          req.Location,
 		Width:             req.Width,
 		Depth:             req.Depth,
@@ -243,6 +258,150 @@ func (ctrl *ContainerController) GetContainer(c *gin.Context) {
 	}
 
 	ctrl.logger.Debug("Container retrieved successfully",
+		slog.String("container_id", containerID.String()),
+		slog.String("user_id", user.ID().String()))
+
+	c.JSON(http.StatusOK, response.NewContainerResponse(resp.Container))
+}
+
+// UpdateContainer godoc
+// @Summary Update a container
+// @Description Update an existing container's properties
+// @Tags containers
+// @Accept json
+// @Produce json
+// @Param id path string true "Container ID"
+// @Param container body request.UpdateContainerRequest true "Container data"
+// @Success 200 {object} response.ContainerResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /containers/{id} [put]
+// @Security BearerAuth
+func (ctrl *ContainerController) UpdateContainer(c *gin.Context) {
+	user, exists := middleware.GetCurrentUser(c)
+	if !exists {
+		ctrl.logger.Error("No authenticated user found in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+
+	userToken, tokenExists := middleware.GetCurrentToken(c)
+	if !tokenExists {
+		ctrl.logger.Error("No auth token found in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+
+	containerID, err := request.GetContainerIDFromPath(c)
+	if err != nil {
+		ctrl.logger.Warn("Invalid container ID in path", slog.Any("error", err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var req request.UpdateContainerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ctrl.logger.Warn("Invalid request body", slog.Any("error", err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		ctrl.logger.Warn("Request validation failed", slog.Any("error", err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Build use case request
+	ucReq := usecases.UpdateContainerRequest{
+		ContainerID: containerID,
+		UserID:      user.ID(),
+		UserToken:   userToken,
+	}
+
+	// Only set fields that are provided
+	if req.Name != "" {
+		ucReq.Name = &req.Name
+	}
+
+	if req.Type != "" {
+		containerType := entities.ContainerType(req.Type)
+		ucReq.ContainerType = &containerType
+	}
+
+	if req.ParentContainerID != nil {
+		if *req.ParentContainerID == "" {
+			// Empty string means remove parent
+			var nilParent *entities.ContainerID
+			ucReq.ParentContainerID = &nilParent
+		} else {
+			parentID, err := entities.ContainerIDFromString(*req.ParentContainerID)
+			if err != nil {
+				ctrl.logger.Warn("Invalid parent container ID", slog.Any("error", err))
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid parent container ID"})
+				return
+			}
+			parentIDPtr := &parentID
+			ucReq.ParentContainerID = &parentIDPtr
+		}
+	}
+
+	if req.GroupID != nil {
+		if *req.GroupID == "" {
+			// Empty string means remove group
+			var nilGroup *entities.GroupID
+			ucReq.GroupID = &nilGroup
+		} else {
+			groupID, err := entities.GroupIDFromString(*req.GroupID)
+			if err != nil {
+				ctrl.logger.Warn("Invalid group ID", slog.Any("error", err))
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group ID"})
+				return
+			}
+			groupIDPtr := &groupID
+			ucReq.GroupID = &groupIDPtr
+		}
+	}
+
+	if req.Location != "" {
+		ucReq.Location = &req.Location
+	}
+
+	if req.Width != nil {
+		ucReq.Width = &req.Width
+	}
+
+	if req.Depth != nil {
+		ucReq.Depth = &req.Depth
+	}
+
+	if req.Rows != nil {
+		ucReq.Rows = &req.Rows
+	}
+
+	if req.Capacity != nil {
+		ucReq.Capacity = &req.Capacity
+	}
+
+	resp, err := ctrl.updateContainerUC.Execute(c.Request.Context(), ucReq)
+	if err != nil {
+		ctrl.logger.Error("Failed to update container", slog.Any("error", err))
+		if err.Error() == "container not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "container not found"})
+			return
+		}
+		if err.Error() == "access denied: user does not have access to this container" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update container"})
+		return
+	}
+
+	ctrl.logger.Info("Container updated successfully",
 		slog.String("container_id", containerID.String()),
 		slog.String("user_id", user.ID().String()))
 

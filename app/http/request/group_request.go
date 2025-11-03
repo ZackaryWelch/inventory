@@ -8,11 +8,13 @@ import (
 )
 
 type CreateGroupRequest struct {
-	Name string `json:"name" binding:"required,min=1,max=255"`
+	Name        string `json:"name" binding:"required,min=1,max=255"`
+	Description string `json:"description,omitempty"`
 }
 
 type UpdateGroupRequest struct {
-	Name string `json:"name" binding:"required,min=1,max=255"`
+	Name        string `json:"name" binding:"required,min=1,max=255"`
+	Description string `json:"description,omitempty"`
 }
 
 type JoinGroupRequest struct {

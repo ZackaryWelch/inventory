@@ -8,6 +8,7 @@ import (
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/sides"
 	"cogentcore.org/core/styles/units"
+	"cogentcore.org/core/text/rich"
 	"cogentcore.org/core/text/text"
 )
 
@@ -129,7 +130,7 @@ func StyleUserFieldLabel(s *styles.Style) {
 }
 
 func StyleEmptyText(s *styles.Style) {
-	s.Color = colors.Uniform(ColorGrayDark)
+	s.Color = colors.Uniform(ColorBlack) // Changed from ColorGrayDark for white backgrounds
 	s.Align.Self = styles.Center
 	s.Margin.Top = units.Dp(Spacing8)
 }
@@ -195,8 +196,8 @@ func StyleContainerDescription(s *styles.Style) {
 }
 
 func StyleContainerCount(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXS)          // text-xs
-	s.Color = colors.Uniform(ColorGrayDark)
+	s.Font.Size = units.Dp(FontSizeBase) // Changed from XS to Base for better readability
+	s.Color = colors.Uniform(ColorBlack)  // Changed from ColorGrayDark for white backgrounds
 }
 
 // ====================================================================================
@@ -578,6 +579,12 @@ func StyleLogoutButton(s *styles.Style) {
 
 func StyleCreateButton(s *styles.Style) {
 	s.Align.Self = styles.End
+	s.Background = nil // ghost
+	s.Color = colors.Uniform(ColorBlack) // Changed from default for better visibility
+	s.Padding.Set(units.Dp(Spacing2))
+	s.Min.X.Set(48, units.UnitDp)
+	s.Min.Y.Set(48, units.UnitDp)
+	s.Cursor = cursors.Pointer
 }
 
 func StyleViewButton(s *styles.Style) {
@@ -921,4 +928,363 @@ func StyleHoverDanger(s *styles.Style) {
 func StyleHoverGrayLight(s *styles.Style) {
 	s.Cursor = cursors.Pointer
 	s.Background = colors.Uniform(ColorGrayLight)
+}
+
+// ====================================================================================
+// Group Component Styles
+// ====================================================================================
+
+// StyleGroupCardContainer - outer container for group name + card
+func StyleGroupCardContainer(s *styles.Style) {
+	s.Direction = styles.Column
+	s.Gap.Set(units.Dp(Spacing2))
+	s.Margin.Bottom = units.Dp(Spacing2)
+}
+
+// StyleGroupName - group title above card (text-lg font-semibold)
+func StyleGroupName(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeLG)
+	s.Font.Weight = WeightSemiBold
+	s.Color = colors.Uniform(ColorBlack)
+}
+
+// StyleGroupCard - card with horizontal layout
+func StyleGroupCard(s *styles.Style) {
+	s.Direction = styles.Row
+	s.Justify.Content = styles.SpaceBetween
+	s.Align.Items = styles.Center
+	s.Padding.Set(units.Dp(Spacing4))
+	s.Gap.Set(units.Dp(Spacing4))
+}
+
+// StyleGroupCardLeftSection - clickable left section with icon + count
+func StyleGroupCardLeftSection(s *styles.Style) {
+	s.Direction = styles.Row
+	s.Align.Items = styles.Center
+	s.Gap.Set(units.Dp(Spacing2))
+	s.Cursor = cursors.Pointer
+}
+
+// StyleGroupIconAccent - folder/cheese icon in accent color
+func StyleGroupIconAccent(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeXL + 4) // 24px
+	s.Color = colors.Uniform(ColorAccent)
+}
+
+// StyleGroupCardRightSection - right section with avatars + count + menu
+func StyleGroupCardRightSection(s *styles.Style) {
+	s.Direction = styles.Row
+	s.Align.Items = styles.Center
+	s.Gap.Set(units.Dp(Spacing2))
+}
+
+// StyleAvatarsContainer - row container for member avatars
+func StyleAvatarsContainer(s *styles.Style) {
+	s.Direction = styles.Row
+	s.Gap.Set(units.Dp(4))
+}
+
+// StyleMemberAvatarSmall - small circular member avatar (group card)
+func StyleMemberAvatarSmall(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeXL)
+	s.Color = colors.Uniform(ColorWhite)
+	s.Background = colors.Uniform(ColorPrimary)
+	s.Border.Radius = sides.NewValues(units.Dp(9999)) // Circular
+	s.Padding.Set(units.Dp(4))
+}
+
+// StyleUserCount - member count text (×5)
+func StyleUserCount(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeBase)
+	s.Color = colors.Uniform(ColorBlack) // Changed from ColorGrayDark - avoid grey on white
+}
+
+// StyleGroupMenuButton - three-dot menu button
+func StyleGroupMenuButton(s *styles.Style) {
+	s.Background = nil
+	s.Border.Width.Set(units.Dp(1))
+	s.Border.Color.Set(colors.Uniform(ColorGray))
+	s.Border.Radius = sides.NewValues(units.Dp(RadiusMD))
+	s.Padding.Set(units.Dp(Spacing2))
+	s.Color = colors.Uniform(ColorBlack) // Changed from ColorGray - better visibility
+}
+
+// StyleMemberCard - full member card in detail view
+func StyleMemberCard(s *styles.Style) {
+	s.Direction = styles.Row
+	s.Align.Items = styles.Center
+	s.Gap.Set(units.Dp(Spacing3))
+	s.Padding.Set(units.Dp(Spacing3))
+}
+
+// StyleMemberAvatarLarge - large circular member avatar (detail view)
+func StyleMemberAvatarLarge(s *styles.Style) {
+	s.Font.Size = units.Dp(32)
+	s.Color = colors.Uniform(ColorWhite)
+	s.Background = colors.Uniform(ColorPrimary)
+	s.Border.Radius = sides.NewValues(units.Dp(9999)) // Circular
+	s.Padding.Set(units.Dp(Spacing2))
+	s.Min.X.Set(48, units.UnitDp)
+	s.Min.Y.Set(48, units.UnitDp)
+}
+
+// StyleMemberInfo - container for member name + email
+func StyleMemberInfo(s *styles.Style) {
+	s.Direction = styles.Column
+	s.Gap.Set(units.Dp(4))
+	s.Grow.Set(1, 0)
+}
+
+// StyleMemberName - member name text (semibold, base size)
+func StyleMemberName(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeBase)
+	s.Font.Weight = WeightSemiBold
+	s.Color = colors.Uniform(ColorBlack)
+}
+
+// StyleMemberEmail - member email text (smaller, gray)
+func StyleMemberEmail(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeSM)
+	s.Color = colors.Uniform(ColorBlack) // Changed from ColorGray - better on white background
+}
+
+// StyleMembersContainer - container for members list
+func StyleMembersContainer(s *styles.Style) {
+	s.Direction = styles.Column
+	s.Gap.Set(units.Dp(Spacing2))
+}
+
+// StyleActionRowRight - action row aligned to right (h-12 w-full flex items-center justify-end)
+func StyleActionRowRight(s *styles.Style) {
+	s.Direction = styles.Row
+	s.Justify.Content = styles.End      // justify-end
+	s.Align.Items = styles.Center       // items-center
+	s.Min.Y.Set(48, units.UnitDp)       // h-12
+	s.Min.X.Set(100, units.UnitPw)      // w-full
+	s.Margin.Bottom = units.Dp(Spacing2)
+}
+
+// ====================================================================================
+// Empty State Component Styles
+// ====================================================================================
+
+// StyleEmptyStateContainer - container for custom empty state with icon + title + message
+func StyleEmptyStateContainer(s *styles.Style) {
+	s.Direction = styles.Column
+	s.Align.Items = styles.Center
+	s.Justify.Content = styles.Center
+	s.Gap.Set(units.Dp(Spacing4))
+	s.Padding.Set(units.Dp(Spacing8))
+	s.Margin.Top = units.Dp(Spacing8)
+}
+
+// StyleEmptyStateIcon - large icon for empty state
+func StyleEmptyStateIcon(s *styles.Style) {
+	s.Color = colors.Uniform(ColorBlack) // Changed from ColorGray for better visibility
+	s.Font.Size = units.Dp(48)
+}
+
+// StyleEmptyStateTitle - title text for empty state
+func StyleEmptyStateTitle(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeLG)
+	s.Font.Weight = WeightSemiBold
+	s.Color = colors.Uniform(ColorBlack) // Changed from ColorGrayDark
+}
+
+// StyleEmptyStateMessage - message text for empty state
+func StyleEmptyStateMessage(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeSM)
+	s.Color = colors.Uniform(ColorBlack) // Changed from ColorGrayDark
+	s.Text.Align = AlignCenter
+}
+
+// StyleInviteCode - monospace invite code display
+func StyleInviteCode(s *styles.Style) {
+	s.Font.Family = rich.Monospace
+	s.Background = colors.Uniform(ColorGrayLight)
+	s.Padding.Set(units.Dp(Spacing2))
+	s.Border.Radius = sides.NewValues(units.Dp(RadiusMD))
+	s.Color = colors.Uniform(ColorBlack)
+}
+
+// ====================================================================================
+// Filter & Search Component Styles
+// ====================================================================================
+
+// StyleSearchFieldWithMargin - search field with bottom margin
+func StyleSearchFieldWithMargin(s *styles.Style) {
+	StyleInputRounded(s)
+	s.Margin.Bottom = units.Dp(Spacing4)
+}
+
+// StyleFilterChipsRow - row container for filter chips
+func StyleFilterChipsRow(s *styles.Style) {
+	s.Direction = styles.Row
+	s.Gap.Set(units.Dp(Spacing2))
+	s.Wrap = true
+	s.Margin.Bottom = units.Dp(Spacing4)
+}
+
+// StyleFilterChip - individual filter chip
+func StyleFilterChip(s *styles.Style) {
+	s.Direction = styles.Row
+	s.Align.Items = styles.Center
+	s.Gap.Set(units.Dp(4))
+	s.Background = colors.Uniform(ColorPrimaryLightest)
+	s.Border.Radius = sides.NewValues(units.Dp(RadiusFull))
+	s.Padding.Set(units.Dp(6), units.Dp(12))
+}
+
+// StyleFilterChipText - text inside filter chip
+func StyleFilterChipText(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeSM)
+	s.Color = colors.Uniform(ColorPrimary)
+}
+
+// StyleFilterChipCloseButton - close button in filter chip
+func StyleFilterChipCloseButton(s *styles.Style) {
+	s.Background = nil
+	s.Color = colors.Uniform(ColorPrimary)
+	s.Padding.Set(units.Dp(2))
+	s.Font.Size = units.Dp(12)
+}
+
+// StyleSortRow - row for sort dropdown (right-aligned)
+func StyleSortRow(s *styles.Style) {
+	s.Direction = styles.Row
+	s.Justify.Content = styles.End
+	s.Margin.Bottom = units.Dp(Spacing4)
+}
+
+// StyleSortDropdown - sort dropdown button
+func StyleSortDropdown(s *styles.Style) {
+	s.Background = colors.Uniform(ColorGrayLightest)
+	s.Border.Radius = sides.NewValues(units.Dp(RadiusMD))
+	s.Padding.Set(units.Dp(Spacing2), units.Dp(Spacing3))
+	s.Color = colors.Uniform(ColorBlack)
+}
+
+// StyleTypeBadge - badge showing object type
+func StyleTypeBadge(s *styles.Style) {
+	s.Background = colors.Uniform(ColorAccent)
+	s.Color = colors.Uniform(ColorBlack)
+	s.Padding.Set(units.Dp(4), units.Dp(Spacing2))
+	s.Border.Radius = sides.NewValues(units.Dp(RadiusDefault))
+	s.Font.Size = units.Dp(FontSizeXS)
+	s.Font.Weight = WeightSemiBold
+}
+
+// StyleStatsText - text for stats (containers/objects count)
+func StyleStatsText(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeSM)
+	s.Color = colors.Uniform(ColorBlack)
+}
+
+// StyleCollectionDetailContent - content area for collection detail
+func StyleCollectionDetailContent(s *styles.Style) {
+	s.Direction = styles.Column
+	s.Gap.Set(units.Dp(Spacing4))
+	s.Padding.Set(units.Dp(Spacing4))
+}
+
+// StyleCollectionInfoCard - info card in collection detail
+func StyleCollectionInfoCard(s *styles.Style) {
+	s.Direction = styles.Column
+	s.Gap.Set(units.Dp(Spacing3))
+}
+
+// StyleTypeRow - row for type icon and text
+func StyleTypeRow(s *styles.Style) {
+	s.Direction = styles.Row
+	s.Align.Items = styles.Center
+	s.Gap.Set(units.Dp(Spacing2))
+}
+
+// StyleTypeIcon - icon for object type
+func StyleTypeIcon(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeXL)
+	s.Color = colors.Uniform(ColorPrimary)
+}
+
+// StyleTypeText - text showing object type
+func StyleTypeText(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeBase)
+	s.Font.Weight = WeightSemiBold
+	s.Color = colors.Uniform(ColorBlack)
+}
+
+// StyleLocationTitle - title for location section
+func StyleLocationTitle(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeSM)
+	s.Color = colors.Uniform(ColorBlack)
+	s.Font.Weight = WeightSemiBold
+}
+
+// StyleLocationText - location path text
+func StyleLocationText(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeSM)
+	s.Color = colors.Uniform(ColorBlack)
+}
+
+// StyleContainersHeaderRow - header row for containers section
+func StyleContainersHeaderRow(s *styles.Style) {
+	s.Direction = styles.Row
+	s.Justify.Content = styles.SpaceBetween
+	s.Align.Items = styles.Center
+	s.Margin.Bottom = units.Dp(Spacing3)
+}
+
+// StyleContainersTitle - title for containers section
+func StyleContainersTitle(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeLG)
+	s.Font.Weight = WeightBold
+	s.Color = colors.Uniform(ColorBlack)
+}
+
+// StyleViewToggle - toggle button for view mode
+func StyleViewToggle(s *styles.Style) {
+	s.Background = colors.Uniform(ColorGrayLight)
+	s.Border.Radius = sides.NewValues(units.Dp(RadiusMD))
+	s.Padding.Set(units.Dp(Spacing1))
+}
+
+// StyleContainersFrame - frame containing containers grid/list
+func StyleContainersFrame(s *styles.Style) {
+	s.Direction = styles.Column
+	s.Gap.Set(units.Dp(Spacing3))
+	s.Min.Y.Set(200, units.UnitDp)
+}
+
+// StyleFormFieldLabel - label for form fields
+func StyleFormFieldLabel(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeSM)
+	s.Font.Weight = WeightSemiBold
+	s.Color = colors.Uniform(ColorBlack)
+	s.Margin.Bottom = units.Dp(Spacing1)
+}
+
+// StyleFormFieldContainer - container for form field + label
+func StyleFormFieldContainer(s *styles.Style) {
+	s.Direction = styles.Column
+	s.Gap.Set(units.Dp(4))
+}
+
+// StyleGroupDropdownButton - dropdown button styling for group selection
+func StyleGroupDropdownButton(s *styles.Style) {
+	s.Background = colors.Uniform(ColorWhite)
+	s.Border.Width.Set(units.Dp(1))
+	s.Border.Color.Set(colors.Uniform(ColorGray))
+	s.Border.Radius = sides.NewValues(units.Dp(RadiusMD))
+	s.Padding.Set(units.Dp(Spacing2), units.Dp(Spacing3))
+	s.Color = colors.Uniform(ColorBlack)
+	s.Justify.Content = styles.SpaceBetween
+	s.Min.X.Set(100, units.UnitPw) // Full width
+}
+
+// StyleParentInfo - parent container info text
+func StyleParentInfo(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeSM)
+	s.Color = colors.Uniform(ColorBlack)
+	// Note: Italic font style is not supported in Cogent Core styles.Font
+	s.Margin.Top = units.Dp(Spacing1)
 }

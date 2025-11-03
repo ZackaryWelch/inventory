@@ -15,12 +15,17 @@ import (
 )
 
 type objectDocument struct {
-	ID         string                 `bson:"id"`
-	Name       string                 `bson:"name"`
-	ObjectType string                 `bson:"object_type"`
-	Properties map[string]interface{} `bson:"properties"`
-	Tags       []string               `bson:"tags"`
-	CreatedAt  time.Time              `bson:"created_at"`
+	ID          string                 `bson:"id"`
+	Name        string                 `bson:"name"`
+	Description string                 `bson:"description"`
+	ObjectType  string                 `bson:"object_type"`
+	Quantity    *float64               `bson:"quantity,omitempty"`
+	Unit        string                 `bson:"unit,omitempty"`
+	Properties  map[string]interface{} `bson:"properties"`
+	Tags        []string               `bson:"tags"`
+	ExpiresAt   *time.Time             `bson:"expires_at,omitempty"`
+	CreatedAt   time.Time              `bson:"created_at"`
+	UpdatedAt   time.Time              `bson:"updated_at"`
 }
 
 type containerDocument struct {
@@ -30,6 +35,7 @@ type containerDocument struct {
 	Type              string           `bson:"type"`
 	ParentContainerID *string          `bson:"parent_container_id,omitempty"`
 	CategoryID        *string          `bson:"category_id,omitempty"`
+	GroupID           *string          `bson:"group_id,omitempty"`
 	Objects           []objectDocument `bson:"objects"`
 	Location          string           `bson:"location"`
 	Width             *float64         `bson:"width,omitempty"`
@@ -306,6 +312,12 @@ func containerToDocument(container *entities.Container) *containerDocument {
 		parentContainerID = &id
 	}
 
+	var groupID *string
+	if container.GroupID() != nil {
+		id := container.GroupID().String()
+		groupID = &id
+	}
+
 	return &containerDocument{
 		ID:                container.ID().String(),
 		CollectionID:      container.CollectionID().String(),
@@ -313,6 +325,7 @@ func containerToDocument(container *entities.Container) *containerDocument {
 		Type:              string(container.ContainerType()),
 		ParentContainerID: parentContainerID,
 		CategoryID:        categoryID,
+		GroupID:           groupID,
 		Objects:           objects,
 		Location:          container.Location(),
 		Width:             container.Width(),
@@ -362,6 +375,14 @@ func documentToContainer(doc *containerDocument) (*entities.Container, error) {
 		}
 	}
 
+	var groupID *entities.GroupID
+	if doc.GroupID != nil {
+		gid, err := entities.GroupIDFromString(*doc.GroupID)
+		if err == nil {
+			groupID = &gid
+		}
+	}
+
 	objects := make([]entities.Object, len(doc.Objects))
 	for i, objectDoc := range doc.Objects {
 		object, err := documentToObject(objectDoc)
@@ -378,6 +399,7 @@ func documentToContainer(doc *containerDocument) (*entities.Container, error) {
 		containerType,
 		parentContainerID,
 		categoryID,
+		groupID,
 		objects,
 		doc.Location,
 		doc.Width,

@@ -142,17 +142,12 @@ func (h *ImportHandler) parseCSVRow(record []string, headerMap map[string]int) (
 		obj.Description = strings.TrimSpace(record[idx])
 	}
 
-	// Get category
-	if idx, ok := headerMap["category"]; ok && idx < len(record) {
-		obj.Category = strings.TrimSpace(record[idx])
-	}
-
 	// Get quantity
 	if idx, ok := headerMap["quantity"]; ok && idx < len(record) {
 		if qtyStr := strings.TrimSpace(record[idx]); qtyStr != "" {
 			qty, err := strconv.ParseFloat(qtyStr, 64)
 			if err == nil {
-				obj.Quantity = qty
+				obj.Quantity = &qty
 			}
 		}
 	}
@@ -250,7 +245,7 @@ func (h *ImportHandler) ImportToContainer(containerID string, objects []types.Cr
 		data[i] = map[string]interface{}{
 			"name":        obj.Name,
 			"description": obj.Description,
-			"category":    obj.Category,
+			"object_type": obj.ObjectType,
 			"quantity":    obj.Quantity,
 			"unit":        obj.Unit,
 			"tags":        obj.Tags,
@@ -286,7 +281,7 @@ func (h *ImportHandler) DistributeToCollection(collectionID string, objects []ty
 		data[i] = map[string]interface{}{
 			"name":        obj.Name,
 			"description": obj.Description,
-			"category":    obj.Category,
+			"object_type": obj.ObjectType,
 			"quantity":    obj.Quantity,
 			"unit":        obj.Unit,
 			"tags":        obj.Tags,

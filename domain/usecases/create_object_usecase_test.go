@@ -41,9 +41,16 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
 			nil, // No category
+			nil, // No group
 			[]entities.Object{}, // Empty objects
 			"", // Empty location
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
@@ -119,9 +126,11 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 
 		// Create test group
 		groupName, _ := entities.NewGroupName("Test Group")
+		groupDesc := entities.NewGroupDescription("Test group description")
 		testGroup := entities.ReconstructGroup(
 			groupID,
 			groupName,
+			groupDesc,
 			time.Now(),
 			time.Now(),
 		)
@@ -132,9 +141,16 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{},
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
@@ -231,9 +247,16 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{},
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
@@ -283,9 +306,16 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{},
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
@@ -350,9 +380,16 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{},
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
@@ -417,9 +454,16 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{},
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
@@ -463,9 +507,16 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{},
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)

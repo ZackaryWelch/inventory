@@ -115,9 +115,11 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 
 		// Create test group
 		groupName, _ := entities.NewGroupName("Test Group")
+		groupDesc := entities.NewGroupDescription("Test Group Description")
 		testGroup := entities.ReconstructGroup(
 			groupID,
 			groupName,
+			groupDesc,
 			time.Now(),
 			time.Now(),
 		)

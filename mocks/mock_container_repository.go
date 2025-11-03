@@ -84,6 +84,21 @@ func (mr *MockContainerRepositoryMockRecorder) Exists(ctx, id any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockContainerRepository)(nil).Exists), ctx, id)
 }
 
+// GetByCollectionID mocks base method.
+func (m *MockContainerRepository) GetByCollectionID(ctx context.Context, collectionID entities.CollectionID) ([]*entities.Container, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByCollectionID", ctx, collectionID)
+	ret0, _ := ret[0].([]*entities.Container)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByCollectionID indicates an expected call of GetByCollectionID.
+func (mr *MockContainerRepositoryMockRecorder) GetByCollectionID(ctx, collectionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByCollectionID", reflect.TypeOf((*MockContainerRepository)(nil).GetByCollectionID), ctx, collectionID)
+}
+
 // GetByGroupID mocks base method.
 func (m *MockContainerRepository) GetByGroupID(ctx context.Context, groupID entities.GroupID) ([]*entities.Container, error) {
 	m.ctrl.T.Helper()
@@ -112,6 +127,21 @@ func (m *MockContainerRepository) GetByID(ctx context.Context, id entities.Conta
 func (mr *MockContainerRepositoryMockRecorder) GetByID(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockContainerRepository)(nil).GetByID), ctx, id)
+}
+
+// GetChildContainers mocks base method.
+func (m *MockContainerRepository) GetChildContainers(ctx context.Context, parentID entities.ContainerID) ([]*entities.Container, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetChildContainers", ctx, parentID)
+	ret0, _ := ret[0].([]*entities.Container)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetChildContainers indicates an expected call of GetChildContainers.
+func (mr *MockContainerRepositoryMockRecorder) GetChildContainers(ctx, parentID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetChildContainers", reflect.TypeOf((*MockContainerRepository)(nil).GetChildContainers), ctx, parentID)
 }
 
 // GetContainersWithExpiredFood mocks base method.

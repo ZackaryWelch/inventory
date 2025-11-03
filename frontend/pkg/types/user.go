@@ -1,29 +1,28 @@
 package types
 
-import "time"
+import (
+	"github.com/nishiki/backend-go/app/http/request"
+	"github.com/nishiki/backend-go/app/http/response"
+)
 
-// User represents a user in the system
-type User struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
+// Re-export backend response types
+type User = response.UserResponse
+type AuthInfoResponse = response.AuthInfoResponse
+type ClaimsInfo = response.ClaimsInfo
+type Group = response.GroupResponse
+type Collection = response.CollectionResponse
+type Container = response.ContainerResponse
+type Object = response.ObjectResponse
+type Category = response.CategoryResponse
 
-// AuthInfoResponse represents the response from /auth/me
-type AuthInfoResponse struct {
-	User   User       `json:"user"`
-	Claims ClaimsInfo `json:"claims"`
-}
-
-// ClaimsInfo represents JWT claims information
-type ClaimsInfo struct {
-	Subject   string   `json:"subject"`
-	Email     string   `json:"email"`
-	Username  string   `json:"username"`
-	Groups    []string `json:"groups"`
-	ExpiresAt int64    `json:"expires_at"`
-	IssuedAt  int64    `json:"issued_at"`
-}
+// Re-export backend request types
+type CreateGroupRequest = request.CreateGroupRequest
+type UpdateGroupRequest = request.UpdateGroupRequest
+type CreateCollectionRequest = request.CreateCollectionRequest
+type UpdateCollectionRequest = request.UpdateCollectionRequest
+type CreateContainerRequest = request.CreateContainerRequest
+type UpdateContainerRequest = request.UpdateContainerRequest
+type CreateObjectRequest = request.CreateObjectRequest
+type UpdateObjectRequest = request.UpdateObjectRequest
+type CreateCategoryRequest = request.CreateCategoryRequest
+type UpdateCategoryRequest = request.UpdateCategoryRequest

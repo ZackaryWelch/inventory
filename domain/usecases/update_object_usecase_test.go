@@ -34,18 +34,18 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		// Create test object
 		objectName, _ := entities.NewObjectName("Old Name")
-		testObject, _ := entities.NewObject(entities.ObjectProps{
-			Name:       objectName,
-			ObjectType: entities.ObjectTypeGeneral,
-			Properties: map[string]interface{}{},
-			Tags:       []string{},
-		})
-		testObject = entities.ReconstructObject(
+		objectDesc := entities.NewObjectDescription("Test Object Description")
+		testObject := entities.ReconstructObject(
 			objectID,
 			objectName,
+			objectDesc,
 			entities.ObjectTypeGeneral,
+			nil,
+			"",
 			map[string]interface{}{},
 			[]string{},
+			nil,
+			time.Now(),
 			time.Now(),
 		)
 
@@ -55,9 +55,16 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
+			entities.ContainerTypeGeneral,
+			nil,
+			nil,
 			nil,
 			[]entities.Object{*testObject},
 			"",
+			nil,
+			nil,
+			nil,
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -131,12 +138,18 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		// Create test object
 		objectName, _ := entities.NewObjectName("Test Object")
+		objectDesc := entities.NewObjectDescription("Test Object Description")
 		testObject := entities.ReconstructObject(
 			objectID,
 			objectName,
+			objectDesc,
 			entities.ObjectTypeGeneral,
+			nil,
+			"",
 			map[string]interface{}{"old": "value"},
 			[]string{"old-tag"},
+			nil,
+			time.Now(),
 			time.Now(),
 		)
 
@@ -146,9 +159,16 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
+			entities.ContainerTypeGeneral,
+			nil,
+			nil,
 			nil,
 			[]entities.Object{*testObject},
 			"",
+			nil,
+			nil,
+			nil,
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -247,9 +267,16 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
+			entities.ContainerTypeGeneral,
+			nil,
+			nil,
 			nil,
 			[]entities.Object{}, // Empty
 			"",
+			nil,
+			nil,
+			nil,
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -313,12 +340,18 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		// Create test object
 		objectName, _ := entities.NewObjectName("Test Object")
+		objectDesc := entities.NewObjectDescription("Test Object Description")
 		testObject := entities.ReconstructObject(
 			objectID,
 			objectName,
+			objectDesc,
 			entities.ObjectTypeGeneral,
+			nil,
+			"",
 			map[string]interface{}{},
 			[]string{},
+			nil,
+			time.Now(),
 			time.Now(),
 		)
 
@@ -328,9 +361,16 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
+			entities.ContainerTypeGeneral,
+			nil,
+			nil,
 			nil,
 			[]entities.Object{*testObject},
 			"",
+			nil,
+			nil,
+			nil,
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -393,12 +433,18 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		// Create test object
 		objectName, _ := entities.NewObjectName("Test Object")
+		objectDesc := entities.NewObjectDescription("Test Object Description")
 		testObject := entities.ReconstructObject(
 			objectID,
 			objectName,
+			objectDesc,
 			entities.ObjectTypeGeneral,
+			nil,
+			"",
 			map[string]interface{}{},
 			[]string{},
+			nil,
+			time.Now(),
 			time.Now(),
 		)
 
@@ -408,9 +454,16 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
+			entities.ContainerTypeGeneral,
+			nil,
+			nil,
 			nil,
 			[]entities.Object{*testObject},
 			"",
+			nil,
+			nil,
+			nil,
+			nil,
 			time.Now(),
 			time.Now(),
 		)

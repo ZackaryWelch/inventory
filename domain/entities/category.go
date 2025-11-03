@@ -97,6 +97,8 @@ type Category struct {
 	id          CategoryID
 	name        CategoryName
 	description CategoryDescription
+	icon        string // Emoji or icon identifier
+	color       string // Hex color code
 	createdAt   time.Time
 	updatedAt   time.Time
 }
@@ -104,6 +106,8 @@ type Category struct {
 type CategoryProps struct {
 	Name        CategoryName
 	Description CategoryDescription
+	Icon        string
+	Color       string
 }
 
 func NewCategory(props CategoryProps) (*Category, error) {
@@ -112,16 +116,20 @@ func NewCategory(props CategoryProps) (*Category, error) {
 		id:          NewCategoryID(),
 		name:        props.Name,
 		description: props.Description,
+		icon:        props.Icon,
+		color:       props.Color,
 		createdAt:   now,
 		updatedAt:   now,
 	}, nil
 }
 
-func ReconstructCategory(id CategoryID, name CategoryName, description CategoryDescription, createdAt, updatedAt time.Time) *Category {
+func ReconstructCategory(id CategoryID, name CategoryName, description CategoryDescription, icon, color string, createdAt, updatedAt time.Time) *Category {
 	return &Category{
 		id:          id,
 		name:        name,
 		description: description,
+		icon:        icon,
+		color:       color,
 		createdAt:   createdAt,
 		updatedAt:   updatedAt,
 	}
@@ -137,6 +145,14 @@ func (c *Category) Name() CategoryName {
 
 func (c *Category) Description() CategoryDescription {
 	return c.description
+}
+
+func (c *Category) Icon() string {
+	return c.icon
+}
+
+func (c *Category) Color() string {
+	return c.color
 }
 
 func (c *Category) CreatedAt() time.Time {
@@ -155,6 +171,18 @@ func (c *Category) UpdateName(name CategoryName) error {
 
 func (c *Category) UpdateDescription(description CategoryDescription) error {
 	c.description = description
+	c.updatedAt = time.Now()
+	return nil
+}
+
+func (c *Category) UpdateIcon(icon string) error {
+	c.icon = icon
+	c.updatedAt = time.Now()
+	return nil
+}
+
+func (c *Category) UpdateColor(color string) error {
+	c.color = color
 	c.updatedAt = time.Now()
 	return nil
 }

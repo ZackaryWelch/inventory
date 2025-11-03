@@ -4,43 +4,18 @@ package app
 
 import (
 	"fmt"
-	"image/color"
+	"log/slog"
 	"strings"
 
-	"cogentcore.org/core/colors"
 	"cogentcore.org/core/core"
-	"cogentcore.org/core/cursors"
 	"cogentcore.org/core/events"
 	"cogentcore.org/core/icons"
-	"cogentcore.org/core/styles"
-	"cogentcore.org/core/styles/sides"
-	"cogentcore.org/core/styles/units"
-	"cogentcore.org/core/text/rich"
 
 	"github.com/nishiki/frontend/pkg/types"
 	"github.com/nishiki/frontend/ui/components"
 	"github.com/nishiki/frontend/ui/layouts"
 	appstyles "github.com/nishiki/frontend/ui/styles"
 )
-
-// Container represents a container within a collection
-type Container struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
-	CollectionID string    `json:"collection_id"`
-	Objects      []Object  `json:"objects,omitempty"`
-}
-
-// Object represents an object within a container
-type Object struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	ContainerID string                 `json:"container_id"`
-	Properties  map[string]interface{} `json:"properties"`
-	Tags        []string               `json:"tags"`
-}
 
 // Dialog states for UI management
 type DialogState struct {
@@ -81,24 +56,11 @@ func (app *App) showEnhancedGroupsView() {
 	// Action button row - React pattern: h-12 w-full flex items-center justify-end
 	// This goes BEFORE the group cards list
 	actionRow := core.NewFrame(content)
-	actionRow.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Justify.Content = styles.End // justify-end
-		s.Align.Items = styles.Center   // items-center
-		s.Min.Y.Set(48, units.UnitDp)   // h-12
-		s.Min.X.Set(100, units.UnitPw)  // w-full (parent width)
-		s.Margin.Bottom = units.Dp(appstyles.Spacing2)
-	})
+	actionRow.Styler(appstyles.StyleActionRowRight)
 
 	// Create Group button (ghost icon button like React)
 	createGroupBtn := core.NewButton(actionRow).SetIcon(icons.Add)
-	createGroupBtn.Styler(func(s *styles.Style) {
-		s.Background = nil // ghost variant
-		s.Color = colors.Uniform(appstyles.ColorGrayDark)
-		s.Padding.Set(units.Dp(8))
-		s.Min.X.Set(48, units.UnitDp)
-		s.Min.Y.Set(48, units.UnitDp)
-	})
+	createGroupBtn.Styler(appstyles.StyleCreateButton)
 	createGroupBtn.OnClick(func(e events.Event) {
 		app.showCreateGroupDialog() // Open dialog using Cogent Core's built-in system
 	})
@@ -122,109 +84,104 @@ func (app *App) showEnhancedGroupsView() {
 func (app *App) createEnhancedGroupCard(parent core.Widget, group Group) *core.Frame {
 	// Container for group name + card (React structure has name ABOVE card)
 	container := core.NewFrame(parent)
-	container.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Gap.Set(units.Dp(8))
-		s.Margin.Bottom = units.Dp(appstyles.Spacing2)
-	})
+	container.Styler(appstyles.StyleGroupCardContainer)
 
 	// Group name ABOVE the card (React: text-lg font-semibold mb-2)
 	groupName := core.NewText(container).SetText(group.Name)
-	groupName.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(appstyles.FontSizeLG)
-		s.Font.Weight = appstyles.WeightSemiBold
-		s.Color = colors.Uniform(appstyles.ColorBlack)
-	})
+	groupName.Styler(appstyles.StyleGroupName)
 
 	// Card - single horizontal row (React: className="flex justify-between items-center p-4")
 	card := components.Card(container, components.CardProps{})
-	card.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Justify.Content = styles.SpaceBetween
-		s.Align.Items = styles.Center
-		s.Padding.Set(units.Dp(appstyles.Spacing4))
-		s.Gap.Set(units.Dp(appstyles.Spacing4))
-	})
+	card.Styler(appstyles.StyleGroupCard)
 
 	// LEFT SECTION: Icon + Container Count (React: flex gap-2 items-center)
 	leftSection := core.NewFrame(card)
-	leftSection.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Align.Items = styles.Center
-		s.Gap.Set(units.Dp(8))
-		s.Cursor = cursors.Pointer
-	})
+	leftSection.Styler(appstyles.StyleGroupCardLeftSection)
 	leftSection.OnClick(func(e events.Event) {
 		app.showGroupDetailView(group)
 	})
 
 	// Icon (cheese emoji in React - using folder icon as placeholder)
 	icon := core.NewIcon(leftSection).SetIcon(icons.Folder)
-	icon.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(24)
-		s.Color = colors.Uniform(appstyles.ColorAccent) // Yellow like cheese
-	})
+	icon.Styler(appstyles.StyleGroupIconAccent)
 
 	// Container count
 	containerCount := core.NewText(leftSection).SetText("0")
-	containerCount.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(appstyles.FontSizeBase)
-		s.Color = colors.Uniform(appstyles.ColorBlack)
-	})
+	containerCount.Styler(appstyles.StyleContainerCount)
 
 	// RIGHT SECTION: User Avatars + User Count + Menu (React: flex gap-2 items-center)
 	rightSection := core.NewFrame(card)
-	rightSection.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Align.Items = styles.Center
-		s.Gap.Set(units.Dp(8))
-	})
+	rightSection.Styler(appstyles.StyleGroupCardRightSection)
 
-	// User avatars (3 gray circles in React)
+	// User avatars (show up to 3)
 	avatarsContainer := core.NewFrame(rightSection)
-	avatarsContainer.Styler(func(s *styles.Style) {
-		s.Direction = styles.Row
-		s.Gap.Set(units.Dp(4))
-	})
+	avatarsContainer.Styler(appstyles.StyleAvatarsContainer)
 
-	// Show up to 3 avatar circles
-	numAvatars := len(group.Members)
-	if numAvatars > 3 {
-		numAvatars = 3
-	}
-	for i := 0; i < numAvatars; i++ {
-		avatar := core.NewIcon(avatarsContainer).SetIcon(icons.Person)
-		avatar.Styler(func(s *styles.Style) {
-			s.Font.Size = units.Dp(20)
-			s.Color = colors.Uniform(appstyles.ColorGray)
-			s.Background = colors.Uniform(appstyles.ColorGrayLight)
-			s.Border.Radius = sides.NewValues(units.Dp(9999)) // Circular
-			s.Padding.Set(units.Dp(4))
-		})
-	}
+	// User count (will be updated when members are fetched)
+	userCount := core.NewText(rightSection).SetText("×...")
+	userCount.Styler(appstyles.StyleUserCount)
 
-	// User count (×N)
-	userCount := core.NewText(rightSection).SetText(fmt.Sprintf("×%d", len(group.Members)))
-	userCount.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(appstyles.FontSizeBase)
-		s.Color = colors.Uniform(appstyles.ColorGrayDark)
-	})
+	// Fetch members asynchronously
+	go func() {
+		members, err := app.groupsClient.GetMembers(group.ID)
+		if err != nil {
+			slog.Error("Failed to fetch group members", "error", err, "group_id", group.ID)
+			return
+		}
+
+		// Update UI on main thread
+		app.mainContainer.AsyncLock()
+		defer app.mainContainer.AsyncUnlock()
+
+		// Clear placeholder and add member avatars (max 3)
+		avatarsContainer.DeleteChildren()
+		maxAvatars := 3
+		for i, member := range members {
+			if i >= maxAvatars {
+				break
+			}
+			avatar := core.NewIcon(avatarsContainer).SetIcon(icons.Person)
+			avatar.Tooltip = member.Name
+			avatar.Styler(appstyles.StyleMemberAvatarSmall)
+		}
+
+		// Update user count
+		userCount.SetText(fmt.Sprintf("×%d", len(members)))
+		avatarsContainer.Update()
+	}()
 
 	// Three-dot menu button
 	menuButton := core.NewButton(rightSection).SetIcon(icons.MoreVert)
-	menuButton.Styler(func(s *styles.Style) {
-		s.Background = nil
-		s.Border.Width.Set(units.Dp(1))
-		s.Border.Color.Set(colors.Uniform(appstyles.ColorGray))
-		s.Border.Radius = sides.NewValues(units.Dp(appstyles.RadiusMD))
-		s.Padding.Set(units.Dp(8))
-		s.Color = colors.Uniform(appstyles.ColorGray)
-	})
+	menuButton.Styler(appstyles.StyleGroupMenuButton)
 	menuButton.OnClick(func(e events.Event) {
 		app.showEditGroupDialog(group)
 	})
 
 	return container
+}
+
+// createMemberCard creates a card for displaying a group member
+func (app *App) createMemberCard(parent core.Widget, member User) *core.Frame {
+	card := components.Card(parent, components.CardProps{})
+	card.Styler(appstyles.StyleMemberCard)
+
+	// Avatar
+	avatar := core.NewIcon(card).SetIcon(icons.Person)
+	avatar.Styler(appstyles.StyleMemberAvatarLarge)
+
+	// Info section
+	infoSection := core.NewFrame(card)
+	infoSection.Styler(appstyles.StyleMemberInfo)
+
+	// Name
+	nameText := core.NewText(infoSection).SetText(member.Name)
+	nameText.Styler(appstyles.StyleMemberName)
+
+	// Email
+	emailText := core.NewText(infoSection).SetText(member.Email)
+	emailText.Styler(appstyles.StyleMemberEmail)
+
+	return card
 }
 
 // Group Detail View
@@ -253,13 +210,42 @@ func (app *App) showGroupDetailView(group Group) {
 	membersTitle := core.NewText(content).SetText("Members")
 	membersTitle.Styler(appstyles.StyleH2)
 
-	if len(group.Members) == 0 {
-		components.EmptyState(content, "No members in this group yet.")
-	} else {
-		for _, member := range group.Members {
-			app.createMemberCard(content, member, group)
+	// Container for members (will be populated asynchronously)
+	membersContainer := core.NewFrame(content)
+	membersContainer.Styler(appstyles.StyleMembersContainer)
+
+	// Show loading state initially
+	components.EmptyState(membersContainer, "Loading members...")
+
+	// Fetch members asynchronously
+	go func() {
+		members, err := app.groupsClient.GetMembers(group.ID)
+		if err != nil {
+			slog.Error("Failed to fetch group members", "error", err, "group_id", group.ID)
+			app.mainContainer.AsyncLock()
+			membersContainer.DeleteChildren()
+			components.EmptyState(membersContainer, "Failed to load members")
+			membersContainer.Update()
+			app.mainContainer.AsyncUnlock()
+			return
 		}
-	}
+
+		// Update UI on main thread
+		app.mainContainer.AsyncLock()
+		defer app.mainContainer.AsyncUnlock()
+
+		membersContainer.DeleteChildren()
+
+		if len(members) == 0 {
+			components.EmptyState(membersContainer, "No members in this group yet.")
+		} else {
+			for _, member := range members {
+				app.createMemberCard(membersContainer, member)
+			}
+		}
+
+		membersContainer.Update()
+	}()
 
 	// Collections section
 	collectionsTitle := core.NewText(content).SetText("Collections")
@@ -274,10 +260,7 @@ func (app *App) showGroupDetailView(group Group) {
 
 	if len(groupCollections) == 0 {
 		emptyCollections := core.NewText(content).SetText("No collections in this group yet.")
-		emptyCollections.Styler(func(s *styles.Style) {
-			s.Color = colors.Uniform(appstyles.ColorGrayDark)
-			s.Align.Self = styles.Center
-		})
+		emptyCollections.Styler(appstyles.StyleEmptyText)
 	} else {
 		for _, collection := range groupCollections {
 			app.createCollectionCard(content, collection)
@@ -288,26 +271,6 @@ func (app *App) showGroupDetailView(group Group) {
 }
 
 // Member card for group detail view
-func (app *App) createMemberCard(parent core.Widget, member User, group Group) *core.Frame {
-	// Build actions - only show remove button if not the current user
-	var actions []CardAction
-	if app.currentUser != nil && app.currentUser.ID != member.ID {
-		actions = []CardAction{
-			{Icon: icons.PersonRemove, Color: appstyles.ColorDanger, Tooltip: "Remove member", OnClick: func() {
-				app.showRemoveMemberDialog(member, group)
-			}},
-		}
-	}
-
-	return app.createCard(parent, CardConfig{
-		Icon:        icons.Person,
-		IconColor:   appstyles.ColorPrimary,
-		Title:       member.Name,
-		Description: member.Email,
-		Actions:     actions,
-	})
-}
-
 // Removed showGroupActionsMenu - button now opens dialog directly
 
 // Dialog functions
@@ -365,34 +328,16 @@ func (app *App) showDeleteGroupDialog(group Group) {
 // Empty state component
 func (app *App) createEmptyState(parent core.Widget, title, message string, icon icons.Icon) *core.Frame {
 	emptyState := core.NewFrame(parent)
-	emptyState.Styler(func(s *styles.Style) {
-		s.Direction = styles.Column
-		s.Align.Items = styles.Center
-		s.Justify.Content = styles.Center
-		s.Gap.Set(units.Dp(16))
-		s.Padding.Set(units.Dp(32))
-		s.Margin.Top = units.Dp(32)
-	})
+	emptyState.Styler(appstyles.StyleEmptyStateContainer)
 
 	emptyIcon := core.NewIcon(emptyState).SetIcon(icon)
-	emptyIcon.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(appstyles.ColorGray)
-		s.Font.Size = units.Dp(48)
-	})
+	emptyIcon.Styler(appstyles.StyleEmptyStateIcon)
 
 	emptyTitle := core.NewText(emptyState).SetText(title)
-	emptyTitle.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(18)
-		s.Font.Weight = appstyles.WeightSemiBold
-		s.Color = colors.Uniform(appstyles.ColorGrayDark)
-	})
+	emptyTitle.Styler(appstyles.StyleEmptyStateTitle)
 
 	emptyMessage := core.NewText(emptyState).SetText(message)
-	emptyMessage.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(14)
-		s.Color = colors.Uniform(appstyles.ColorGrayDark)
-		s.Text.Align = appstyles.AlignCenter
-	})
+	emptyMessage.Styler(appstyles.StyleEmptyStateMessage)
 
 	return emptyState
 }
@@ -491,35 +436,13 @@ func (app *App) showInviteToGroupDialog(group Group) {
 		Message: "Share this invitation code:",
 		ContentBuilder: func(dialog core.Widget) {
 			inviteCode := core.NewText(dialog).SetText("ABC123XYZ") // Would be generated
-			inviteCode.Styler(func(s *styles.Style) {
-				s.Font.Family = rich.Monospace
-				s.Background = colors.Uniform(color.RGBA{R: 240, G: 240, B: 240, A: 255})
-				s.Padding.Set(units.Dp(8))
-				s.Border.Radius = styles.BorderRadiusMedium
-			})
+			inviteCode.Styler(appstyles.StyleInviteCode)
 		},
 		OnSubmit: nil, // No submit button, just a close button
 	})
 }
 
-func (app *App) showRemoveMemberDialog(member User, group Group) {
-	app.showDialog(DialogConfig{
-		Title:            "Remove Member",
-		Message:          fmt.Sprintf("Remove \"%s\" from \"%s\"?", member.Name, group.Name),
-		SubmitButtonText: "Remove",
-		SubmitButtonStyle: appstyles.StyleButtonDanger,
-		OnSubmit: func() {
-			app.handleRemoveMember(member.ID, group.ID)
-		},
-	})
-}
-
 func (app *App) handleJoinGroup(inviteCode string) {
 	fmt.Printf("Joining group with code: %s\n", inviteCode)
-	// Dialog closes automatically
-}
-
-func (app *App) handleRemoveMember(userID, groupID string) {
-	fmt.Printf("Removing user %s from group %s\n", userID, groupID)
 	// Dialog closes automatically
 }

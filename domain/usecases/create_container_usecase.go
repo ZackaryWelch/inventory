@@ -14,6 +14,7 @@ type CreateContainerRequest struct {
 	Name              string
 	ContainerType     entities.ContainerType
 	ParentContainerID *entities.ContainerID
+	GroupID           *entities.GroupID
 	Location          string
 	Width             *float64
 	Depth             *float64
@@ -97,6 +98,7 @@ func (uc *CreateContainerUseCase) Execute(ctx context.Context, req CreateContain
 		Name:              containerName,
 		ContainerType:     req.ContainerType,
 		ParentContainerID: req.ParentContainerID,
+		GroupID:           req.GroupID,
 		Location:          req.Location,
 		Width:             req.Width,
 		Depth:             req.Depth,

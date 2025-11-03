@@ -12,6 +12,7 @@ type CreateContainerRequest struct {
 	Name              string   `json:"name" binding:"required,min=1,max=255"`
 	Type              string   `json:"type"` // room, bookshelf, shelf, binder, cabinet, general
 	ParentContainerID *string  `json:"parent_container_id,omitempty"`
+	GroupID           *string  `json:"group_id,omitempty"`
 	Location          string   `json:"location,omitempty"`
 	Width             *float64 `json:"width,omitempty"`
 	Depth             *float64 `json:"depth,omitempty"`
@@ -23,6 +24,7 @@ type UpdateContainerRequest struct {
 	Name              string   `json:"name" binding:"required,min=1,max=255"`
 	Type              string   `json:"type,omitempty"`
 	ParentContainerID *string  `json:"parent_container_id,omitempty"`
+	GroupID           *string  `json:"group_id,omitempty"`
 	Location          string   `json:"location,omitempty"`
 	Width             *float64 `json:"width,omitempty"`
 	Depth             *float64 `json:"depth,omitempty"`

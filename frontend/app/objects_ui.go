@@ -5,7 +5,9 @@ package app
 import (
 	"fmt"
 	"image/color"
+	"strconv"
 	"strings"
+	"time"
 
 	"cogentcore.org/core/colors"
 	"cogentcore.org/core/core"
@@ -15,6 +17,7 @@ import (
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/units"
 
+	"github.com/nishiki/frontend/pkg/types"
 	"github.com/nishiki/frontend/ui/components"
 	"github.com/nishiki/frontend/ui/layouts"
 	appstyles "github.com/nishiki/frontend/ui/styles"
@@ -71,9 +74,9 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
-	// Container description
-	if container.Description != "" {
-		desc := core.NewText(infoCard).SetText(container.Description)
+	// Container location
+	if container.Location != "" {
+		desc := core.NewText(infoCard).SetText("Location: " + container.Location)
 		desc.Styler(func(s *styles.Style) {
 			s.Color = colors.Uniform(appstyles.ColorGrayDark)
 		})
@@ -132,34 +135,8 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 		s.Font.Weight = appstyles.WeightSemiBold
 	})
 
-	// Mock objects for demonstration
-	objects := []Object{
-		{
-			ID:          "1",
-			Name:        "Organic Bananas",
-			Description: "Fresh organic bananas from Ecuador",
-			ContainerID: container.ID,
-			Properties: map[string]interface{}{
-				"expiry_date": "2024-02-15",
-				"quantity":    "6 pieces",
-				"brand":       "Organic Valley",
-			},
-			Tags: []string{"organic", "fruit", "healthy"},
-		},
-		{
-			ID:          "2",
-			Name:        "Whole Milk",
-			Description: "Fresh whole milk",
-			ContainerID: container.ID,
-			Properties: map[string]interface{}{
-				"expiry_date": "2024-02-10",
-				"quantity":    "1 gallon",
-				"brand":       "Local Dairy",
-				"fat_content": "3.25%",
-			},
-			Tags: []string{"dairy", "organic"},
-		},
-	}
+	// Use container's objects
+	objects := container.Objects
 
 	if len(objects) == 0 {
 		emptyState := app.createEmptyState(content, "No objects found", "Add objects to this container to start tracking your inventory!", icons.Inventory)
@@ -506,7 +483,8 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 
 // Object creation and editing dialogs
 func (app *App) showCreateObjectDialog(container Container, collection Collection) {
-	var nameField, descField, tagsField *core.TextField
+	var nameField, descField, quantityField, unitField, expiresAtField, tagsField *core.TextField
+	var propertyFields map[string]*core.TextField
 
 	app.showDialog(DialogConfig{
 		Title:            "Add New Object",
@@ -516,8 +494,19 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 			nameField = createTextField(dialog, "Object name")
 			descField = createTextField(dialog, "Description (optional)")
 
+			// Structured fields section
+			structuredTitle := core.NewText(dialog).SetText("Quantity & Expiration")
+			structuredTitle.Styler(func(s *styles.Style) {
+				s.Font.Weight = appstyles.WeightSemiBold
+				s.Margin.Top = units.Dp(8)
+			})
+
+			quantityField = createTextField(dialog, "Quantity (optional)")
+			unitField = createTextField(dialog, "Unit (e.g., kg, pieces, liters)")
+			expiresAtField = createTextField(dialog, "Expires at (YYYY-MM-DD, optional)")
+
 			// Properties section
-			propsTitle := core.NewText(dialog).SetText("Properties")
+			propsTitle := core.NewText(dialog).SetText("Additional Properties")
 			propsTitle.Styler(func(s *styles.Style) {
 				s.Font.Weight = appstyles.WeightSemiBold
 				s.Margin.Top = units.Dp(8)
@@ -533,7 +522,7 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 				s.Padding.Set(units.Dp(12))
 			})
 
-			app.createObjectTypeProperties(propsContainer, collection.ObjectType)
+			propertyFields = app.createObjectTypeProperties(propsContainer, collection.ObjectType)
 
 			// Tags section
 			tagsTitle := core.NewText(dialog).SetText("Tags")
@@ -545,114 +534,378 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 			tagsField = createTextField(dialog, "Tags (comma-separated)")
 		},
 		OnSubmit: func() {
-			app.handleCreateObject(nameField.Text(), descField.Text(), tagsField.Text(), container, collection)
+			app.handleCreateObject(
+				nameField.Text(),
+				descField.Text(),
+				quantityField.Text(),
+				unitField.Text(),
+				expiresAtField.Text(),
+				tagsField.Text(),
+				propertyFields,
+				container,
+				collection,
+			)
 		},
 	})
 }
 
 // Create property fields based on object type
-func (app *App) createObjectTypeProperties(parent core.Widget, objectType string) {
+func (app *App) createObjectTypeProperties(parent core.Widget, objectType string) map[string]*core.TextField {
 	switch strings.ToLower(objectType) {
 	case "food":
-		app.createFoodProperties(parent)
+		return app.createFoodProperties(parent)
 	case "book":
-		app.createBookProperties(parent)
+		return app.createBookProperties(parent)
 	case "videogame":
-		app.createVideoGameProperties(parent)
+		return app.createVideoGameProperties(parent)
 	case "music":
-		app.createMusicProperties(parent)
+		return app.createMusicProperties(parent)
 	case "boardgame":
-		app.createBoardGameProperties(parent)
+		return app.createBoardGameProperties(parent)
 	default:
-		app.createGeneralProperties(parent)
+		return app.createGeneralProperties(parent)
 	}
 }
 
-func (app *App) createFoodProperties(parent core.Widget) {
-	expiryField := core.NewTextField(parent)
-	expiryField.SetPlaceholder("Expiry date (YYYY-MM-DD)")
-
-	quantityField := core.NewTextField(parent)
-	quantityField.SetPlaceholder("Quantity")
+func (app *App) createFoodProperties(parent core.Widget) map[string]*core.TextField {
+	fields := make(map[string]*core.TextField)
 
 	brandField := core.NewTextField(parent)
 	brandField.SetPlaceholder("Brand (optional)")
+	fields["brand"] = brandField
+
+	return fields
 }
 
-func (app *App) createBookProperties(parent core.Widget) {
+func (app *App) createBookProperties(parent core.Widget) map[string]*core.TextField {
+	fields := make(map[string]*core.TextField)
+
 	authorField := core.NewTextField(parent)
 	authorField.SetPlaceholder("Author")
+	fields["author"] = authorField
 
 	isbnField := core.NewTextField(parent)
 	isbnField.SetPlaceholder("ISBN (optional)")
+	fields["isbn"] = isbnField
 
 	genreField := core.NewTextField(parent)
 	genreField.SetPlaceholder("Genre (optional)")
+	fields["genre"] = genreField
 
 	yearField := core.NewTextField(parent)
 	yearField.SetPlaceholder("Publication year (optional)")
+	fields["year"] = yearField
+
+	return fields
 }
 
-func (app *App) createVideoGameProperties(parent core.Widget) {
+func (app *App) createVideoGameProperties(parent core.Widget) map[string]*core.TextField {
+	fields := make(map[string]*core.TextField)
+
 	platformField := core.NewTextField(parent)
 	platformField.SetPlaceholder("Platform")
+	fields["platform"] = platformField
 
 	genreField := core.NewTextField(parent)
 	genreField.SetPlaceholder("Genre (optional)")
+	fields["genre"] = genreField
 
 	ratingField := core.NewTextField(parent)
 	ratingField.SetPlaceholder("Rating (optional)")
+	fields["rating"] = ratingField
+
+	return fields
 }
 
-func (app *App) createMusicProperties(parent core.Widget) {
+func (app *App) createMusicProperties(parent core.Widget) map[string]*core.TextField {
+	fields := make(map[string]*core.TextField)
+
 	artistField := core.NewTextField(parent)
 	artistField.SetPlaceholder("Artist")
+	fields["artist"] = artistField
 
 	albumField := core.NewTextField(parent)
 	albumField.SetPlaceholder("Album (optional)")
+	fields["album"] = albumField
 
 	genreField := core.NewTextField(parent)
 	genreField.SetPlaceholder("Genre (optional)")
+	fields["genre"] = genreField
 
 	yearField := core.NewTextField(parent)
 	yearField.SetPlaceholder("Release year (optional)")
+	fields["year"] = yearField
+
+	return fields
 }
 
-func (app *App) createBoardGameProperties(parent core.Widget) {
+func (app *App) createBoardGameProperties(parent core.Widget) map[string]*core.TextField {
+	fields := make(map[string]*core.TextField)
+
 	playersField := core.NewTextField(parent)
 	playersField.SetPlaceholder("Number of players")
+	fields["players"] = playersField
 
 	ageField := core.NewTextField(parent)
 	ageField.SetPlaceholder("Minimum age (optional)")
+	fields["age"] = ageField
 
 	durationField := core.NewTextField(parent)
 	durationField.SetPlaceholder("Play duration (optional)")
+	fields["duration"] = durationField
+
+	return fields
 }
 
-func (app *App) createGeneralProperties(parent core.Widget) {
+func (app *App) createGeneralProperties(parent core.Widget) map[string]*core.TextField {
+	fields := make(map[string]*core.TextField)
+
 	prop1Field := core.NewTextField(parent)
 	prop1Field.SetPlaceholder("Custom property 1")
+	fields["property1"] = prop1Field
 
 	prop2Field := core.NewTextField(parent)
 	prop2Field.SetPlaceholder("Custom property 2")
+	fields["property2"] = prop2Field
+
+	return fields
 }
 
 // Object handlers
-func (app *App) handleCreateObject(name, description, tags string, container Container, collection Collection) {
+func (app *App) handleCreateObject(
+	name, description, quantityStr, unit, expiresAtStr, tagsStr string,
+	propertyFields map[string]*core.TextField,
+	container Container,
+	collection Collection,
+) {
 	if strings.TrimSpace(name) == "" {
+		app.logger.Error("Object name cannot be empty")
 		return
 	}
 
-	fmt.Printf("Creating object: %s in container %s\n", name, container.Name)
+	// Parse quantity
+	var quantity *float64
+	if strings.TrimSpace(quantityStr) != "" {
+		if q, err := strconv.ParseFloat(quantityStr, 64); err == nil {
+			quantity = &q
+		} else {
+			app.logger.Warn("Invalid quantity format", "error", err)
+		}
+	}
 
-	// Dialog closes automatically
+	// Parse expires at
+	var expiresAt *time.Time
+	if strings.TrimSpace(expiresAtStr) != "" {
+		if t, err := time.Parse("2006-01-02", expiresAtStr); err == nil {
+			expiresAt = &t
+		} else {
+			app.logger.Warn("Invalid expires_at format", "error", err)
+		}
+	}
+
+	// Parse tags
+	var tags []string
+	if strings.TrimSpace(tagsStr) != "" {
+		for _, tag := range strings.Split(tagsStr, ",") {
+			tags = append(tags, strings.TrimSpace(tag))
+		}
+	}
+
+	// Build properties map from property fields
+	properties := make(map[string]interface{})
+	for key, field := range propertyFields {
+		if field != nil && strings.TrimSpace(field.Text()) != "" {
+			properties[key] = field.Text()
+		}
+	}
+
+	// Create request
+	req := types.CreateObjectRequest{
+		ContainerID: container.ID,
+		Name:        name,
+		Description: description,
+		ObjectType:  collection.ObjectType,
+		Quantity:    quantity,
+		Unit:        unit,
+		Properties:  properties,
+		Tags:        tags,
+		ExpiresAt:   expiresAt,
+	}
+
+	app.logger.Info("Creating object", "name", name, "container_id", container.ID)
+
+	// Make API call
+	object, err := app.objectsClient.Create(app.currentUser.ID, req)
+	if err != nil {
+		app.logger.Error("Failed to create object", "error", err)
+		return
+	}
+
+	app.logger.Info("Object created successfully", "object_id", object.ID)
+
 	// Refresh the container view
 	app.showContainerDetailView(container, collection)
 }
 
 func (app *App) showEditObjectDialog(object Object, container Container, collection Collection) {
-	fmt.Printf("Edit object dialog for: %s\n", object.Name)
-	// Implementation similar to create dialog but with pre-filled values
+	var nameField, descField, quantityField, unitField, expiresAtField, tagsField *core.TextField
+	var propertyFields map[string]*core.TextField
+
+	app.showDialog(DialogConfig{
+		Title:            "Edit Object",
+		SubmitButtonText: "Save Changes",
+		SubmitButtonStyle: appstyles.StyleButtonPrimary,
+		ContentBuilder: func(dialog core.Widget) {
+			// Basic fields
+			nameField = createTextField(dialog, "Object name")
+			nameField.SetText(object.Name)
+
+			descField = createTextField(dialog, "Description (optional)")
+			descField.SetText(object.Description)
+
+			// Structured fields section
+			structuredTitle := core.NewText(dialog).SetText("Quantity & Expiration")
+			structuredTitle.Styler(func(s *styles.Style) {
+				s.Font.Weight = appstyles.WeightSemiBold
+				s.Margin.Top = units.Dp(8)
+			})
+
+			quantityField = createTextField(dialog, "Quantity (optional)")
+			if object.Quantity != nil {
+				quantityField.SetText(fmt.Sprintf("%v", *object.Quantity))
+			}
+
+			unitField = createTextField(dialog, "Unit (e.g., kg, pieces, liters)")
+			unitField.SetText(object.Unit)
+
+			expiresAtField = createTextField(dialog, "Expires at (YYYY-MM-DD, optional)")
+			if object.ExpiresAt != nil {
+				expiresAtField.SetText(object.ExpiresAt.Format("2006-01-02"))
+			}
+
+			// Properties section
+			propsTitle := core.NewText(dialog).SetText("Additional Properties")
+			propsTitle.Styler(func(s *styles.Style) {
+				s.Font.Weight = appstyles.WeightSemiBold
+				s.Margin.Top = units.Dp(8)
+			})
+
+			// Create property fields based on object type
+			propsContainer := core.NewFrame(dialog)
+			propsContainer.Styler(func(s *styles.Style) {
+				s.Direction = styles.Column
+				s.Gap.Set(units.Dp(8))
+				s.Background = colors.Uniform(appstyles.ColorGrayLightest)
+				s.Border.Radius = styles.BorderRadiusMedium
+				s.Padding.Set(units.Dp(12))
+			})
+
+			propertyFields = app.createObjectTypeProperties(propsContainer, object.ObjectType)
+
+			// Pre-fill property fields from existing object
+			for key, field := range propertyFields {
+				if val, exists := object.Properties[key]; exists {
+					if strVal, ok := val.(string); ok {
+						field.SetText(strVal)
+					}
+				}
+			}
+
+			// Tags section
+			tagsTitle := core.NewText(dialog).SetText("Tags")
+			tagsTitle.Styler(func(s *styles.Style) {
+				s.Font.Weight = appstyles.WeightSemiBold
+				s.Margin.Top = units.Dp(8)
+			})
+
+			tagsField = createTextField(dialog, "Tags (comma-separated)")
+			if len(object.Tags) > 0 {
+				tagsField.SetText(strings.Join(object.Tags, ", "))
+			}
+		},
+		OnSubmit: func() {
+			app.handleEditObject(
+				object.ID,
+				nameField.Text(),
+				descField.Text(),
+				quantityField.Text(),
+				unitField.Text(),
+				expiresAtField.Text(),
+				tagsField.Text(),
+				propertyFields,
+				container,
+				collection,
+			)
+		},
+	})
+}
+
+func (app *App) handleEditObject(
+	objectID, name, description, quantityStr, unit, expiresAtStr, tagsStr string,
+	propertyFields map[string]*core.TextField,
+	container Container,
+	collection Collection,
+) {
+	// Parse quantity
+	var quantity *float64
+	if strings.TrimSpace(quantityStr) != "" {
+		if q, err := strconv.ParseFloat(quantityStr, 64); err == nil {
+			quantity = &q
+		}
+	}
+
+	// Parse expires at
+	var expiresAt *time.Time
+	if strings.TrimSpace(expiresAtStr) != "" {
+		if t, err := time.Parse("2006-01-02", expiresAtStr); err == nil {
+			expiresAt = &t
+		}
+	}
+
+	// Parse tags
+	var tags []string
+	if strings.TrimSpace(tagsStr) != "" {
+		for _, tag := range strings.Split(tagsStr, ",") {
+			tags = append(tags, strings.TrimSpace(tag))
+		}
+	}
+
+	// Build properties map
+	properties := make(map[string]interface{})
+	for key, field := range propertyFields {
+		if field != nil && strings.TrimSpace(field.Text()) != "" {
+			properties[key] = field.Text()
+		}
+	}
+
+	// Create update request
+	namePtr := &name
+	descPtr := &description
+	unitPtr := &unit
+
+	req := types.UpdateObjectRequest{
+		Name:        namePtr,
+		Description: descPtr,
+		Quantity:    quantity,
+		Unit:        unitPtr,
+		Properties:  properties,
+		Tags:        tags,
+		ExpiresAt:   expiresAt,
+	}
+
+	app.logger.Info("Updating object", "object_id", objectID)
+
+	// Make API call
+	updatedObject, err := app.objectsClient.Update(app.currentUser.ID, objectID, req)
+	if err != nil {
+		app.logger.Error("Failed to update object", "error", err)
+		return
+	}
+
+	app.logger.Info("Object updated successfully", "object_id", updatedObject.ID)
+
+	// Refresh the container view
+	app.showContainerDetailView(container, collection)
 }
 
 func (app *App) showDeleteObjectDialog(object Object, container Container, collection Collection) {

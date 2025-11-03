@@ -46,7 +46,7 @@ func TestCreateContainerUseCase_Execute(t *testing.T) {
 		// Setup mock expectations
 		mockAuthService.EXPECT().
 			GetUserGroups(gomock.Any(), gomock.Any(), userID.String()).
-			Return([]string{}, nil).
+			Return([]*entities.Group{}, nil).
 			Times(1)
 
 		mockCollectionRepo.EXPECT().
@@ -56,6 +56,11 @@ func TestCreateContainerUseCase_Execute(t *testing.T) {
 
 		mockContainerRepo.EXPECT().
 			Create(gomock.Any(), gomock.Any()).
+			Return(nil).
+			Times(1)
+
+		mockCollectionRepo.EXPECT().
+			Update(gomock.Any(), gomock.Any()).
 			Return(nil).
 			Times(1)
 
@@ -96,7 +101,7 @@ func TestCreateContainerUseCase_Execute(t *testing.T) {
 		// Setup mock expectations
 		mockAuthService.EXPECT().
 			GetUserGroups(gomock.Any(), gomock.Any(), userID.String()).
-			Return([]string{}, nil).
+			Return([]*entities.Group{}, nil).
 			Times(1)
 
 		mockCollectionRepo.EXPECT().
@@ -155,18 +160,17 @@ func TestCreateContainerUseCase_Execute(t *testing.T) {
 		// Create test collection that user owns
 		collectionName, _ := entities.NewCollectionName(fake.Company())
 		objectType := entities.ObjectTypeGeneral
-		testCollection, _ := entities.NewCollection(
-			collectionID,
-			collectionName,
-			objectType,
-			userID,
-			nil,
-		)
+		testCollection, _ := entities.NewCollection(entities.CollectionProps{
+			UserID:     userID,
+			GroupID:    nil,
+			Name:       collectionName,
+			ObjectType: objectType,
+		})
 
 		// Setup mock expectations
 		mockAuthService.EXPECT().
 			GetUserGroups(gomock.Any(), gomock.Any(), userID.String()).
-			Return([]string{}, nil).
+			Return([]*entities.Group{}, nil).
 			Times(1)
 
 		mockCollectionRepo.EXPECT().
@@ -193,23 +197,38 @@ func TestCreateContainerUseCase_Execute(t *testing.T) {
 	t.Run("error - repository save failure", func(t *testing.T) {
 		userID := entities.NewUserID()
 		groupID := entities.NewGroupID()
+		collectionID := entities.NewCollectionID()
 		containerName := fake.Word()
 
 		// Create test group that user belongs to
 		groupName, _ := entities.NewGroupName(fake.Company())
+		groupDesc := entities.NewGroupDescription("Test group")
 		userGroup := entities.ReconstructGroup(
 			groupID,
 			groupName,
-			[]entities.ContainerID{},
-			[]entities.UserID{userID},
+			groupDesc,
 			time.Now(),
 			time.Now(),
 		)
+
+		// Create test collection
+		collectionName, _ := entities.NewCollectionName(fake.Company())
+		testCollection, _ := entities.NewCollection(entities.CollectionProps{
+			UserID:     userID,
+			GroupID:    &groupID,
+			Name:       collectionName,
+			ObjectType: entities.ObjectTypeGeneral,
+		})
 
 		// Setup mock expectations
 		mockAuthService.EXPECT().
 			GetUserGroups(gomock.Any(), gomock.Any(), userID.String()).
 			Return([]*entities.Group{userGroup}, nil).
+			Times(1)
+
+		mockCollectionRepo.EXPECT().
+			GetByID(gomock.Any(), collectionID).
+			Return(testCollection, nil).
 			Times(1)
 
 		mockContainerRepo.EXPECT().
@@ -219,9 +238,11 @@ func TestCreateContainerUseCase_Execute(t *testing.T) {
 
 		// Execute use case
 		req := CreateContainerRequest{
-			GroupID: groupID,
-			Name:    containerName,
-			UserID:  userID,
+			CollectionID: collectionID,
+			GroupID:      &groupID,
+			Name:         containerName,
+			UserID:       userID,
+			UserToken:    "test-token",
 		}
 
 		resp, err := useCase.Execute(context.Background(), req)

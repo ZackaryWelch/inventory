@@ -7,22 +7,23 @@ import (
 )
 
 type ContainerResponse struct {
-	ID                string           `json:"id"`
-	CollectionID      string           `json:"collection_id"`
-	Name              string           `json:"name"`
-	Type              string           `json:"type"`
-	ParentContainerID *string          `json:"parent_container_id,omitempty"`
-	CategoryID        *string          `json:"category_id,omitempty"`
-	Objects           []ObjectResponse `json:"objects"`
-	Location          string           `json:"location"`
-	Width             *float64         `json:"width,omitempty"`
-	Depth             *float64         `json:"depth,omitempty"`
-	Rows              *int             `json:"rows,omitempty"`
-	Capacity          *float64         `json:"capacity,omitempty"`
-	UsedCapacity      *float64         `json:"used_capacity,omitempty"`
-	CapacityUtilization *float64       `json:"capacity_utilization,omitempty"`
-	CreatedAt         time.Time        `json:"created_at"`
-	UpdatedAt         time.Time        `json:"updated_at"`
+	ID                  string           `json:"id"`
+	CollectionID        string           `json:"collection_id"`
+	Name                string           `json:"name"`
+	Type                string           `json:"type"`
+	ParentContainerID   *string          `json:"parent_container_id,omitempty"`
+	CategoryID          *string          `json:"category_id,omitempty"`
+	GroupID             *string          `json:"group_id,omitempty"`
+	Objects             []ObjectResponse `json:"objects"`
+	Location            string           `json:"location"`
+	Width               *float64         `json:"width,omitempty"`
+	Depth               *float64         `json:"depth,omitempty"`
+	Rows                *int             `json:"rows,omitempty"`
+	Capacity            *float64         `json:"capacity,omitempty"`
+	UsedCapacity        *float64         `json:"used_capacity,omitempty"`
+	CapacityUtilization *float64         `json:"capacity_utilization,omitempty"`
+	CreatedAt           time.Time        `json:"created_at"`
+	UpdatedAt           time.Time        `json:"updated_at"`
 }
 
 type ContainerListResponse []ContainerResponse
@@ -45,6 +46,12 @@ func NewContainerResponse(container *entities.Container) ContainerResponse {
 		parentContainerID = &id
 	}
 
+	var groupID *string
+	if container.GroupID() != nil {
+		id := container.GroupID().String()
+		groupID = &id
+	}
+
 	// Calculate used capacity
 	usedCapacity := container.CalculateUsedCapacity()
 
@@ -55,6 +62,7 @@ func NewContainerResponse(container *entities.Container) ContainerResponse {
 		Type:                string(container.ContainerType()),
 		ParentContainerID:   parentContainerID,
 		CategoryID:          categoryID,
+		GroupID:             groupID,
 		Objects:             objects,
 		Location:            container.Location(),
 		Width:               container.Width(),

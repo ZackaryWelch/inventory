@@ -8,13 +8,14 @@ import (
 	"syscall/js"
 
 	"cogentcore.org/core/core"
+	"github.com/nishiki/backend-go/app/http/response"
 	"github.com/nishiki/frontend/config"
 	authAPI "github.com/nishiki/frontend/pkg/api/auth"
 	collectionsAPI "github.com/nishiki/frontend/pkg/api/collections"
 	apiCommon "github.com/nishiki/frontend/pkg/api/common"
 	containersAPI "github.com/nishiki/frontend/pkg/api/containers"
 	groupsAPI "github.com/nishiki/frontend/pkg/api/groups"
-	"github.com/nishiki/frontend/pkg/types"
+	objectsAPI "github.com/nishiki/frontend/pkg/api/objects"
 )
 
 // View constants
@@ -30,13 +31,15 @@ const (
 // Use the shared config type
 type Config = config.Config
 
-// Type aliases for convenience
+// Type aliases for backend response types
 type (
-	User             = types.User
-	AuthInfoResponse = types.AuthInfoResponse
-	ClaimsInfo       = types.ClaimsInfo
-	Group            = types.Group
-	Collection       = types.Collection
+	User             = response.UserResponse
+	AuthInfoResponse = response.AuthInfoResponse
+	ClaimsInfo       = response.ClaimsInfo
+	Group            = response.GroupResponse
+	Collection       = response.CollectionResponse
+	Container        = response.ContainerResponse
+	Object           = response.ObjectResponse
 )
 
 // App holds the main application state
@@ -61,6 +64,7 @@ type App struct {
 	groupsClient      *groupsAPI.Client
 	collectionsClient *collectionsAPI.Client
 	containersClient  *containersAPI.Client
+	objectsClient     *objectsAPI.Client
 }
 
 // NewApp creates a new application instance
@@ -81,6 +85,7 @@ func NewApp() *App {
 	groupsClient := groupsAPI.NewClient(apiClient)
 	collectionsClient := collectionsAPI.NewClient(apiClient)
 	containersClient := containersAPI.NewClient(apiClient)
+	objectsClient := objectsAPI.NewClient(apiClient)
 
 	app := &App{
 		config:            config,
@@ -93,6 +98,7 @@ func NewApp() *App {
 		groupsClient:      groupsClient,
 		collectionsClient: collectionsClient,
 		containersClient:  containersClient,
+		objectsClient:     objectsClient,
 	}
 
 	// Initialize dialog state

@@ -371,7 +371,9 @@ func (s *AuthentikAuthService) GetUserGroups(ctx context.Context, userToken, use
 			}
 
 			// Create group entity - using current time as created/updated since Authentik doesn't provide these
-			group := entities.ReconstructGroup(groupID, validGroupName, time.Now(), time.Now())
+			// Authentik doesn't provide description, so use empty string
+			description := entities.NewGroupDescription("")
+			group := entities.ReconstructGroup(groupID, validGroupName, description, time.Now(), time.Now())
 			groups = append(groups, group)
 		}
 	}
@@ -498,13 +500,15 @@ func (s *AuthentikAuthService) CreateGroup(ctx context.Context, userToken, name 
 
 	// Add creator as member of the group
 	if err := s.addUserToGroupWithToken(auth, createdGroup.Pk, creatorID); err != nil {
-		s.logger.Warn("Failed to add creator to group", 
+		s.logger.Warn("Failed to add creator to group",
 			slog.String("group_id", createdGroup.Pk),
 			slog.String("creator_id", creatorID),
 			slog.Any("error", err))
 	}
 
-	group := entities.ReconstructGroup(groupID, groupName, time.Now(), time.Now())
+	// Authentik doesn't provide description, so use empty string
+	description := entities.NewGroupDescription("")
+	group := entities.ReconstructGroup(groupID, groupName, description, time.Now(), time.Now())
 	
 	s.logger.Info("Group created successfully",
 		slog.String("group_id", group.ID().String()),
@@ -684,7 +688,9 @@ func (s *AuthentikAuthService) GetGroupByID(ctx context.Context, userToken, grou
 		return nil, fmt.Errorf("invalid group name: %w", err)
 	}
 
-	return entities.ReconstructGroup(id, name, time.Now(), time.Now()), nil
+	// Authentik doesn't provide description, so use empty string
+	description := entities.NewGroupDescription("")
+	return entities.ReconstructGroup(id, name, description, time.Now(), time.Now()), nil
 }
 
 // GetOIDCConfig fetches OIDC discovery configuration from Authentik and modifies token endpoint

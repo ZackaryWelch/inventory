@@ -85,17 +85,23 @@ func (uc *UpdateObjectUseCase) Execute(ctx context.Context, req UpdateObjectRequ
 		if err != nil {
 			return nil, fmt.Errorf("invalid object name: %w", err)
 		}
-		updatedObject = *updatedObject.UpdateName(objectName)
+		if err := updatedObject.UpdateName(objectName); err != nil {
+			return nil, fmt.Errorf("failed to update object name: %w", err)
+		}
 	}
 
 	// Update properties if provided
 	if req.Properties != nil {
-		updatedObject = *updatedObject.UpdateProperties(req.Properties)
+		if err := updatedObject.UpdateProperties(req.Properties); err != nil {
+			return nil, fmt.Errorf("failed to update object properties: %w", err)
+		}
 	}
 
 	// Update tags if provided
 	if req.Tags != nil {
-		updatedObject = *updatedObject.UpdateTags(req.Tags)
+		if err := updatedObject.UpdateTags(req.Tags); err != nil {
+			return nil, fmt.Errorf("failed to update object tags: %w", err)
+		}
 	}
 
 	// Update object in container

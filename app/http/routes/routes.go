@@ -76,6 +76,7 @@ func Setup(router *gin.Engine, appContainer *container.Container) {
 		containers.GET("", containerController.GetContainers)
 		containers.POST("", containerController.CreateContainer)
 		containers.GET("/:id", containerController.GetContainer)
+		containers.PUT("/:id", containerController.UpdateContainer)
 	}
 
 

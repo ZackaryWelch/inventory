@@ -56,36 +56,56 @@ func (g GroupName) Equals(other GroupName) bool {
 	return g.value == other.value
 }
 
+type GroupDescription struct {
+	value string
+}
+
+func NewGroupDescription(description string) GroupDescription {
+	return GroupDescription{value: description}
+}
+
+func (d GroupDescription) String() string {
+	return d.value
+}
+
+func (d GroupDescription) Equals(other GroupDescription) bool {
+	return d.value == other.value
+}
+
 // Group represents an Authentik group for sharing collections
 // This is a lightweight entity mainly for authentication/authorization
 type Group struct {
-	id        GroupID
-	name      GroupName
-	createdAt time.Time
-	updatedAt time.Time
+	id          GroupID
+	name        GroupName
+	description GroupDescription
+	createdAt   time.Time
+	updatedAt   time.Time
 }
 
 type GroupProps struct {
-	ID   GroupID
-	Name GroupName
+	ID          GroupID
+	Name        GroupName
+	Description GroupDescription
 }
 
 func NewGroup(props GroupProps) (*Group, error) {
 	now := time.Now()
 	return &Group{
-		id:        props.ID,
-		name:      props.Name,
-		createdAt: now,
-		updatedAt: now,
+		id:          props.ID,
+		name:        props.Name,
+		description: props.Description,
+		createdAt:   now,
+		updatedAt:   now,
 	}, nil
 }
 
-func ReconstructGroup(id GroupID, name GroupName, createdAt, updatedAt time.Time) *Group {
+func ReconstructGroup(id GroupID, name GroupName, description GroupDescription, createdAt, updatedAt time.Time) *Group {
 	return &Group{
-		id:        id,
-		name:      name,
-		createdAt: createdAt,
-		updatedAt: updatedAt,
+		id:          id,
+		name:        name,
+		description: description,
+		createdAt:   createdAt,
+		updatedAt:   updatedAt,
 	}
 }
 
@@ -95,6 +115,10 @@ func (g *Group) ID() GroupID {
 
 func (g *Group) Name() GroupName {
 	return g.name
+}
+
+func (g *Group) Description() GroupDescription {
+	return g.description
 }
 
 func (g *Group) CreatedAt() time.Time {
@@ -107,6 +131,12 @@ func (g *Group) UpdatedAt() time.Time {
 
 func (g *Group) UpdateName(name GroupName) error {
 	g.name = name
+	g.updatedAt = time.Now()
+	return nil
+}
+
+func (g *Group) UpdateDescription(description GroupDescription) error {
+	g.description = description
 	g.updatedAt = time.Now()
 	return nil
 }

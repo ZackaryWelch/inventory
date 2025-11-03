@@ -63,6 +63,22 @@ func (o ObjectName) Equals(other ObjectName) bool {
 	return o.value == other.value
 }
 
+type ObjectDescription struct {
+	value string
+}
+
+func NewObjectDescription(description string) ObjectDescription {
+	return ObjectDescription{value: description}
+}
+
+func (d ObjectDescription) String() string {
+	return d.value
+}
+
+func (d ObjectDescription) Equals(other ObjectDescription) bool {
+	return d.value == other.value
+}
+
 type ObjectType string
 
 const (
@@ -79,40 +95,60 @@ func (ot ObjectType) String() string {
 }
 
 type Object struct {
-	id         ObjectID
-	name       ObjectName
-	objectType ObjectType
-	properties map[string]interface{} // Flexible properties for different object types
-	tags       []string
-	createdAt  time.Time
+	id          ObjectID
+	name        ObjectName
+	description ObjectDescription
+	objectType  ObjectType
+	quantity    *float64               // Optional quantity
+	unit        string                 // Optional unit (e.g., "kg", "lbs", "pieces")
+	properties  map[string]interface{} // Flexible properties for different object types
+	tags        []string
+	expiresAt   *time.Time // Optional expiration date (e.g., for food items)
+	createdAt   time.Time
+	updatedAt   time.Time
 }
 
 type ObjectProps struct {
-	Name       ObjectName
-	ObjectType ObjectType
-	Properties map[string]interface{}
-	Tags       []string
+	Name        ObjectName
+	Description ObjectDescription
+	ObjectType  ObjectType
+	Quantity    *float64
+	Unit        string
+	Properties  map[string]interface{}
+	Tags        []string
+	ExpiresAt   *time.Time
 }
 
 func NewObject(props ObjectProps) (*Object, error) {
+	now := time.Now()
 	return &Object{
-		id:         NewObjectID(),
-		name:       props.Name,
-		objectType: props.ObjectType,
-		properties: props.Properties,
-		tags:       props.Tags,
-		createdAt:  time.Now(),
+		id:          NewObjectID(),
+		name:        props.Name,
+		description: props.Description,
+		objectType:  props.ObjectType,
+		quantity:    props.Quantity,
+		unit:        props.Unit,
+		properties:  props.Properties,
+		tags:        props.Tags,
+		expiresAt:   props.ExpiresAt,
+		createdAt:   now,
+		updatedAt:   now,
 	}, nil
 }
 
-func ReconstructObject(id ObjectID, name ObjectName, objectType ObjectType, properties map[string]interface{}, tags []string, createdAt time.Time) *Object {
+func ReconstructObject(id ObjectID, name ObjectName, description ObjectDescription, objectType ObjectType, quantity *float64, unit string, properties map[string]interface{}, tags []string, expiresAt *time.Time, createdAt, updatedAt time.Time) *Object {
 	return &Object{
-		id:         id,
-		name:       name,
-		objectType: objectType,
-		properties: properties,
-		tags:       tags,
-		createdAt:  createdAt,
+		id:          id,
+		name:        name,
+		description: description,
+		objectType:  objectType,
+		quantity:    quantity,
+		unit:        unit,
+		properties:  properties,
+		tags:        tags,
+		expiresAt:   expiresAt,
+		createdAt:   createdAt,
+		updatedAt:   updatedAt,
 	}
 }
 
@@ -124,8 +160,20 @@ func (o *Object) Name() ObjectName {
 	return o.name
 }
 
+func (o *Object) Description() ObjectDescription {
+	return o.description
+}
+
 func (o *Object) ObjectType() ObjectType {
 	return o.objectType
+}
+
+func (o *Object) Quantity() *float64 {
+	return o.quantity
+}
+
+func (o *Object) Unit() string {
+	return o.unit
 }
 
 func (o *Object) Properties() map[string]interface{} {
@@ -144,41 +192,16 @@ func (o *Object) Tags() []string {
 	return append([]string(nil), o.tags...)
 }
 
+func (o *Object) ExpiresAt() *time.Time {
+	return o.expiresAt
+}
+
 func (o *Object) CreatedAt() time.Time {
 	return o.createdAt
 }
 
-func (o *Object) UpdateName(name ObjectName) *Object {
-	return &Object{
-		id:         o.id,
-		name:       name,
-		objectType: o.objectType,
-		properties: o.properties,
-		tags:       o.tags,
-		createdAt:  o.createdAt,
-	}
-}
-
-func (o *Object) UpdateProperties(properties map[string]interface{}) *Object {
-	return &Object{
-		id:         o.id,
-		name:       o.name,
-		objectType: o.objectType,
-		properties: properties,
-		tags:       o.tags,
-		createdAt:  o.createdAt,
-	}
-}
-
-func (o *Object) UpdateTags(tags []string) *Object {
-	return &Object{
-		id:         o.id,
-		name:       o.name,
-		objectType: o.objectType,
-		properties: o.properties,
-		tags:       tags,
-		createdAt:  o.createdAt,
-	}
+func (o *Object) UpdatedAt() time.Time {
+	return o.updatedAt
 }
 
 func (o *Object) GetProperty(key string) (interface{}, bool) {
@@ -196,6 +219,48 @@ func (o *Object) HasTag(tag string) bool {
 		}
 	}
 	return false
+}
+
+func (o *Object) UpdateName(name ObjectName) error {
+	o.name = name
+	o.updatedAt = time.Now()
+	return nil
+}
+
+func (o *Object) UpdateDescription(description ObjectDescription) error {
+	o.description = description
+	o.updatedAt = time.Now()
+	return nil
+}
+
+func (o *Object) UpdateQuantity(quantity *float64) error {
+	o.quantity = quantity
+	o.updatedAt = time.Now()
+	return nil
+}
+
+func (o *Object) UpdateUnit(unit string) error {
+	o.unit = unit
+	o.updatedAt = time.Now()
+	return nil
+}
+
+func (o *Object) UpdateProperties(properties map[string]interface{}) error {
+	o.properties = properties
+	o.updatedAt = time.Now()
+	return nil
+}
+
+func (o *Object) UpdateTags(tags []string) error {
+	o.tags = tags
+	o.updatedAt = time.Now()
+	return nil
+}
+
+func (o *Object) UpdateExpiresAt(expiresAt *time.Time) error {
+	o.expiresAt = expiresAt
+	o.updatedAt = time.Now()
+	return nil
 }
 
 func (o *Object) Equals(other *Object) bool {

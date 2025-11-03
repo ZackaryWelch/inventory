@@ -2,6 +2,7 @@ package request
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nishiki/backend-go/domain/entities"
@@ -10,15 +11,23 @@ import (
 type CreateObjectRequest struct {
 	ContainerID string                 `json:"container_id" binding:"required"`
 	Name        string                 `json:"name" binding:"required,min=1,max=255"`
+	Description string                 `json:"description,omitempty"`
 	ObjectType  string                 `json:"object_type" binding:"required"`
+	Quantity    *float64               `json:"quantity,omitempty"`
+	Unit        string                 `json:"unit,omitempty"`
 	Properties  map[string]interface{} `json:"properties,omitempty"`
 	Tags        []string               `json:"tags,omitempty"`
+	ExpiresAt   *time.Time             `json:"expires_at,omitempty"`
 }
 
 type UpdateObjectRequest struct {
-	Name       *string                `json:"name,omitempty"`
-	Properties map[string]interface{} `json:"properties,omitempty"`
-	Tags       []string               `json:"tags,omitempty"`
+	Name        *string                `json:"name,omitempty"`
+	Description *string                `json:"description,omitempty"`
+	Quantity    *float64               `json:"quantity,omitempty"`
+	Unit        *string                `json:"unit,omitempty"`
+	Properties  map[string]interface{} `json:"properties,omitempty"`
+	Tags        []string               `json:"tags,omitempty"`
+	ExpiresAt   *time.Time             `json:"expires_at,omitempty"`
 }
 
 func (r *CreateObjectRequest) Validate() error {

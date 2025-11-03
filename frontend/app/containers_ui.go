@@ -449,8 +449,120 @@ func (app *App) RenderFullCapacityBar(parent core.Widget, container *types.Conta
 	})
 }
 
-// showContainerActions shows a menu of actions for a container
+// showContainerActions shows a comprehensive menu of actions for a container
 func (app *App) showContainerActions(container *types.Container) {
-	// TODO: Implement action menu (edit, delete, move, import, etc.)
-	core.MessageSnackbar(app.mainContainer, fmt.Sprintf("Actions for %s", container.Name))
+	if app.selectedCollection == nil {
+		app.logger.Error("No selected collection for container actions")
+		return
+	}
+
+	app.showDialog(DialogConfig{
+		Title: fmt.Sprintf("Actions: %s", container.Name),
+		ContentBuilder: func(dialog core.Widget) {
+			// Container info summary
+			infoCard := core.NewFrame(dialog)
+			infoCard.Styler(func(s *styles.Style) {
+				s.Direction = styles.Column
+				s.Background = colors.Uniform(appstyles.ColorGrayLightest)
+				s.Padding.Set(units.Dp(12))
+				s.Border.Radius = sides.NewValues(units.Dp(appstyles.RadiusDefault))
+				s.Gap.Set(units.Dp(4))
+				s.Margin.Bottom = units.Dp(16)
+			})
+
+			typeRow := core.NewFrame(infoCard)
+			typeRow.Styler(func(s *styles.Style) {
+				s.Direction = styles.Row
+				s.Align.Items = styles.Center
+				s.Gap.Set(units.Dp(8))
+			})
+
+			core.NewIcon(typeRow).SetIcon(GetContainerTypeIcon(container.Type)).Styler(func(s *styles.Style) {
+				s.Color = colors.Uniform(appstyles.ColorPrimary)
+			})
+
+			core.NewText(typeRow).SetText(fmt.Sprintf("%s • %d objects", container.Type, len(container.Objects))).Styler(func(s *styles.Style) {
+				s.Color = colors.Uniform(appstyles.ColorTextSecondary)
+				s.Font.Size = units.Dp(12)
+			})
+
+			// Action buttons
+			actionsFrame := core.NewFrame(dialog)
+			actionsFrame.Styler(func(s *styles.Style) {
+				s.Direction = styles.Column
+				s.Gap.Set(units.Dp(8))
+			})
+
+			// Add Sub-Container action
+			addSubContainerBtn := core.NewButton(actionsFrame).SetText("Add Sub-Container").SetIcon(icons.CreateNewFolder)
+			addSubContainerBtn.Styler(appstyles.StyleButtonPrimary)
+			addSubContainerBtn.OnClick(func(e events.Event) {
+				app.showCreateContainerDialogWithParent(*app.selectedCollection, container)
+			})
+
+			// Add Objects action
+			addObjectsBtn := core.NewButton(actionsFrame).SetText("Add Objects").SetIcon(icons.Add)
+			addObjectsBtn.Styler(appstyles.StyleButtonAccent)
+			addObjectsBtn.OnClick(func(e events.Event) {
+				// Navigate to objects view with this container pre-selected
+				app.showObjectsViewWithContainer(container)
+			})
+
+			// Import to Container action
+			importBtn := core.NewButton(actionsFrame).SetText("Import to Container").SetIcon(icons.Upload)
+			importBtn.Styler(appstyles.StyleButtonPrimary)
+			importBtn.OnClick(func(e events.Event) {
+				app.ShowImportDialog(container.ID, container.CollectionID)
+			})
+
+			// Edit Container action
+			editBtn := core.NewButton(actionsFrame).SetText("Edit Container").SetIcon(icons.Edit)
+			editBtn.Styler(func(s *styles.Style) {
+				s.Background = colors.Uniform(appstyles.ColorGrayLightest)
+				s.Color = colors.Uniform(appstyles.ColorBlack)
+				s.Padding.Set(units.Dp(12), units.Dp(16))
+				s.Border.Radius = sides.NewValues(units.Dp(appstyles.RadiusDefault))
+				s.Gap.Set(units.Dp(8))
+			})
+			editBtn.OnClick(func(e events.Event) {
+				app.showEditContainerDialog(*container, *app.selectedCollection)
+			})
+
+			// View Details action
+			viewDetailsBtn := core.NewButton(actionsFrame).SetText("View Details").SetIcon(icons.Visibility)
+			viewDetailsBtn.Styler(func(s *styles.Style) {
+				s.Background = colors.Uniform(appstyles.ColorGrayLightest)
+				s.Color = colors.Uniform(appstyles.ColorBlack)
+				s.Padding.Set(units.Dp(12), units.Dp(16))
+				s.Border.Radius = sides.NewValues(units.Dp(appstyles.RadiusDefault))
+				s.Gap.Set(units.Dp(8))
+			})
+			viewDetailsBtn.OnClick(func(e events.Event) {
+				app.showContainerDetail(container)
+			})
+
+			// Delete Container action
+			deleteBtn := core.NewButton(actionsFrame).SetText("Delete Container").SetIcon(icons.Delete)
+			deleteBtn.Styler(appstyles.StyleButtonDanger)
+			deleteBtn.OnClick(func(e events.Event) {
+				app.showDeleteContainerDialog(*container, *app.selectedCollection)
+			})
+		},
+	})
+}
+
+// showObjectsViewWithContainer navigates to objects view with a specific container pre-selected
+func (app *App) showObjectsViewWithContainer(container *types.Container) {
+	app.logger.Info("Navigating to objects view", "container_id", container.ID, "container_name", container.Name)
+
+	// TODO: Implement navigation to objects view
+	// For now, show a placeholder message
+	core.MessageSnackbar(app.mainContainer, fmt.Sprintf("Navigate to objects for container: %s", container.Name))
+
+	// In the future, this should:
+	// 1. Set the selected container in app state
+	// 2. Navigate to objects view
+	// 3. Pre-filter objects by this container
+	// app.selectedContainer = container
+	// app.showObjectsView()
 }

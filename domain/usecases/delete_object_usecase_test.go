@@ -34,12 +34,18 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 
 		// Create test object
 		objectName, _ := entities.NewObjectName("Test Object")
+		objectDesc := entities.NewObjectDescription("Test object description")
 		testObject := entities.ReconstructObject(
 			objectID,
 			objectName,
+			objectDesc,
 			entities.ObjectTypeGeneral,
+			nil, // No quantity
+			"",  // No unit
 			map[string]interface{}{},
 			[]string{},
+			nil, // No expiration
+			time.Now(),
 			time.Now(),
 		)
 
@@ -49,9 +55,16 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{*testObject},
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
@@ -122,21 +135,29 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 
 		// Create test group
 		groupName, _ := entities.NewGroupName("Test Group")
+		groupDesc := entities.NewGroupDescription("Test group description")
 		testGroup := entities.ReconstructGroup(
 			groupID,
 			groupName,
+			groupDesc,
 			time.Now(),
 			time.Now(),
 		)
 
 		// Create test object
 		objectName, _ := entities.NewObjectName("Test Object")
+		objectDesc := entities.NewObjectDescription("Test object description")
 		testObject := entities.ReconstructObject(
 			objectID,
 			objectName,
+			objectDesc,
 			entities.ObjectTypeGeneral,
+			nil, // No quantity
+			"",  // No unit
 			map[string]interface{}{},
 			[]string{},
+			nil, // No expiration
+			time.Now(),
 			time.Now(),
 		)
 
@@ -146,9 +167,16 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{*testObject},
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
@@ -241,9 +269,16 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{},
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
@@ -287,12 +322,18 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 
 		// Create test object
 		objectName, _ := entities.NewObjectName("Test Object")
+		objectDesc := entities.NewObjectDescription("Test object description")
 		testObject := entities.ReconstructObject(
 			objectID,
 			objectName,
+			objectDesc,
 			entities.ObjectTypeGeneral,
+			nil, // No quantity
+			"",  // No unit
 			map[string]interface{}{},
 			[]string{},
+			nil, // No expiration
+			time.Now(),
 			time.Now(),
 		)
 
@@ -302,9 +343,16 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{*testObject},
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
@@ -367,9 +415,16 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{}, // Empty
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
@@ -432,9 +487,16 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{},
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
@@ -472,12 +534,18 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 
 		// Create test object
 		objectName, _ := entities.NewObjectName("Test Object")
+		objectDesc := entities.NewObjectDescription("Test object description")
 		testObject := entities.ReconstructObject(
 			objectID,
 			objectName,
+			objectDesc,
 			entities.ObjectTypeGeneral,
+			nil, // No quantity
+			"",  // No unit
 			map[string]interface{}{},
 			[]string{},
+			nil, // No expiration
+			time.Now(),
 			time.Now(),
 		)
 
@@ -487,9 +555,16 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			containerID,
 			collectionID,
 			containerName,
-			nil,
+			entities.ContainerTypeGeneral,
+			nil, // No parent container
+			nil, // No category
+			nil, // No group
 			[]entities.Object{*testObject},
 			"",
+			nil, // No width
+			nil, // No depth
+			nil, // No rows
+			nil, // No capacity
 			time.Now(),
 			time.Now(),
 		)
