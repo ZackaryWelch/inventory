@@ -15,12 +15,13 @@ import (
 )
 
 type ContainerController struct {
-	createContainerUC  *usecases.CreateContainerUseCase
-	updateContainerUC  *usecases.UpdateContainerUseCase
-	getAllContainersUC *usecases.GetAllContainersUseCase
-	getContainerByIDUC *usecases.GetContainerByIDUseCase
-	getContainersUC    *usecases.GetContainersUseCase
-	logger             *slog.Logger
+	createContainerUC           *usecases.CreateContainerUseCase
+	updateContainerUC           *usecases.UpdateContainerUseCase
+	getAllContainersUC          *usecases.GetAllContainersUseCase
+	getContainerByIDUC          *usecases.GetContainerByIDUseCase
+	getContainersUC             *usecases.GetContainersUseCase
+	getContainersByCollectionUC *usecases.GetContainersByCollectionUseCase
+	logger                      *slog.Logger
 }
 
 func NewContainerController(
@@ -28,12 +29,13 @@ func NewContainerController(
 	logger *slog.Logger,
 ) *ContainerController {
 	return &ContainerController{
-		createContainerUC:  usecases.NewCreateContainerUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
-		updateContainerUC:  usecases.NewUpdateContainerUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
-		getAllContainersUC: usecases.NewGetAllContainersUseCase(c.ContainerRepo, c.AuthService),
-		getContainerByIDUC: usecases.NewGetContainerByIDUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
-		getContainersUC:    usecases.NewGetContainersUseCase(c.ContainerRepo, c.AuthService),
-		logger:             logger,
+		createContainerUC:           usecases.NewCreateContainerUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
+		updateContainerUC:           usecases.NewUpdateContainerUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
+		getAllContainersUC:          usecases.NewGetAllContainersUseCase(c.ContainerRepo, c.AuthService),
+		getContainerByIDUC:          usecases.NewGetContainerByIDUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
+		getContainersUC:             usecases.NewGetContainersUseCase(c.ContainerRepo, c.AuthService),
+		getContainersByCollectionUC: usecases.NewGetContainersByCollectionUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
+		logger:                      logger,
 	}
 }
 
@@ -176,6 +178,48 @@ func (ctrl *ContainerController) GetContainers(c *gin.Context) {
 		return
 	}
 
+	// Check if this is a nested route with collection_id
+	collectionIDStr := c.Param("collection_id")
+	if collectionIDStr != "" {
+		// Get containers for specific collection
+		collectionID, err := entities.CollectionIDFromString(collectionIDStr)
+		if err != nil {
+			ctrl.logger.Warn("Invalid collection ID", slog.Any("error", err))
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid collection ID"})
+			return
+		}
+
+		ucReq := usecases.GetContainersByCollectionRequest{
+			CollectionID: collectionID,
+			UserID:       user.ID(),
+			UserToken:    userToken,
+		}
+
+		resp, err := ctrl.getContainersByCollectionUC.Execute(c.Request.Context(), ucReq)
+		if err != nil {
+			ctrl.logger.Error("Failed to get containers for collection", slog.Any("error", err))
+			if err.Error() == "collection not found" {
+				c.JSON(http.StatusNotFound, gin.H{"error": "collection not found"})
+				return
+			}
+			if err.Error() == "access denied: user does not have access to this collection" {
+				c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get containers"})
+			return
+		}
+
+		ctrl.logger.Debug("Containers retrieved successfully for collection",
+			slog.String("collection_id", collectionID.String()),
+			slog.String("user_id", user.ID().String()),
+			slog.Int("container_count", len(resp.Containers)))
+
+		c.JSON(http.StatusOK, response.NewContainerListResponse(resp.Containers))
+		return
+	}
+
+	// Get all containers for user
 	ucReq := usecases.GetAllContainersRequest{
 		UserID:    user.ID(),
 		UserToken: userToken,

@@ -340,7 +340,10 @@ func StyleFlexWrap(s *styles.Style) {
 
 func StylePropertiesContainer(s *styles.Style) {
 	s.Direction = styles.Column
-	s.Gap.Set(units.Dp(Spacing1))
+	s.Gap.Set(units.Dp(Spacing2))                       // gap-2 (8px)
+	s.Background = colors.Uniform(ColorGrayLightest)
+	s.Border.Radius = styles.BorderRadiusMedium
+	s.Padding.Set(units.Dp(Spacing3))                   // p-3 (12px)
 }
 
 func StylePropertyRow(s *styles.Style) {

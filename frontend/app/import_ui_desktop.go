@@ -20,10 +20,10 @@ type ImportDialogState struct {
 
 // ShowImportDialog shows a simplified import dialog for desktop
 func (app *App) ShowImportDialog(containerID string, collectionID string) {
-	core.ErrorSnackbar(app, fmt.Errorf("import not yet implemented for desktop"), "Not Implemented")
+	app.SafeShowErrorSnackbar(fmt.Errorf("import not yet implemented for desktop"), "Not Implemented")
 }
 
 // performImport executes the import based on the selected settings
 func (app *App) performImport(state *ImportDialogState, collectionID string) {
-	core.ErrorSnackbar(app, fmt.Errorf("import not yet implemented for desktop"), "Not Implemented")
+	app.SafeShowErrorSnackbar(fmt.Errorf("import not yet implemented for desktop"), "Not Implemented")
 }

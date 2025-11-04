@@ -46,11 +46,11 @@ func StyleButtonDanger(s *styles.Style) {
 	s.Color = colors.Uniform(ColorWhite)       // text-white
 }
 
-// variant: 'cancel': 'bg-transparent text-black hover:bg-gray-light'
+// variant: 'cancel': 'bg-gray-lightest text-black hover:bg-gray-light'
 func StyleButtonCancel(s *styles.Style) {
 	StyleButtonBase(s)
-	s.Background = colors.Uniform(color.RGBA{R: 0, G: 0, B: 0, A: 0}) // bg-transparent
-	s.Color = colors.Uniform(ColorBlack)                              // text-black
+	s.Background = colors.Uniform(ColorGrayLightest) // bg-gray-lightest (light gray for visibility)
+	s.Color = colors.Uniform(ColorBlack)             // text-black
 }
 
 // Not in nishiki-frontend but used in Go frontend
@@ -344,4 +344,36 @@ func StyleDropdownButton(s *styles.Style) {
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusLG)) // BorderRadiusMedium
 	s.Padding.Set(units.Dp(Spacing2), units.Dp(Spacing3))
 	s.Gap.Set(units.Dp(Spacing1))
+}
+
+// ====================================================================================
+// Import Dialog Styles
+// ====================================================================================
+
+// StyleErrorAlert creates a danger-colored alert box for import errors
+func StyleErrorAlert(s *styles.Style) {
+	s.Background = colors.Uniform(ColorDanger)
+	s.Padding.Set(units.Dp(Spacing3)) // 12px
+	s.Border.Radius = sides.NewValues(units.Dp(RadiusDefault))
+	s.Margin.Bottom = units.Dp(Spacing4) // 16px
+}
+
+// StylePreviewList creates a scrollable list container for import preview
+func StylePreviewList(s *styles.Style) {
+	s.Direction = styles.Column
+	s.Gap.Set(units.Dp(Spacing2)) // 8px
+	s.Max.Y = units.Dp(300)
+	s.Overflow.Y = styles.OverflowAuto
+}
+
+// StylePreviewItemTitle styles the title of an item in the preview list
+func StylePreviewItemTitle(s *styles.Style) {
+	s.Font.Weight = WeightSemiBold
+	s.Font.Size = units.Dp(FontSizeSM) // 14px
+}
+
+// StylePreviewItemTags styles tag text in preview items
+func StylePreviewItemTags(s *styles.Style) {
+	s.Color = colors.Uniform(ColorPrimary)
+	s.Font.Size = units.Dp(FontSizeXS) // 11px
 }

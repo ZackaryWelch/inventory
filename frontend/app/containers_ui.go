@@ -159,7 +159,7 @@ func (app *App) RenderContainerTreeNode(parent core.Widget, node *ContainerNode,
 	// Container details (type + object count)
 	detailsText := core.NewText(infoFrame).SetText(fmt.Sprintf("%s • %d objects", node.Container.Type, len(node.Container.Objects)))
 	detailsText.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(appstyles.ColorTextSecondary)
+		s.Color = colors.Uniform(appstyles.ColorBlack)
 		s.Font.Size = units.Dp(12)
 	})
 
@@ -168,12 +168,26 @@ func (app *App) RenderContainerTreeNode(parent core.Widget, node *ContainerNode,
 		app.RenderCapacityIndicator(row, node.Container)
 	}
 
+	// View Objects button
+	viewObjectsBtn := core.NewButton(row).SetIcon(icons.Visibility)
+	viewObjectsBtn.Styler(func(s *styles.Style) {
+		s.Background = nil
+		s.Padding.Set(units.Dp(4))
+		s.Color = colors.Uniform(appstyles.ColorPrimary) // Teal color for visibility
+	})
+	viewObjectsBtn.SetTooltip("View objects in this container")
+	viewObjectsBtn.OnClick(func(e events.Event) {
+		app.showContainerDetailView(*node.Container, *app.selectedCollection)
+		e.SetHandled()
+	})
+
 	// Actions button
 	actionsBtn := core.NewButton(row).SetIcon(icons.MoreVert)
 	actionsBtn.Styler(func(s *styles.Style) {
 		s.Background = nil
 		s.Padding.Set(units.Dp(4))
 	})
+	actionsBtn.SetTooltip("Container actions")
 	actionsBtn.OnClick(func(e events.Event) {
 		app.showContainerActions(node.Container)
 		e.SetHandled()
@@ -259,7 +273,7 @@ func (app *App) RenderCapacityIndicator(parent core.Widget, container *types.Con
 func (app *App) showContainerDetail(container *types.Container) {
 	app.showDialog(DialogConfig{
 		Title: container.Name,
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			// Container type
 			typeRow := core.NewFrame(dialog)
 			typeRow.Styler(func(s *styles.Style) {
@@ -331,7 +345,8 @@ func (app *App) showContainerDetail(container *types.Container) {
 			viewObjectsBtn := core.NewButton(actionsRow).SetText("View Objects").SetIcon(icons.Visibility)
 			viewObjectsBtn.Styler(appstyles.StyleButtonCancel)
 			viewObjectsBtn.OnClick(func(e events.Event) {
-				// TODO: Navigate to objects view filtered by container
+				// Navigate to container detail view showing all objects
+				app.showContainerDetailView(*container, *app.selectedCollection)
 			})
 		},
 	})
@@ -458,7 +473,7 @@ func (app *App) showContainerActions(container *types.Container) {
 
 	app.showDialog(DialogConfig{
 		Title: fmt.Sprintf("Actions: %s", container.Name),
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			// Container info summary
 			infoCard := core.NewFrame(dialog)
 			infoCard.Styler(func(s *styles.Style) {
@@ -504,8 +519,10 @@ func (app *App) showContainerActions(container *types.Container) {
 			addObjectsBtn := core.NewButton(actionsFrame).SetText("Add Objects").SetIcon(icons.Add)
 			addObjectsBtn.Styler(appstyles.StyleButtonAccent)
 			addObjectsBtn.OnClick(func(e events.Event) {
-				// Navigate to objects view with this container pre-selected
-				app.showObjectsViewWithContainer(container)
+				// Close parent dialog before opening object creation dialog
+				closeDialog()
+				// Open create object dialog for this container
+				app.showCreateObjectDialog(*container, *app.selectedCollection)
 			})
 
 			// Import to Container action
@@ -557,7 +574,7 @@ func (app *App) showObjectsViewWithContainer(container *types.Container) {
 
 	// TODO: Implement navigation to objects view
 	// For now, show a placeholder message
-	core.MessageSnackbar(app.mainContainer, fmt.Sprintf("Navigate to objects for container: %s", container.Name))
+	app.SafeShowSnackbar(fmt.Sprintf("Navigate to objects for container: %s", container.Name))
 
 	// In the future, this should:
 	// 1. Set the selected container in app state

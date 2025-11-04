@@ -75,8 +75,8 @@ func Setup(router *gin.Engine, appContainer *container.Container) {
 	{
 		containers.GET("", containerController.GetContainers)
 		containers.POST("", containerController.CreateContainer)
-		containers.GET("/:id", containerController.GetContainer)
-		containers.PUT("/:id", containerController.UpdateContainer)
+		containers.GET("/:container_id", containerController.GetContainer)
+		containers.PUT("/:container_id", containerController.UpdateContainer)
 	}
 
 
@@ -92,7 +92,16 @@ func Setup(router *gin.Engine, appContainer *container.Container) {
 		accounts.GET("/:id/collections/:collection_id", collectionController.GetCollection)
 		accounts.PUT("/:id/collections/:collection_id", collectionController.UpdateCollection)
 		accounts.DELETE("/:id/collections/:collection_id", collectionController.DeleteCollection)
-		
+
+		// Containers under collections
+		accounts.GET("/:id/collections/:collection_id/containers", containerController.GetContainers)
+		accounts.POST("/:id/collections/:collection_id/containers", containerController.CreateContainer)
+		accounts.GET("/:id/collections/:collection_id/containers/:container_id", containerController.GetContainer)
+		accounts.PUT("/:id/collections/:collection_id/containers/:container_id", containerController.UpdateContainer)
+
+		// Container objects
+		accounts.GET("/:id/collections/:collection_id/containers/:container_id/objects", objectController.GetCollectionObjects)
+
 		// Collection objects
 		accounts.GET("/:id/collections/:collection_id/objects", objectController.GetCollectionObjects)
 		accounts.POST("/:id/collections/:collection_id/import", objectController.BulkImportToCollection)

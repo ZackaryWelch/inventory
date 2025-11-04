@@ -98,19 +98,10 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 		s.Align.Items = styles.Center
 	})
 
-	searchField := core.NewTextField(searchSection)
-	searchField.SetPlaceholder("Search objects...")
-	searchField.Styler(func(s *styles.Style) {
-		appstyles.StyleInputRounded(s) // Apply proper input styling
-		s.Min.X.Set(200, units.UnitDp)
-	})
+	_ = createSearchField(searchSection, "Search objects...") // TODO: Wire up search functionality
 
 	filterBtn := core.NewButton(searchSection).SetIcon(icons.FilterList)
-	filterBtn.Styler(func(s *styles.Style) {
-		s.Background = colors.Uniform(color.RGBA{R: 240, G: 240, B: 240, A: 255})
-		s.Border.Radius = styles.BorderRadiusMedium
-		s.Padding.Set(units.Dp(8))
-	})
+	filterBtn.Styler(appstyles.StyleFilterButton)
 
 	// Add object section
 	addSection := core.NewFrame(actionsRow)
@@ -215,7 +206,7 @@ func (app *App) createObjectCard(parent core.Widget, object Object, container Co
 				propsTitle.Styler(func(s *styles.Style) {
 					s.Font.Size = units.Dp(12)
 					s.Font.Weight = appstyles.WeightSemiBold
-					s.Color = colors.Uniform(appstyles.ColorGrayDark)
+					s.Color = colors.Uniform(appstyles.ColorBlack)
 				})
 
 				count := 0
@@ -401,9 +392,15 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 
 	editBtn := core.NewButton(actionsRow).SetText("Edit Object").SetIcon(icons.Edit)
 	editBtn.Styler(appstyles.StyleButtonAccent)
+	editBtn.OnClick(func(e events.Event) {
+		app.showEditObjectDialog(object, container, collection)
+	})
 
 	deleteBtn := core.NewButton(actionsRow).SetText("Delete Object").SetIcon(icons.Delete)
 	deleteBtn.Styler(appstyles.StyleButtonDanger)
+	deleteBtn.OnClick(func(e events.Event) {
+		app.showDeleteObjectDialog(object, container, collection)
+	})
 
 	// Properties section
 	if len(object.Properties) > 0 {
@@ -489,17 +486,14 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 	app.showDialog(DialogConfig{
 		Title:            "Add New Object",
 		SubmitButtonText: "Add Object",
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			// Basic fields
 			nameField = createTextField(dialog, "Object name")
 			descField = createTextField(dialog, "Description (optional)")
 
 			// Structured fields section
 			structuredTitle := core.NewText(dialog).SetText("Quantity & Expiration")
-			structuredTitle.Styler(func(s *styles.Style) {
-				s.Font.Weight = appstyles.WeightSemiBold
-				s.Margin.Top = units.Dp(8)
-			})
+			structuredTitle.Styler(appstyles.StyleFormLabel)
 
 			quantityField = createTextField(dialog, "Quantity (optional)")
 			unitField = createTextField(dialog, "Unit (e.g., kg, pieces, liters)")
@@ -507,29 +501,17 @@ func (app *App) showCreateObjectDialog(container Container, collection Collectio
 
 			// Properties section
 			propsTitle := core.NewText(dialog).SetText("Additional Properties")
-			propsTitle.Styler(func(s *styles.Style) {
-				s.Font.Weight = appstyles.WeightSemiBold
-				s.Margin.Top = units.Dp(8)
-			})
+			propsTitle.Styler(appstyles.StyleFormLabel)
 
 			// Create property fields based on object type
 			propsContainer := core.NewFrame(dialog)
-			propsContainer.Styler(func(s *styles.Style) {
-				s.Direction = styles.Column
-				s.Gap.Set(units.Dp(8))
-				s.Background = colors.Uniform(appstyles.ColorGrayLightest)
-				s.Border.Radius = styles.BorderRadiusMedium
-				s.Padding.Set(units.Dp(12))
-			})
+			propsContainer.Styler(appstyles.StylePropertiesContainer)
 
 			propertyFields = app.createObjectTypeProperties(propsContainer, collection.ObjectType)
 
 			// Tags section
 			tagsTitle := core.NewText(dialog).SetText("Tags")
-			tagsTitle.Styler(func(s *styles.Style) {
-				s.Font.Weight = appstyles.WeightSemiBold
-				s.Margin.Top = units.Dp(8)
-			})
+			tagsTitle.Styler(appstyles.StyleFormLabel)
 
 			tagsField = createTextField(dialog, "Tags (comma-separated)")
 		},
@@ -570,9 +552,7 @@ func (app *App) createObjectTypeProperties(parent core.Widget, objectType string
 func (app *App) createFoodProperties(parent core.Widget) map[string]*core.TextField {
 	fields := make(map[string]*core.TextField)
 
-	brandField := core.NewTextField(parent)
-	brandField.SetPlaceholder("Brand (optional)")
-	fields["brand"] = brandField
+	fields["brand"] = createTextField(parent, "Brand (optional)")
 
 	return fields
 }
@@ -580,21 +560,10 @@ func (app *App) createFoodProperties(parent core.Widget) map[string]*core.TextFi
 func (app *App) createBookProperties(parent core.Widget) map[string]*core.TextField {
 	fields := make(map[string]*core.TextField)
 
-	authorField := core.NewTextField(parent)
-	authorField.SetPlaceholder("Author")
-	fields["author"] = authorField
-
-	isbnField := core.NewTextField(parent)
-	isbnField.SetPlaceholder("ISBN (optional)")
-	fields["isbn"] = isbnField
-
-	genreField := core.NewTextField(parent)
-	genreField.SetPlaceholder("Genre (optional)")
-	fields["genre"] = genreField
-
-	yearField := core.NewTextField(parent)
-	yearField.SetPlaceholder("Publication year (optional)")
-	fields["year"] = yearField
+	fields["author"] = createTextField(parent, "Author")
+	fields["isbn"] = createTextField(parent, "ISBN (optional)")
+	fields["genre"] = createTextField(parent, "Genre (optional)")
+	fields["year"] = createTextField(parent, "Publication year (optional)")
 
 	return fields
 }
@@ -602,17 +571,9 @@ func (app *App) createBookProperties(parent core.Widget) map[string]*core.TextFi
 func (app *App) createVideoGameProperties(parent core.Widget) map[string]*core.TextField {
 	fields := make(map[string]*core.TextField)
 
-	platformField := core.NewTextField(parent)
-	platformField.SetPlaceholder("Platform")
-	fields["platform"] = platformField
-
-	genreField := core.NewTextField(parent)
-	genreField.SetPlaceholder("Genre (optional)")
-	fields["genre"] = genreField
-
-	ratingField := core.NewTextField(parent)
-	ratingField.SetPlaceholder("Rating (optional)")
-	fields["rating"] = ratingField
+	fields["platform"] = createTextField(parent, "Platform")
+	fields["genre"] = createTextField(parent, "Genre (optional)")
+	fields["rating"] = createTextField(parent, "Rating (optional)")
 
 	return fields
 }
@@ -620,21 +581,10 @@ func (app *App) createVideoGameProperties(parent core.Widget) map[string]*core.T
 func (app *App) createMusicProperties(parent core.Widget) map[string]*core.TextField {
 	fields := make(map[string]*core.TextField)
 
-	artistField := core.NewTextField(parent)
-	artistField.SetPlaceholder("Artist")
-	fields["artist"] = artistField
-
-	albumField := core.NewTextField(parent)
-	albumField.SetPlaceholder("Album (optional)")
-	fields["album"] = albumField
-
-	genreField := core.NewTextField(parent)
-	genreField.SetPlaceholder("Genre (optional)")
-	fields["genre"] = genreField
-
-	yearField := core.NewTextField(parent)
-	yearField.SetPlaceholder("Release year (optional)")
-	fields["year"] = yearField
+	fields["artist"] = createTextField(parent, "Artist")
+	fields["album"] = createTextField(parent, "Album (optional)")
+	fields["genre"] = createTextField(parent, "Genre (optional)")
+	fields["year"] = createTextField(parent, "Release year (optional)")
 
 	return fields
 }
@@ -642,17 +592,9 @@ func (app *App) createMusicProperties(parent core.Widget) map[string]*core.TextF
 func (app *App) createBoardGameProperties(parent core.Widget) map[string]*core.TextField {
 	fields := make(map[string]*core.TextField)
 
-	playersField := core.NewTextField(parent)
-	playersField.SetPlaceholder("Number of players")
-	fields["players"] = playersField
-
-	ageField := core.NewTextField(parent)
-	ageField.SetPlaceholder("Minimum age (optional)")
-	fields["age"] = ageField
-
-	durationField := core.NewTextField(parent)
-	durationField.SetPlaceholder("Play duration (optional)")
-	fields["duration"] = durationField
+	fields["players"] = createTextField(parent, "Number of players")
+	fields["age"] = createTextField(parent, "Minimum age (optional)")
+	fields["duration"] = createTextField(parent, "Play duration (optional)")
 
 	return fields
 }
@@ -660,13 +602,8 @@ func (app *App) createBoardGameProperties(parent core.Widget) map[string]*core.T
 func (app *App) createGeneralProperties(parent core.Widget) map[string]*core.TextField {
 	fields := make(map[string]*core.TextField)
 
-	prop1Field := core.NewTextField(parent)
-	prop1Field.SetPlaceholder("Custom property 1")
-	fields["property1"] = prop1Field
-
-	prop2Field := core.NewTextField(parent)
-	prop2Field.SetPlaceholder("Custom property 2")
-	fields["property2"] = prop2Field
+	fields["property1"] = createTextField(parent, "Custom property 1")
+	fields["property2"] = createTextField(parent, "Custom property 2")
 
 	return fields
 }
@@ -755,7 +692,7 @@ func (app *App) showEditObjectDialog(object Object, container Container, collect
 		Title:            "Edit Object",
 		SubmitButtonText: "Save Changes",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			// Basic fields
 			nameField = createTextField(dialog, "Object name")
 			nameField.SetText(object.Name)
@@ -765,10 +702,7 @@ func (app *App) showEditObjectDialog(object Object, container Container, collect
 
 			// Structured fields section
 			structuredTitle := core.NewText(dialog).SetText("Quantity & Expiration")
-			structuredTitle.Styler(func(s *styles.Style) {
-				s.Font.Weight = appstyles.WeightSemiBold
-				s.Margin.Top = units.Dp(8)
-			})
+			structuredTitle.Styler(appstyles.StyleFormLabel)
 
 			quantityField = createTextField(dialog, "Quantity (optional)")
 			if object.Quantity != nil {
@@ -785,20 +719,11 @@ func (app *App) showEditObjectDialog(object Object, container Container, collect
 
 			// Properties section
 			propsTitle := core.NewText(dialog).SetText("Additional Properties")
-			propsTitle.Styler(func(s *styles.Style) {
-				s.Font.Weight = appstyles.WeightSemiBold
-				s.Margin.Top = units.Dp(8)
-			})
+			propsTitle.Styler(appstyles.StyleFormLabel)
 
 			// Create property fields based on object type
 			propsContainer := core.NewFrame(dialog)
-			propsContainer.Styler(func(s *styles.Style) {
-				s.Direction = styles.Column
-				s.Gap.Set(units.Dp(8))
-				s.Background = colors.Uniform(appstyles.ColorGrayLightest)
-				s.Border.Radius = styles.BorderRadiusMedium
-				s.Padding.Set(units.Dp(12))
-			})
+			propsContainer.Styler(appstyles.StylePropertiesContainer)
 
 			propertyFields = app.createObjectTypeProperties(propsContainer, object.ObjectType)
 
@@ -813,10 +738,7 @@ func (app *App) showEditObjectDialog(object Object, container Container, collect
 
 			// Tags section
 			tagsTitle := core.NewText(dialog).SetText("Tags")
-			tagsTitle.Styler(func(s *styles.Style) {
-				s.Font.Weight = appstyles.WeightSemiBold
-				s.Margin.Top = units.Dp(8)
-			})
+			tagsTitle.Styler(appstyles.StyleFormLabel)
 
 			tagsField = createTextField(dialog, "Tags (comma-separated)")
 			if len(object.Tags) > 0 {
@@ -909,6 +831,29 @@ func (app *App) handleEditObject(
 }
 
 func (app *App) showDeleteObjectDialog(object Object, container Container, collection Collection) {
-	fmt.Printf("Delete object dialog for: %s\n", object.Name)
-	// Implementation similar to other delete dialogs
+	app.showDialog(DialogConfig{
+		Title:             "Delete Object",
+		Message:           fmt.Sprintf("Are you sure you want to delete '%s'? This action cannot be undone.", object.Name),
+		SubmitButtonText:  "Delete",
+		SubmitButtonStyle: appstyles.StyleButtonDanger,
+		OnSubmit: func() {
+			app.handleDeleteObject(object.ID, container, collection)
+		},
+	})
+}
+
+func (app *App) handleDeleteObject(objectID string, container Container, collection Collection) {
+	app.logger.Info("Deleting object", "object_id", objectID)
+
+	// Make API call
+	err := app.objectsClient.Delete(app.currentUser.ID, objectID)
+	if err != nil {
+		app.logger.Error("Failed to delete object", "error", err)
+		return
+	}
+
+	app.logger.Info("Object deleted successfully", "object_id", objectID)
+
+	// Refresh the container view
+	app.showContainerDetailView(container, collection)
 }

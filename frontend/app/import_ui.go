@@ -11,7 +11,6 @@ import (
 	"cogentcore.org/core/events"
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/styles"
-	"cogentcore.org/core/styles/sides"
 	"cogentcore.org/core/styles/units"
 
 	appstyles "github.com/nishiki/frontend/ui/styles"
@@ -59,7 +58,7 @@ func (app *App) showImportUploadStep(state *ImportDialogState, collectionID stri
 	app.showDialog(DialogConfig{
 		Title:   "Import Data - Step 1: Upload",
 		Message: "Select a CSV or JSON file, or paste the data directly",
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			// File upload button
 			uploadBtn := core.NewButton(dialog).SetText("Select File").SetIcon(icons.UploadFile)
 			uploadBtn.Styler(appstyles.StyleButtonPrimary)
@@ -93,15 +92,11 @@ func (app *App) showImportUploadStep(state *ImportDialogState, collectionID stri
 			})
 
 			// Text area for paste
-			core.NewText(dialog).SetText("Paste CSV/JSON data:").Styler(func(s *styles.Style) {
-				s.Font.Weight = appstyles.WeightSemiBold
-				s.Margin.Bottom = units.Dp(8)
-			})
+			createSectionHeader(dialog, "Paste CSV/JSON data:")
 
-			textField = core.NewTextField(dialog)
-			textField.SetPlaceholder("Paste your CSV or JSON data here...")
+			textField = createTextField(dialog, "Paste your CSV or JSON data here...")
+			// Additional styling for multi-line text area
 			textField.Styler(func(s *styles.Style) {
-				appstyles.StyleInputRounded(s)
 				s.Min.Y = units.Dp(200)
 			})
 		},
@@ -134,16 +129,11 @@ func (app *App) showImportPreviewStep(state *ImportDialogState, collectionID str
 	app.showDialog(DialogConfig{
 		Title:   fmt.Sprintf("Import Data - Step 2: Preview (%s)", state.Filename),
 		Message: fmt.Sprintf("Found %d objects. Review the first few items:", len(state.ImportData.Objects)),
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			// Show errors if any
 			if len(state.ImportData.Errors) > 0 {
 				errorFrame := core.NewFrame(dialog)
-				errorFrame.Styler(func(s *styles.Style) {
-					s.Background = colors.Uniform(appstyles.ColorDanger)
-					s.Padding.Set(units.Dp(12))
-					s.Border.Radius = sides.NewValues(units.Dp(appstyles.RadiusDefault))
-					s.Margin.Bottom = units.Dp(16)
-				})
+				errorFrame.Styler(appstyles.StyleErrorAlert)
 
 				core.NewText(errorFrame).SetText(fmt.Sprintf("⚠️ %d errors found:", len(state.ImportData.Errors))).Styler(func(s *styles.Style) {
 					s.Color = colors.Uniform(appstyles.ColorDanger)
@@ -172,12 +162,7 @@ func (app *App) showImportPreviewStep(state *ImportDialogState, collectionID str
 
 			// Preview list (first 5 items)
 			previewList := core.NewFrame(dialog)
-			previewList.Styler(func(s *styles.Style) {
-				s.Direction = styles.Column
-				s.Gap.Set(units.Dp(8))
-				s.Max.Y = units.Dp(300)
-				s.Overflow.Y = styles.OverflowAuto
-			})
+			previewList.Styler(appstyles.StylePreviewList)
 
 			maxPreview := 5
 			if len(state.ImportData.Objects) < maxPreview {
@@ -193,25 +178,16 @@ func (app *App) showImportPreviewStep(state *ImportDialogState, collectionID str
 				})
 
 				// Item title
-				core.NewText(itemCard).SetText(obj.Name).Styler(func(s *styles.Style) {
-					s.Font.Weight = appstyles.WeightSemiBold
-					s.Font.Size = units.Dp(14)
-				})
+				core.NewText(itemCard).SetText(obj.Name).Styler(appstyles.StylePreviewItemTitle)
 
 				// Item details
 				if obj.Description != "" {
-					core.NewText(itemCard).SetText(obj.Description).Styler(func(s *styles.Style) {
-						s.Color = colors.Uniform(appstyles.ColorTextSecondary)
-						s.Font.Size = units.Dp(12)
-					})
+					core.NewText(itemCard).SetText(obj.Description).Styler(appstyles.StyleSmallText)
 				}
 
 				// Tags
 				if len(obj.Tags) > 0 {
-					core.NewText(itemCard).SetText("Tags: " + strings.Join(obj.Tags, ", ")).Styler(func(s *styles.Style) {
-						s.Color = colors.Uniform(appstyles.ColorPrimary)
-						s.Font.Size = units.Dp(11)
-					})
+					core.NewText(itemCard).SetText("Tags: " + strings.Join(obj.Tags, ", ")).Styler(appstyles.StylePreviewItemTags)
 				}
 			}
 
@@ -240,12 +216,9 @@ func (app *App) showImportSettingsStep(state *ImportDialogState, collectionID st
 	app.showDialog(DialogConfig{
 		Title:   "Import Data - Step 3: Settings",
 		Message: "Choose how to distribute the imported items",
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			// Distribution mode selector
-			core.NewText(dialog).SetText("Distribution Mode:").Styler(func(s *styles.Style) {
-				s.Font.Weight = appstyles.WeightSemiBold
-				s.Margin.Bottom = units.Dp(8)
-			})
+			createSectionHeader(dialog, "Distribution Mode:")
 
 			// Radio buttons for distribution mode
 			radioFrame := core.NewFrame(dialog)
@@ -315,7 +288,7 @@ func (app *App) showImportProgressStep(state *ImportDialogState, collectionID st
 	app.showDialog(DialogConfig{
 		Title:   "Import Data - Step 4: Progress",
 		Message: "Importing your data...",
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			core.NewText(dialog).SetText("Please wait while we import your data.").Styler(func(s *styles.Style) {
 				s.Color = colors.Uniform(appstyles.ColorTextSecondary)
 			})

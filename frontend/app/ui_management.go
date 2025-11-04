@@ -281,7 +281,7 @@ func (app *App) showCreateGroupDialog() {
 		Title:            "Create New Group",
 		SubmitButtonText: "Create Group",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			nameField = createTextField(dialog, "Group name")
 			descField = createTextField(dialog, "Description (optional)")
 		},
@@ -298,7 +298,7 @@ func (app *App) showEditGroupDialog(group Group) {
 		Title:            "Edit Group",
 		SubmitButtonText: "Save Changes",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			nameField = createTextField(dialog, "Group name")
 			nameField.SetText(group.Name)
 			descField = createTextField(dialog, "Description (optional)")
@@ -421,7 +421,7 @@ func (app *App) showJoinGroupDialog() {
 		Title:            "Join Group",
 		SubmitButtonText: "Join Group",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			inviteField = createTextField(dialog, "Invitation code")
 		},
 		OnSubmit: func() {
@@ -434,7 +434,7 @@ func (app *App) showInviteToGroupDialog(group Group) {
 	app.showDialog(DialogConfig{
 		Title:   "Invite to Group",
 		Message: "Share this invitation code:",
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			inviteCode := core.NewText(dialog).SetText("ABC123XYZ") // Would be generated
 			inviteCode.Styler(appstyles.StyleInviteCode)
 		},

@@ -79,13 +79,22 @@ func StyleCardTitle(s *styles.Style) {
 
 func StyleSmallText(s *styles.Style) {
 	s.Font.Size = units.Dp(FontSizeXS)          // text-xs
-	s.Color = colors.Uniform(ColorGrayDark)
+	s.Color = colors.Uniform(ColorBlack)        // Black for visibility on white backgrounds
 }
 
 // Description text styling (matching frontend text-sm text-gray-dark)
 func StyleDescriptionText(s *styles.Style) {
 	s.Font.Size = units.Dp(FontSizeSM)          // text-sm
 	s.Color = colors.Uniform(ColorGrayDark)
+}
+
+// Form label styling - prevents wrapping, semibold weight
+func StyleFormLabel(s *styles.Style) {
+	s.Font.Size = units.Dp(FontSizeBase)        // text-base
+	s.Font.Weight = WeightSemiBold              // font-semibold
+	s.Color = colors.Uniform(ColorBlack)
+	s.Text.WhiteSpace = text.WrapNever          // Don't wrap labels
+	s.Margin.Top = units.Dp(Spacing2)           // Add some top spacing
 }
 
 // ====================================================================================
@@ -1261,6 +1270,7 @@ func StyleFormFieldLabel(s *styles.Style) {
 	s.Font.Weight = WeightSemiBold
 	s.Color = colors.Uniform(ColorBlack)
 	s.Margin.Bottom = units.Dp(Spacing1)
+	s.Text.WhiteSpace = text.WrapNever // Don't wrap form field labels
 }
 
 // StyleFormFieldContainer - container for form field + label
@@ -1279,6 +1289,15 @@ func StyleGroupDropdownButton(s *styles.Style) {
 	s.Color = colors.Uniform(ColorBlack)
 	s.Justify.Content = styles.SpaceBetween
 	s.Min.X.Set(100, units.UnitPw) // Full width
+	s.Text.WhiteSpace = text.WrapNever // Don't wrap dropdown text
+}
+
+// StyleGroupDropdownButtonSelected - Enhanced styling when a group is selected
+func StyleGroupDropdownButtonSelected(s *styles.Style) {
+	StyleGroupDropdownButton(s) // Apply base styles
+	s.Background = colors.Uniform(ColorPrimaryLightest) // Subtle teal background
+	s.Border.Color.Set(colors.Uniform(ColorPrimary))    // Primary border color
+	s.Font.Weight = WeightMedium                         // Slightly bolder text
 }
 
 // StyleParentInfo - parent container info text
@@ -1287,4 +1306,39 @@ func StyleParentInfo(s *styles.Style) {
 	s.Color = colors.Uniform(ColorBlack)
 	// Note: Italic font style is not supported in Cogent Core styles.Font
 	s.Margin.Top = units.Dp(Spacing1)
+}
+
+// ====================================================================================
+// Dialog Form Patterns
+// ====================================================================================
+
+// StyleTypeButtonContainer - container for type selection buttons with wrapping
+func StyleTypeButtonContainer(s *styles.Style) {
+	s.Wrap = true
+	s.Max.X.Set(100, units.UnitPw) // Constrain to parent width for wrapping
+}
+
+// StyleGroupLabelWithMargin - group label with top margin for spacing
+func StyleGroupLabelWithMargin(s *styles.Style) {
+	StyleFormLabel(s)
+	s.Margin.Top = units.Dp(Spacing3) // mt-3 (12px)
+}
+
+// StyleGroupDropdownButtonGrow - group dropdown button that grows to fill space
+func StyleGroupDropdownButtonGrow(s *styles.Style) {
+	StyleGroupDropdownButton(s)
+	s.Grow.Set(1, 0) // flex-grow
+}
+
+// StyleGroupDropdownButtonSelectedGrow - selected group dropdown button with grow
+func StyleGroupDropdownButtonSelectedGrow(s *styles.Style) {
+	StyleGroupDropdownButtonSelected(s)
+	s.Grow.Set(1, 0) // flex-grow
+}
+
+// StyleFilterButton - filter button styling with light gray background
+func StyleFilterButton(s *styles.Style) {
+	s.Background = colors.Uniform(ColorGrayLightest)
+	s.Border.Radius = styles.BorderRadiusMedium
+	s.Padding.Set(units.Dp(Spacing2)) // p-2 (8px)
 }

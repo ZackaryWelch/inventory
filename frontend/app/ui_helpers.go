@@ -13,21 +13,22 @@ import (
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/abilities"
 	"cogentcore.org/core/styles/units"
+	"cogentcore.org/core/text/text"
 
 	appstyles "github.com/nishiki/frontend/ui/styles"
 )
 
 // DialogConfig defines configuration for a generic dialog
 type DialogConfig struct {
-	Title            string
-	Message          string // Optional message/description text
-	MinWidth         int
-	MaxWidth         int
-	OnCancel         func()
-	OnSubmit         func()
-	SubmitButtonText string
+	Title             string
+	Message           string // Optional message/description text
+	MinWidth          int
+	MaxWidth          int
+	OnCancel          func()
+	OnSubmit          func()
+	SubmitButtonText  string
 	SubmitButtonStyle func(*styles.Style)
-	ContentBuilder   func(dialog core.Widget) // Callback to build dialog content
+	ContentBuilder    func(dialog core.Widget, closeDialog func()) // Callback to build dialog content with close function
 }
 
 // showDialog creates and displays a generic dialog using Cogent Core's built-in dialog system
@@ -35,17 +36,29 @@ func (app *App) showDialog(config DialogConfig) {
 	// Use Cogent Core's built-in dialog system which handles overlay properly
 	d := core.NewBody().SetTitle(config.Title)
 
+	// Set dialog background to white for visibility
+	d.Styler(func(s *styles.Style) {
+		s.Background = colors.Uniform(appstyles.ColorWhite)
+	})
+
+	// Create close function that can be passed to content builder
+	closeDialog := func() {
+		d.Close()
+	}
+
 	// Optional message/description
 	if config.Message != "" {
 		core.NewText(d).SetText(config.Message).Styler(func(s *styles.Style) {
 			s.Color = colors.Uniform(appstyles.ColorTextSecondary)
 			s.Margin.Bottom = units.Dp(16)
+			s.Text.WhiteSpace = text.WrapAsNeeded // Allow natural word wrapping
+			s.Max.X.Set(400, units.UnitDp)        // Control max width to prevent overly long lines
 		})
 	}
 
 	// Content (delegate to caller)
 	if config.ContentBuilder != nil {
-		config.ContentBuilder(d)
+		config.ContentBuilder(d, closeDialog)
 	}
 
 	// Add dialog buttons
@@ -254,6 +267,27 @@ func createTextField(parent core.Widget, placeholder string) *core.TextField {
 		appstyles.StyleInputRounded(s)
 		// Ensure input respects parent constraints
 		s.Max.X.Set(100, units.UnitPw) // Don't exceed parent width
+	})
+	return field
+}
+
+// createSectionHeader creates a section header text element with consistent styling
+func createSectionHeader(parent core.Widget, text string) *core.Text {
+	header := core.NewText(parent).SetText(text)
+	header.Styler(func(s *styles.Style) {
+		s.Font.Weight = appstyles.WeightSemiBold
+		s.Margin.Bottom = units.Dp(8)
+	})
+	return header
+}
+
+// createSearchField creates a search field with consistent styling and min width
+func createSearchField(parent core.Widget, placeholder string) *core.TextField {
+	field := core.NewTextField(parent)
+	field.SetPlaceholder(placeholder)
+	field.Styler(func(s *styles.Style) {
+		appstyles.StyleInputRounded(s)
+		s.Min.X.Set(200, units.UnitDp) // Minimum width for search fields
 	})
 	return field
 }

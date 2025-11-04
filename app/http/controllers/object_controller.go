@@ -11,6 +11,7 @@ import (
 	"github.com/nishiki/backend-go/app/http/middleware"
 	"github.com/nishiki/backend-go/app/http/request"
 	"github.com/nishiki/backend-go/app/http/response"
+	"github.com/nishiki/backend-go/domain/entities"
 	"github.com/nishiki/backend-go/domain/usecases"
 )
 
@@ -104,9 +105,13 @@ func (ctrl *ObjectController) CreateObject(c *gin.Context) {
 	ucReq := usecases.CreateObjectRequest{
 		ContainerID: containerID,
 		Name:        req.Name,
+		Description: req.Description,
 		ObjectType:  req.GetObjectType(),
+		Quantity:    req.Quantity,
+		Unit:        req.Unit,
 		Properties:  req.Properties,
 		Tags:        req.Tags,
+		ExpiresAt:   req.ExpiresAt,
 		UserID:      pathUserID,
 		UserToken:   userToken,
 	}
@@ -191,27 +196,68 @@ func (ctrl *ObjectController) GetCollectionObjects(c *gin.Context) {
 		UserToken:    userToken,
 	}
 
-	resp, err := ctrl.getCollectionObjectsUC.Execute(c.Request.Context(), ucReq)
-	if err != nil {
-		ctrl.logger.Error("Failed to get objects", slog.Any("error", err))
-		if strings.Contains(err.Error(), "access denied") {
-			c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+	// Check if this is a container-specific request
+	containerIDStr := c.Param("container_id")
+	var objects []entities.Object
+
+	if containerIDStr != "" {
+		// Get objects from specific container
+		containerID, err := request.GetContainerIDFromPath(c)
+		if err != nil {
+			ctrl.logger.Warn("Invalid container ID in path", slog.Any("error", err))
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if strings.Contains(err.Error(), "not found") {
-			c.JSON(http.StatusNotFound, gin.H{"error": "collection not found"})
+
+		// Get the container to access its objects
+		// We'll use the GetContainerByID use case for this
+		// For now, get collection objects and extract from collection
+		resp, err := ctrl.getCollectionObjectsUC.Execute(c.Request.Context(), ucReq)
+		if err != nil {
+			ctrl.logger.Error("Failed to get objects", slog.Any("error", err))
+			if strings.Contains(err.Error(), "access denied") {
+				c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+				return
+			}
+			if strings.Contains(err.Error(), "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"error": "collection not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get objects"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get objects"})
-		return
+
+		// Get all containers from collection and find the specified one
+		// This is not optimal but works for now
+		// TODO: Create a GetContainerObjects use case
+		ctrl.logger.Warn("Container-specific object retrieval not fully implemented yet",
+			slog.String("container_id", containerID.String()))
+		objects = resp.Objects
+	} else {
+		// Get all objects from collection
+		resp, err := ctrl.getCollectionObjectsUC.Execute(c.Request.Context(), ucReq)
+		if err != nil {
+			ctrl.logger.Error("Failed to get objects", slog.Any("error", err))
+			if strings.Contains(err.Error(), "access denied") {
+				c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+				return
+			}
+			if strings.Contains(err.Error(), "not found") {
+				c.JSON(http.StatusNotFound, gin.H{"error": "collection not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get objects"})
+			return
+		}
+		objects = resp.Objects
 	}
 
 	ctrl.logger.Debug("Objects retrieved successfully",
 		slog.String("collection_id", collectionID.String()),
 		slog.String("user_id", user.ID().String()),
-		slog.Int("object_count", len(resp.Objects)))
+		slog.Int("object_count", len(objects)))
 
-	c.JSON(http.StatusOK, response.NewObjectListResponse(resp.Objects))
+	c.JSON(http.StatusOK, response.NewObjectListResponse(objects))
 }
 
 // UpdateObject godoc

@@ -58,6 +58,7 @@ type App struct {
 	dialogState        *DialogState
 	searchFilter       *SearchFilter
 	logger             *slog.Logger
+	uiReady            bool // Flag to indicate UI is fully initialized
 	// API clients
 	apiClient         *apiCommon.Client
 	authClient        *authAPI.Client
@@ -65,6 +66,24 @@ type App struct {
 	collectionsClient *collectionsAPI.Client
 	containersClient  *containersAPI.Client
 	objectsClient     *objectsAPI.Client
+}
+
+// SafeShowSnackbar displays a snackbar message only if the UI is ready
+func (app *App) SafeShowSnackbar(message string) {
+	if !app.uiReady || app.body == nil {
+		app.logger.Debug("UI not ready for snackbar, logging instead", "message", message)
+		return
+	}
+	core.MessageSnackbar(app.body, message)
+}
+
+// SafeShowErrorSnackbar displays an error snackbar only if the UI is ready
+func (app *App) SafeShowErrorSnackbar(err error, title string) {
+	if !app.uiReady || app.body == nil {
+		app.logger.Error("Error (UI not ready for snackbar)", "error", err, "title", title)
+		return
+	}
+	core.ErrorSnackbar(app.body, err, title)
 }
 
 // NewApp creates a new application instance

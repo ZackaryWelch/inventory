@@ -1,456 +1,430 @@
 # CLAUDE.md - Nishiki Frontend
 
-This file provides guidance to Claude Code when working with the Nishiki Frontend codebase.
+This file provides frontend-specific guidance for the Nishiki inventory management system.
 
-## Project Overview
+## Overview
 
-The Nishiki Frontend is a cross-platform inventory management application built with Go and Cogent Core, compiling to both native desktop applications and WebAssembly for web deployment. It implements proper OAuth2/OIDC authentication with Authentik and provides a modern UI for managing inventory collections.
+Cross-platform UI application built with Go + Cogent Core v0.3.12, compiled to:
+- **WebAssembly**: Browser-based deployment
+- **Desktop**: Native applications (future)
+
+**Key Technologies:**
+- Cogent Core v0.3.12 for UI
+- OAuth2 PKCE for authentication (public client, no secrets)
+- WebAssembly for browser deployment
+- Type-safe API clients for backend communication
+
+## Quick Start
+
+```bash
+# Build for web
+./bin/web
+
+# Serve locally (uses port from config.toml)
+./bin/serve
+
+# Run tests
+go test ./...
+
+# Format code
+gofmt -w .
+```
+
+## Configuration
+
+### File: `app/config/config.toml`
+
+```toml
+port = "3000"
+backend_url = "http://localhost:3001"
+auth_url = "https://your-authentik-server.com"
+client_id = "your-client-id"
+# redirect_url auto-generated as http://localhost:{port}/auth/callback
+```
+
+### Build-Specific Behavior
+
+**Desktop** (`app/config_desktop.go`):
+- Loads from filesystem via Viper
+- Search paths: `"."` and `"./config"`
+- Environment overrides: `NISHIKI_PORT`, `NISHIKI_BACKEND_URL`, etc.
+
+**WebAssembly** (`app/config_wasm.go`):
+- Embedded at build time: `//go:embed config/config.toml`
+- Configuration baked into WASM binary
+- Still supports environment variable overrides
 
 ## Architecture
 
-### Build Targets
+### Application Structure
 
-The frontend supports multiple build targets using Go build constraints:
+```
+app/
+├── app.go                 # Application initialization
+├── auth_service.go        # OAuth2 PKCE flow
+├── collections_ui.go      # Collection management
+├── containers_ui.go       # Container tree view
+├── objects_ui.go          # Object CRUD
+├── ui_management.go       # Groups and navigation
+├── ui_helpers.go          # Dialog/form helpers
+└── config/
+    └── config.toml        # Embedded config for WASM
 
-1. **Desktop Application** (`//go:build !js || !wasm`)
-   - Native GUI using Cogent Core
-   - Direct filesystem access for configuration
-   - Local storage for user data
+ui/
+├── styles/                # Centralized styling
+│   ├── tokens.go          # Design tokens (colors, spacing, fonts)
+│   ├── components.go      # Component styles
+│   ├── layouts.go         # Layout styles
+│   └── utilities.go       # Utility styles
+├── components/            # Reusable UI components
+└── layouts/               # Layout components
 
-2. **WebAssembly Application** (`//go:build js && wasm`)
-   - Runs in browser environment
-   - Embedded configuration using `//go:embed`
-   - Browser localStorage for token storage
-   - JavaScript interop via `syscall/js`
+pkg/
+├── api/                   # Type-safe API clients
+│   ├── auth/
+│   ├── collections/
+│   ├── containers/
+│   ├── objects/
+│   └── common/
+└── types/                 # Shared domain types
 
-### Configuration System
-
-#### Configuration Structure
-```go
-type Config struct {
-    BackendURL  string `mapstructure:"backend_url"`
-    AuthURL     string `mapstructure:"auth_url"`
-    ClientID    string `mapstructure:"client_id"`
-    RedirectURL string `mapstructure:"redirect_url"`
-    Port        string `mapstructure:"port"`
-}
+cmd/
+├── web/                   # WASM build tool
+├── webmain/               # WASM entry point
+└── serve/                 # Development server
 ```
 
-#### Build-Specific Configuration Loading
+## Authentication Flow (OAuth2 PKCE)
 
-**Desktop Builds** (`app/config_desktop.go`):
-- Loads `config.toml` from filesystem using Viper
-- Search paths: `"."` and `"./config"`
-- Supports environment variable overrides with `NISHIKI_` prefix
+1. **User clicks "Sign In"**
+   - Frontend generates PKCE code verifier and challenge
+   - Redirects to Authentik with challenge
 
-**WebAssembly Builds** (`app/config_wasm.go`):
-- Uses embedded `config.toml` via `//go:embed config/config.toml`
-- Configuration is baked into the WASM binary at build time
-- Still supports environment variable overrides
+2. **User authenticates at Authentik**
+   - Authentik redirects back with authorization code
 
-**Shared Configuration Package** (`config/config.go`):
-- Provides base `LoadConfig()` function for non-WebAssembly contexts
-- Used by serve command and other utilities
-- No WebAssembly dependencies to avoid build constraint conflicts
+3. **Token Exchange via Backend Proxy**
+   - Frontend sends code + verifier to backend `/auth/token`
+   - Backend exchanges with Authentik (avoids CORS)
+   - Returns JWT token to frontend
 
-#### Auto-Generated Settings
+4. **Token Storage**
+   - Stored in browser localStorage
+   - Included in all API calls as `Authorization: Bearer {token}`
 
-- **Redirect URL**: Automatically generated as `http://localhost:{port}/auth/callback` if not explicitly set
-- **Port Fallback**: Defaults to "8080" if not configured
+5. **Automatic Refresh**
+   - `GetAccessToken()` checks expiration
+   - Refreshes token if needed before API calls
 
-## Authentication Flow
+## Styling Conventions
 
-### OAuth2/OIDC Architecture
+### Core Principles
 
-The frontend implements a **hybrid authentication architecture** that avoids CORS issues:
+1. **Never use inline styling** - Always use style functions
+2. **Centralized definitions** - All styles in `ui/styles/`
+3. **Semantic naming** - `StyleButtonPrimary`, `StyleFormLabel`, etc.
+4. **Consistent patterns** - Reuse style functions across components
 
-1. **Authorization** → Authentik directly
-2. **Token Exchange** → Backend proxy (avoids CORS)
-3. **API Calls** → Backend with Bearer tokens
+### Common Patterns
 
-### Authentication Components
+#### Dialog Creation
 
-#### AuthService (`app/auth_service.go`)
-- Handles OAuth2 PKCE flow with Authentik
-- Manages token storage in browser localStorage
-- Implements token refresh and validation
-- Uses structured logging with slog
-
-#### Key Methods:
-- `InitiateLogin()` - Redirects to Authentik with PKCE challenge
-- `HandleCallback()` - Processes OAuth callback and exchanges code via backend
-- `GetAccessToken()` - Retrieves valid token with automatic refresh
-- `IsTokenValid()` - Checks token expiration
-- `Logout()` - Clears tokens and redirects to Authentik logout
-
-### Authentication Endpoints
-
-#### Frontend OAuth2 Configuration
 ```go
-oauth2Config := &oauth2.Config{
-    ClientID:    config.ClientID,
-    RedirectURL: config.RedirectURL,
-    Scopes:      []string{"openid", "profile", "email", "groups"},
-    Endpoint: oauth2.Endpoint{
-        AuthURL:  config.AuthURL + "/application/o/authorize/",
-        TokenURL: config.BackendURL + "/auth/token", // Backend proxy!
+app.showDialog(DialogConfig{
+    Title: "Create Item",
+    SubmitButtonText: "Create",
+    SubmitButtonStyle: appstyles.StyleButtonPrimary,
+    ContentBuilder: func(dialog core.Widget, closeDialog func()) {
+        // Use helper functions for all fields
+        nameField = createTextField(dialog, "Item name")
+        descField = createTextField(dialog, "Description (optional)")
+
+        // Use section headers for organization
+        createSectionHeader(dialog, "Additional Details")
+
+        // Use style functions for containers
+        propsContainer := core.NewFrame(dialog)
+        propsContainer.Styler(appstyles.StylePropertiesContainer)
     },
-}
-```
-
-#### Backend Proxy Endpoints
-The backend provides CORS-safe proxy endpoints:
-- **`/auth/oidc-config`** - OIDC discovery (proxies to Authentik)
-- **`/auth/token`** - Token exchange (proxies to Authentik with proper CORS headers)
-- **`/auth/me`** - Current user information
-
-### Token Storage and Management
-
-**WebAssembly localStorage Operations:**
-```go
-// Store token
-localStorage := js.Global().Get("localStorage")
-localStorage.Call("setItem", "access_token", tokenJSON)
-
-// Retrieve token
-value := localStorage.Call("getItem", "access_token")
-```
-
-**Token Lifecycle:**
-1. User clicks "Sign In" → Redirect to Authentik
-2. Authentik callback → Extract authorization code
-3. Exchange code via backend proxy → Receive JWT token
-4. Store token in localStorage
-5. Use token for authenticated API calls
-6. Automatic refresh when token expires
-
-## Build System
-
-### Build Commands
-
-**WebAssembly Build:**
-```bash
-./bin/web  # Compiles Go to WASM and generates web assets
-```
-
-**Desktop Build:**
-```bash
-go build -o bin/desktop cmd/desktop/main.go
-```
-
-**Serve Command:**
-```bash
-go build -o bin/serve cmd/serve/main.go
-./bin/serve  # Serves the WebAssembly app with config-based port
-```
-
-### Build Outputs
-
-**WebAssembly Build** (`./bin/web`):
-- Outputs to `web/` directory
-- Generates `app.wasm`, `app.js`, `index.html`
-- Embeds configuration from `app/config/config.toml`
-- Uses Cogent Core's web build system
-
-**Serve Command**:
-- Loads configuration from filesystem
-- Serves static files from `web/` directory
-- Uses port from `config.toml` (defaults to 8080)
-- Provides fallback routing for SPA behavior
-
-## Project Structure
-
-```
-frontend/
-├── app/                          # Main application package
-│   ├── config/                   # Embedded config for WASM
-│   │   └── config.toml          # Configuration file
-│   ├── auth_service.go          # OAuth2/OIDC authentication
-│   ├── app.go                   # Main app struct and initialization
-│   ├── app_methods.go           # UI methods and event handlers
-│   ├── config_desktop.go        # Desktop config loading
-│   ├── config_wasm.go           # WebAssembly config loading
-│   ├── styles.go                # UI styling definitions
-│   └── ui_management.go         # UI state management
-├── cmd/                         # Build commands
-│   ├── desktop/main.go          # Desktop application entry
-│   ├── serve/main.go            # Web server for WASM
-│   ├── web/main.go              # Web build tool
-│   └── webmain/main.go          # WebAssembly entry point
-├── config/                      # Shared configuration package
-│   └── config.go                # Non-WASM config loading
-├── web/                         # Generated web assets
-│   ├── app.wasm                 # Compiled WebAssembly
-│   ├── app.js                   # Cogent Core JavaScript
-│   ├── index.html               # Main HTML page
-│   └── 404.html                 # SPA fallback page
-├── config.toml                  # Main configuration file
-└── bin/                         # Compiled binaries
-    ├── desktop                  # Desktop application
-    ├── serve                    # Web server
-    └── web                      # Web build tool
-```
-
-## Configuration Examples
-
-### Development Configuration (`config.toml`)
-```toml
-# Server Configuration
-port = "3000"
-
-# Backend API URL
-backend_url = "http://localhost:3001"
-
-# Authentik OIDC Configuration
-auth_url = "https://192.168.0.125:30141"
-client_id = "VVyph7MnbGDqtiPq8vfgl51ECIO2GcgZ12skA4VR"
-# redirect_url is auto-generated as http://localhost:{port}/auth/callback
-```
-
-### Environment Variable Overrides
-```bash
-export NISHIKI_PORT="8080"
-export NISHIKI_BACKEND_URL="https://api.example.com"
-export NISHIKI_AUTH_URL="https://auth.example.com"
-export NISHIKI_CLIENT_ID="production-client-id"
-```
-
-## Development Workflow
-
-### Local Development
-1. **Configure Authentik** - Set up OAuth2 provider with correct redirect URI
-2. **Update config.toml** - Set backend URL, auth URL, client ID, and port
-3. **Build WebAssembly** - Run `./bin/web` to compile and generate assets
-4. **Start Server** - Run `./bin/serve` to serve the application
-5. **Development Loop** - Modify Go code → rebuild → refresh browser
-
-### Authentication Testing
-1. **Verify Backend** - Ensure backend is running with matching configuration
-2. **Check Authentik** - Confirm OAuth2 application is configured correctly
-3. **Test Flow** - Login → callback → token exchange → API calls → logout
-4. **Debug Logging** - Check browser console for structured JSON logs
-
-## Key Features
-
-### UI Components
-- **Login View** - Authentik sign-in button and branding
-- **Dashboard View** - Main navigation and statistics
-- **Collections View** - Inventory collection management
-- **Groups View** - User group management
-- **Profile View** - User information and logout
-
-### State Management
-- **View Constants** - Typed view states (ViewLogin, ViewCallback, etc.)
-- **Authentication State** - Persistent across page reloads via localStorage
-- **Error Handling** - Structured error logging and user feedback
-- **Loading States** - Callback processing and async operations
-
-### Cross-Platform Features
-- **Responsive UI** - Works on desktop and web
-- **Native Performance** - Desktop app with full system integration
-- **Web Compatibility** - Browser-based deployment with PWA support
-- **Shared Codebase** - Single Go codebase for multiple platforms
-
-## Security Considerations
-
-### Authentication Security
-- **PKCE Flow** - Proof Key for Code Exchange for public OAuth2 clients
-- **State Verification** - CSRF protection via state parameter validation
-- **Token Storage** - Secure browser localStorage with automatic cleanup
-- **No Client Secrets** - Frontend is a public OAuth2 client (no secrets)
-
-### CORS Handling
-- **Backend Proxy** - All Authentik calls go through backend to avoid CORS
-- **Proper Headers** - Backend sets appropriate CORS headers
-- **Token Exchange** - Secure server-to-server communication for token exchange
-
-### Build Security
-- **Embedded Config** - Configuration baked into WASM binary (no runtime config exposure)
-- **Environment Overrides** - Sensitive values can be set via environment variables
-- **No Hardcoded Secrets** - All sensitive values externalized to configuration
-
-## Troubleshooting
-
-### Common Issues
-
-**Build Errors:**
-- `syscall/js` import conflicts → Use build constraints properly
-- Config embed path errors → Ensure `config/config.toml` exists in `app/` directory
-
-**Authentication Errors:**
-- CORS errors → Verify backend proxy endpoints are working
-- Invalid redirect URI → Check Authentik application configuration matches `redirect_url`
-- Token exchange failures → Verify backend can reach Authentik
-
-**Runtime Issues:**
-- Config not found → Check file paths and build constraints
-- localStorage errors → Verify WebAssembly browser compatibility
-- UI not updating → Check view state management and logging
-
-### Debugging Tips
-- **Enable Debug Logging** - Set log level to debug for detailed authentication flow
-- **Check Browser Console** - WebAssembly logs appear as JSON in browser console
-- **Verify Configuration** - Check loaded config values in startup logs
-- **Test Backend Directly** - Verify backend `/auth/oidc-config` and `/auth/token` endpoints
-
-## Dependencies
-
-### Core Dependencies
-- **Cogent Core** - Cross-platform UI framework
-- **golang.org/x/oauth2** - OAuth2 client implementation
-- **github.com/spf13/viper** - Configuration management
-- **log/slog** - Structured logging
-
-### Build Tools
-- **Go 1.21+** - Required for WebAssembly and build constraints
-- **Cogent Core CLI** - Web build system and asset generation
-
-### Runtime Dependencies
-- **Modern Browser** - WebAssembly support required for web deployment
-- **Authentik Server** - OIDC provider for authentication
-- **Backend API** - Nishiki backend for data and auth proxy
-
-## Styling Architecture (Cogent Core v0.3.12)
-
-### Design System Integration
-
-The frontend implements a comprehensive styling system that exactly matches the nishiki-frontend React application design tokens and Tailwind CSS configuration. All styling is centralized in `app/styles.go` following a consistent architectural pattern.
-
-### Cogent Core v0.3.12 API Requirements
-
-#### Key API Changes from Previous Versions:
-- **Border Radius**: Must use `sides.NewValues(units.Dp(X))` instead of `units.Dp(X)`
-- **Import Requirements**: Must import `"cogentcore.org/core/styles/sides"`
-- **Position Styling**: Removed - no `s.Position` field available
-- **Border Constants**: Use custom `units.Dp()` values instead of style constants
-
-#### Critical Styling Patterns:
-```go
-// Correct border radius usage
-s.Border.Radius = sides.NewValues(units.Dp(10)) // rounded (10px)
-s.Border.Radius = sides.NewValues(units.Dp(9999)) // rounded-full
-
-// Required imports
-import (
-    "cogentcore.org/core/styles/sides"
-    "cogentcore.org/core/styles/units"
-)
-```
-
-### Styling Architecture Principles
-
-#### 1. Centralized Style Functions
-All styling is defined in `app/styles.go` using semantic naming:
-- **Layout Functions**: `StyleContent*`, `StyleHeader*`, `StyleContainer*`
-- **Component Functions**: `StyleButton*`, `StyleCard*`, `StyleForm*`
-- **Text Functions**: `StyleText*`, `StyleTitle*`, `StyleLabel*`
-- **State Functions**: `StyleHover*`, `StyleActive*`, `StyleDisabled*`
-
-#### 2. Design Token Mapping
-Colors, typography, and spacing exactly match nishiki-frontend:
-```go
-// Colors from nishiki-frontend globals.css
-ColorPrimary = #6ab3ab        // --color-primary
-ColorAccent = #fcd884         // --color-accent
-ColorDanger = #cd5a5a         // --color-danger
-
-// Typography scale from Tailwind config
-text-xs = 12px, text-sm = 14px, text-base = 16px
-text-lg = 18px, text-xl = 20px, text-2xl = 24px
-
-// Border radius from Tailwind config
-rounded = 10px (0.625rem), rounded-full = 9999px
-```
-
-#### 3. Mobile-First Responsive Design
-Following nishiki-frontend MobileLayout component:
-```go
-// Main container spacing
-s.Padding.Set(units.Dp(48), units.Dp(0), units.Dp(64), units.Dp(0)) // pt-12 pb-16
-s.Min.Y.Set(100, units.UnitVh) // min-h-screen
-
-// Content spacing  
-s.Padding.Set(units.Dp(24), units.Dp(16)) // pt-6 px-4
-s.Gap.Set(units.Dp(8)) // gap-2
-```
-
-### Styling Guidelines
-
-#### 1. No Inline Styling
-❌ **Never use inline styling:**
-```go
-// WRONG - Inline styling
-btn.Styler(func(s *styles.Style) {
-    s.Background = colors.Uniform(ColorPrimary)
-    s.Color = colors.Uniform(ColorWhite)
+    OnSubmit: func() {
+        // Handle form submission
+    },
 })
 ```
 
-✅ **Always use style functions:**
+#### Form Field Helpers
+
 ```go
-// CORRECT - Centralized styling
-btn.Styler(StyleButtonPrimary)
+// Text fields
+nameField = createTextField(dialog, "Field label")
+
+// Search fields (includes min width)
+searchField = createSearchField(parent, "Search...")
+
+// Section headers
+createSectionHeader(dialog, "Section Title")
 ```
 
-#### 2. Semantic Naming Convention
-- `Style[Component][Variant]` - e.g., `StyleButtonPrimary`, `StyleCardHeader`
-- `Style[Layout][Purpose]` - e.g., `StyleContentColumn`, `StyleActionsRow`
-- `Style[Text][Size]` - e.g., `StyleTextTitle`, `StyleTextSmall`
+#### Container Styling
 
-#### 3. Component Consistency
-All components must use consistent styling patterns:
-- **Buttons**: Standardized padding, border radius, colors
-- **Cards**: Uniform background, radius, spacing
-- **Forms**: Consistent field sizing, validation states
-- **Text**: Proper typography hierarchy
+```go
+// Type selection button containers
+typeContainer.Styler(appstyles.StyleTypeButtonContainer)
 
-### Style Function Categories
+// Properties containers (with background and padding)
+propsContainer.Styler(appstyles.StylePropertiesContainer)
 
-#### Layout Functions
-- `StyleMainContainer` - Root container with mobile spacing
-- `StyleContentColumn` - Main content area
-- `StyleHeaderRow` - Fixed header layout
-- `StyleActionsRow` - Button/action containers
-- `StyleGridContainer` - Grid layout containers
+// Group labels with margin
+groupLabel.Styler(appstyles.StyleGroupLabelWithMargin)
 
-#### Component Functions
-- `StyleButtonPrimary/Danger/Accent/Cancel` - Button variants
-- `StyleCard/CardHeader/CardContent` - Card components
-- `StyleFormField/FormLabel/FormInput` - Form elements
-- `StyleDialog/DialogTitle/DialogActions` - Modal dialogs
+// Group dropdowns
+groupDropdown.Styler(appstyles.StyleGroupDropdownButtonGrow)
+```
 
-#### Text Functions
-- `StyleAppTitle` - Main application title (24px, bold)
-- `StyleSectionTitle` - Section headers (20px, semibold)
-- `StyleCardTitle` - Card titles (18px, semibold)
-- `StyleDescriptionText` - Secondary text (14px, gray)
-- `StyleSmallText` - Helper text (12px, gray)
+#### Button Styling
 
-### Performance Considerations
+```go
+// Primary action buttons
+btn.Styler(appstyles.StyleButtonPrimary)
 
-#### 1. Style Function Reuse
-- Minimize unique style functions (target ~60 total)
-- Group similar patterns into reusable functions
-- Use parameterized functions for variations
+// Accent buttons (important secondary actions)
+btn.Styler(appstyles.StyleButtonAccent)
 
-#### 2. Cognitive Load Reduction
-- Clear, predictable naming patterns
-- Logical grouping in `styles.go`
-- Comprehensive documentation
+// Danger buttons (destructive actions)
+btn.Styler(appstyles.StyleButtonDanger)
 
-### Development Workflow
+// Cancel buttons
+btn.Styler(appstyles.StyleButtonCancel)
 
-#### 1. Adding New Components
-1. Check existing style functions first
-2. If new styling needed, add to `styles.go`
-3. Follow naming conventions
-4. Match nishiki-frontend design tokens
-5. Test responsive behavior
+// Filter buttons
+filterBtn.Styler(appstyles.StyleFilterButton)
+```
 
-#### 2. Styling Maintenance
-1. All style changes go through `styles.go`
-2. Verify cross-component consistency
-3. Test mobile and desktop layouts
-4. Ensure accessibility compliance
+### Creating New Style Functions
 
-This architecture ensures visual consistency with the React frontend while leveraging Cogent Core's powerful styling system efficiently.
+When you need new styling:
+
+1. Check if existing style function can be reused
+2. If not, add to appropriate file in `ui/styles/`:
+   - `tokens.go` - New colors, spacing, fonts
+   - `components.go` - Component-specific styles
+   - `layouts.go` - Layout styles
+   - `utilities.go` - Utility and helper styles
+3. Use semantic naming: `Style{Component}{Variant}`
+4. Document the pattern in comments
+
+## API Client Usage
+
+### Making API Calls
+
+```go
+// Collections
+collection, err := app.collectionsClient.Create(types.CreateCollectionRequest{
+    Name:       "My Collection",
+    ObjectType: "book",
+})
+
+// Containers
+container, err := app.containersClient.Create(collectionID, types.CreateContainerRequest{
+    Name: "Bookshelf",
+    Type: "shelf",
+})
+
+// Objects
+object, err := app.objectsClient.Create(types.CreateObjectRequest{
+    Name:        "The Hobbit",
+    ContainerID: containerID,
+    Properties: map[string]interface{}{
+        "author": "J.R.R. Tolkien",
+        "isbn":   "978-0547928227",
+    },
+})
+```
+
+### Error Handling
+
+```go
+result, err := app.apiClient.SomeMethod(params)
+if err != nil {
+    app.logger.Error("Operation failed", "error", err)
+    core.ErrorSnackbar(app.body, err, "Operation Failed")
+    return
+}
+```
+
+## UI Helper Functions
+
+### Available Helpers (from `ui_helpers.go`)
+
+```go
+// Text fields
+createTextField(parent, "placeholder")
+
+// Search fields
+createSearchField(parent, "Search...")
+
+// Section headers
+createSectionHeader(parent, "Section Title")
+
+// Flex rows
+createFlexRow(parent, gap, justifyAlign)
+
+// Dialog system
+showDialog(DialogConfig{...})
+```
+
+## Common Use Cases
+
+### Adding a New Dialog
+
+1. **Define fields** as variables outside dialog
+2. **Use `showDialog()`** with `DialogConfig`
+3. **Use helper functions** for all fields
+4. **Apply style functions** for containers
+5. **Implement `OnSubmit`** handler
+
+Example:
+```go
+func (app *App) showCreateItemDialog() {
+    var nameField *core.TextField
+
+    app.showDialog(DialogConfig{
+        Title: "Create Item",
+        SubmitButtonText: "Create",
+        SubmitButtonStyle: appstyles.StyleButtonPrimary,
+        ContentBuilder: func(dialog core.Widget, closeDialog func()) {
+            nameField = createTextField(dialog, "Item name")
+        },
+        OnSubmit: func() {
+            app.handleCreateItem(nameField.Text())
+        },
+    })
+}
+```
+
+### Adding a New View
+
+1. **Create view function**: `func (app *App) showMyView()`
+2. **Clear container**: `app.mainContainer.DeleteChildren()`
+3. **Set current view**: `app.currentView = "my_view"`
+4. **Build UI** using helpers and style functions
+5. **Update display**: `app.mainContainer.Update()`
+
+### Async Operations
+
+```go
+go func() {
+    data, err := app.apiClient.FetchData()
+    if err != nil {
+        // Handle error
+        return
+    }
+
+    // Update UI on main thread
+    app.mainContainer.AsyncLock()
+    defer app.mainContainer.AsyncUnlock()
+
+    // Update UI elements
+    container.DeleteChildren()
+    for _, item := range data {
+        app.createItemCard(container, item)
+    }
+    container.Update()
+}()
+```
+
+## Build System
+
+### Commands
+
+```bash
+# Build for web (compiles to WASM)
+./bin/web
+
+# Serve locally
+./bin/serve
+
+# Output location
+# - frontend/web/app.wasm
+# - frontend/web/app.js
+# - frontend/web/index.html
+```
+
+### Build Constraints
+
+Use build tags to separate platform-specific code:
+
+```go
+//go:build js && wasm
+
+package app
+
+import "syscall/js"  // Only for WebAssembly
+
+// WASM-specific code here
+```
+
+```go
+//go:build !js || !wasm
+
+package app
+
+// Desktop-specific code here
+```
+
+## Troubleshooting
+
+### Build Issues
+
+**Error**: `syscall/js` import conflicts
+- **Fix**: Check build constraints are properly set
+
+**Error**: Config embed path not found
+- **Fix**: Ensure `config/config.toml` exists in `app/` directory
+
+### Authentication Issues
+
+**CORS Errors**
+- **Fix**: Verify backend is running and proxy endpoints work
+- Check `/auth/token` and `/auth/oidc-config` endpoints
+
+**Invalid Redirect URI**
+- **Fix**: Ensure Authentik OAuth app redirect URI matches config
+- Default: `http://localhost:{port}/auth/callback`
+
+### Runtime Issues
+
+**UI Not Updating**
+- **Fix**: Call `.Update()` on parent widget after changes
+- For async: Use `AsyncLock()` / `AsyncUnlock()`
+
+**Browser Console Errors**
+- Check browser console for WASM logs (appear as JSON)
+- Enable debug logging for more details
+
+## Dependencies
+
+- **Cogent Core v0.3.12**: UI framework
+- **golang.org/x/oauth2**: OAuth2 client
+- **github.com/spf13/viper**: Configuration (desktop builds)
+
+## Cogent Core v0.3.12 API Notes
+
+### Key API Patterns
+
+```go
+// Border radius (requires sides import)
+s.Border.Radius = sides.NewValues(units.Dp(10))
+
+// Required imports
+import "cogentcore.org/core/styles/sides"
+
+// Text wrapping
+s.Text.WhiteSpace = text.WrapAsNeeded  // Allow wrapping
+s.Text.WhiteSpace = text.WrapNever     // No wrapping
+```
+
+### Important: No Position Styling
+
+- `s.Position` field is not available in v0.3.12
+- Use layout containers and flex properties instead

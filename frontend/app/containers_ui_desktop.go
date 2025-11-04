@@ -40,7 +40,7 @@ func (app *App) RenderCapacityIndicator(parent core.Widget, container *types.Con
 
 // showContainerDetail shows detailed view of a container (desktop stub)
 func (app *App) showContainerDetail(container *types.Container) {
-	core.MessageSnackbar(app, fmt.Sprintf("Container detail for: %s", container.Name))
+	app.SafeShowSnackbar(fmt.Sprintf("Container detail for: %s", container.Name))
 }
 
 // renderStat renders a stat item (desktop stub)
@@ -55,5 +55,5 @@ func (app *App) RenderFullCapacityBar(parent core.Widget, container *types.Conta
 
 // showContainerActions shows a menu of actions for a container (desktop stub)
 func (app *App) showContainerActions(container *types.Container) {
-	core.MessageSnackbar(app, fmt.Sprintf("Actions for %s", container.Name))
+	app.SafeShowSnackbar(fmt.Sprintf("Actions for %s", container.Name))
 }

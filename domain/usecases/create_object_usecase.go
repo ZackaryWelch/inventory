@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/nishiki/backend-go/domain/entities"
 	"github.com/nishiki/backend-go/domain/repositories"
@@ -12,9 +13,13 @@ import (
 type CreateObjectRequest struct {
 	ContainerID entities.ContainerID
 	Name        string
+	Description string
 	ObjectType  entities.ObjectType
+	Quantity    *float64
+	Unit        string
 	Properties  map[string]interface{}
 	Tags        []string
+	ExpiresAt   *time.Time
 	UserID      entities.UserID
 	UserToken   string
 }
@@ -76,12 +81,19 @@ func (uc *CreateObjectUseCase) Execute(ctx context.Context, req CreateObjectRequ
 		return nil, fmt.Errorf("invalid object name: %w", err)
 	}
 
+	// Create object description
+	objectDesc := entities.NewObjectDescription(req.Description)
+
 	// Create new object
 	object, err := entities.NewObject(entities.ObjectProps{
-		Name:       objectName,
-		ObjectType: req.ObjectType,
-		Properties: req.Properties,
-		Tags:       req.Tags,
+		Name:        objectName,
+		Description: objectDesc,
+		ObjectType:  req.ObjectType,
+		Quantity:    req.Quantity,
+		Unit:        req.Unit,
+		Properties:  req.Properties,
+		Tags:        req.Tags,
+		ExpiresAt:   req.ExpiresAt,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create object entity: %w", err)

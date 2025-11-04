@@ -81,6 +81,10 @@ func (app *App) createMainUI(b *core.Body) {
 		s.Overflow.Y = styles.OverflowAuto // Allow scrolling if content is tall
 	})
 
+	// Mark UI as ready for snackbars and other UI operations
+	app.uiReady = true
+	app.logger.Debug("UI initialization complete, ready for user interactions")
+
 	if app.currentView == ViewCallback {
 		app.showCallbackView()
 	} else if !app.isSignedIn {

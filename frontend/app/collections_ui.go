@@ -136,7 +136,7 @@ func (app *App) createEnhancedCollectionCard(parent core.Widget, collection Coll
 			typeBadge := core.NewText(card).SetText(strings.Title(collection.ObjectType))
 			typeBadge.Styler(func(s *styles.Style) {
 				s.Font.Size = units.Dp(12)
-				s.Color = colors.Uniform(appstyles.ColorGrayDark)
+				s.Color = colors.Uniform(appstyles.ColorBlack)
 			})
 
 			// Stats section
@@ -384,7 +384,7 @@ func (app *App) showCreateCollectionDialogWithTypeAndValues(selectedType, curren
 		Title:             "Create New Collection",
 		SubmitButtonText:  "Create Collection",
 		SubmitButtonStyle: appstyles.StyleButtonAccent,
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			nameField = createTextField(dialog, "Collection name")
 			if currentName != "" {
 				nameField.SetText(currentName) // Restore previous value
@@ -397,13 +397,10 @@ func (app *App) showCreateCollectionDialogWithTypeAndValues(selectedType, curren
 
 			// Object type selection
 			typeLabel := core.NewText(dialog).SetText("Object Type")
-			typeLabel.Styler(appstyles.StyleFormFieldLabel)
+			typeLabel.Styler(appstyles.StyleFormLabel)
 
 			typeContainer := createFlexRow(dialog, 8, styles.Start)
-			typeContainer.Styler(func(s *styles.Style) {
-				s.Wrap = true
-				s.Max.X.Set(100, units.UnitPw) // Constrain to parent width for wrapping
-			})
+			typeContainer.Styler(appstyles.StyleTypeButtonContainer)
 
 			for _, objType := range objectTypes {
 				typeBtn := core.NewButton(typeContainer).SetText(strings.Title(objType))
@@ -597,6 +594,17 @@ func (app *App) handleEditContainerWithDetails(collectionID, containerID, name, 
 
 	// Refresh the collection detail view to show the updated container
 	app.refreshCurrentCollectionView()
+
+	// Re-open the container actions dialog with the updated container
+	// Find the updated container in the refreshed collection
+	if app.selectedCollection != nil {
+		for i := range app.selectedCollection.Containers {
+			if app.selectedCollection.Containers[i].ID == containerID {
+				app.showContainerActions(&app.selectedCollection.Containers[i])
+				break
+			}
+		}
+	}
 }
 
 func (app *App) handleDeleteContainer(collectionID, containerID string) {
@@ -626,7 +634,7 @@ func (app *App) showEditCollectionDialog(collection Collection) {
 		Title:             "Edit Collection",
 		SubmitButtonText:  "Save Changes",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			nameField = createTextField(dialog, "Collection name")
 			nameField.SetText(collection.Name)
 			descField = createTextField(dialog, "Location (optional)")
@@ -658,7 +666,7 @@ func (app *App) showImportDialog() {
 		Message:           "Upload a JSON or CSV file to import objects into a new collection",
 		SubmitButtonText:  "Import",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			fileField = createTextField(dialog, "File path or data")
 		},
 		OnSubmit: func() {
@@ -682,25 +690,25 @@ func (app *App) showCreateContainerDialogWithParent(collection Collection, paren
 		Title:             "Create Container",
 		SubmitButtonText:  "Create",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			nameField = createTextField(dialog, "Container name")
 			locationField = createTextField(dialog, "Location (optional)")
 
 			// Container type selection
 			typeLabel := core.NewText(dialog).SetText("Container Type")
-			typeLabel.Styler(func(s *styles.Style) {
-				s.Font.Weight = appstyles.WeightSemiBold
-				s.Color = colors.Uniform(appstyles.ColorBlack)
-			})
+			typeLabel.Styler(appstyles.StyleFormLabel)
 
 			typeContainer := createFlexRow(dialog, 8, styles.Start)
-			typeContainer.Styler(func(s *styles.Style) {
-				s.Wrap = true
-				s.Max.X.Set(100, units.UnitPw)
-			})
+			typeContainer.Styler(appstyles.StyleTypeButtonContainer)
+
+			// Store button references for dynamic styling updates
+			typeButtons := make([]*core.Button, 0, len(containerTypes))
 
 			for _, containerType := range containerTypes {
 				typeBtn := core.NewButton(typeContainer).SetText(strings.Title(containerType))
+				typeButtons = append(typeButtons, typeBtn)
+
+				// Apply initial styling
 				if selectedType == containerType {
 					typeBtn.Styler(appstyles.StyleObjectTypeButtonSelected)
 				} else {
@@ -710,22 +718,28 @@ func (app *App) showCreateContainerDialogWithParent(collection Collection, paren
 				capturedType := containerType
 				typeBtn.OnClick(func(e events.Event) {
 					selectedType = capturedType
+
+					// Update all button styles to reflect new selection
+					for i, btnRef := range typeButtons {
+						if containerTypes[i] == selectedType {
+							btnRef.Styler(appstyles.StyleObjectTypeButtonSelected)
+						} else {
+							btnRef.Styler(appstyles.StyleObjectTypeButtonUnselected)
+						}
+					}
+
+					// Force re-render of container
+					typeContainer.Update()
 				})
 			}
 
 			// Group selection dropdown
 			if len(app.groups) > 0 {
 				groupLabel := core.NewText(dialog).SetText("Assign to Group (optional)")
-				groupLabel.Styler(func(s *styles.Style) {
-					appstyles.StyleFormFieldLabel(s)
-					s.Margin.Top = units.Dp(12)
-				})
+				groupLabel.Styler(appstyles.StyleGroupLabelWithMargin)
 
 				groupDropdown := core.NewButton(dialog).SetText("Select Group").SetIcon(icons.ArrowDropDown)
-				groupDropdown.Styler(func(s *styles.Style) {
-					appstyles.StyleGroupDropdownButton(s)
-					s.Grow.Set(1, 0)
-				})
+				groupDropdown.Styler(appstyles.StyleGroupDropdownButtonGrow)
 				groupDropdown.OnClick(func(e events.Event) {
 					// Create menu with group options
 					m := core.NewMenu(func(m *core.Scene) {
@@ -733,6 +747,9 @@ func (app *App) showCreateContainerDialogWithParent(collection Collection, paren
 						core.NewButton(m).SetText("No Group").OnClick(func(e events.Event) {
 							selectedGroupID = nil
 							groupDropdown.SetText("No Group")
+							// Apply unselected styling
+							groupDropdown.Styler(appstyles.StyleGroupDropdownButtonGrow)
+							groupDropdown.Update()
 						})
 
 						// Add each group
@@ -741,6 +758,9 @@ func (app *App) showCreateContainerDialogWithParent(collection Collection, paren
 							core.NewButton(m).SetText(group.Name).OnClick(func(e events.Event) {
 								selectedGroupID = &groupCopy.ID
 								groupDropdown.SetText(groupCopy.Name)
+								// Apply selected styling
+								groupDropdown.Styler(appstyles.StyleGroupDropdownButtonSelectedGrow)
+								groupDropdown.Update()
 							})
 						}
 					}, groupDropdown, groupDropdown.ContextMenuPos(e))
@@ -781,7 +801,7 @@ func (app *App) showEditContainerDialog(container types.Container, collection Co
 		Title:             "Edit Container",
 		SubmitButtonText:  "Save Changes",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
-		ContentBuilder: func(dialog core.Widget) {
+		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			nameField = createTextField(dialog, "Container name")
 			nameField.SetText(container.Name)
 
@@ -790,19 +810,19 @@ func (app *App) showEditContainerDialog(container types.Container, collection Co
 
 			// Container type selection
 			typeLabel := core.NewText(dialog).SetText("Container Type")
-			typeLabel.Styler(func(s *styles.Style) {
-				s.Font.Weight = appstyles.WeightSemiBold
-				s.Color = colors.Uniform(appstyles.ColorBlack)
-			})
+			typeLabel.Styler(appstyles.StyleFormLabel)
 
 			typeContainer := createFlexRow(dialog, 8, styles.Start)
-			typeContainer.Styler(func(s *styles.Style) {
-				s.Wrap = true
-				s.Max.X.Set(100, units.UnitPw)
-			})
+			typeContainer.Styler(appstyles.StyleTypeButtonContainer)
+
+			// Store button references for dynamic styling updates
+			typeButtons := make([]*core.Button, 0, len(containerTypes))
 
 			for _, containerType := range containerTypes {
 				typeBtn := core.NewButton(typeContainer).SetText(strings.Title(containerType))
+				typeButtons = append(typeButtons, typeBtn)
+
+				// Apply initial styling
 				if selectedType == containerType {
 					typeBtn.Styler(appstyles.StyleObjectTypeButtonSelected)
 				} else {
@@ -812,35 +832,46 @@ func (app *App) showEditContainerDialog(container types.Container, collection Co
 				capturedType := containerType
 				typeBtn.OnClick(func(e events.Event) {
 					selectedType = capturedType
+
+					// Update all button styles to reflect new selection
+					for i, btnRef := range typeButtons {
+						if containerTypes[i] == selectedType {
+							btnRef.Styler(appstyles.StyleObjectTypeButtonSelected)
+						} else {
+							btnRef.Styler(appstyles.StyleObjectTypeButtonUnselected)
+						}
+					}
+
+					// Force re-render of container
+					typeContainer.Update()
 				})
 			}
 
 			// Group selection dropdown
 			if len(app.groups) > 0 {
 				groupLabel := core.NewText(dialog).SetText("Assign to Group (optional)")
-				groupLabel.Styler(func(s *styles.Style) {
-					s.Font.Weight = appstyles.WeightSemiBold
-					s.Color = colors.Uniform(appstyles.ColorBlack)
-					s.Margin.Top = units.Dp(12)
-				})
+				groupLabel.Styler(appstyles.StyleFormLabel)
 
 				initialGroupText := "Select Group"
+				hasInitialGroup := false
 				if selectedGroupID != nil {
 					for _, g := range app.groups {
 						if g.ID == *selectedGroupID {
 							initialGroupText = g.Name
+							hasInitialGroup = true
 							break
 						}
 					}
 				}
 
 				groupDropdown := core.NewButton(dialog).SetText(initialGroupText).SetIcon(icons.ArrowDropDown)
-				groupDropdown.Styler(func(s *styles.Style) {
-					s.Background = colors.Uniform(appstyles.ColorGrayLightest)
-					s.Border.Radius = sides.NewValues(units.Dp(appstyles.RadiusMD))
-					s.Padding.Set(units.Dp(8), units.Dp(12))
-					s.Grow.Set(1, 0)
-				})
+				// Apply initial styling based on whether a group is already selected
+				if hasInitialGroup {
+					groupDropdown.Styler(appstyles.StyleGroupDropdownButtonSelectedGrow)
+				} else {
+					groupDropdown.Styler(appstyles.StyleGroupDropdownButtonGrow)
+				}
+
 				groupDropdown.OnClick(func(e events.Event) {
 					// Create menu with group options
 					m := core.NewMenu(func(m *core.Scene) {
@@ -848,6 +879,9 @@ func (app *App) showEditContainerDialog(container types.Container, collection Co
 						core.NewButton(m).SetText("No Group").OnClick(func(e events.Event) {
 							selectedGroupID = nil
 							groupDropdown.SetText("No Group")
+							// Apply unselected styling
+							groupDropdown.Styler(appstyles.StyleGroupDropdownButtonGrow)
+							groupDropdown.Update()
 						})
 
 						// Add each group
@@ -856,6 +890,9 @@ func (app *App) showEditContainerDialog(container types.Container, collection Co
 							core.NewButton(m).SetText(group.Name).OnClick(func(e events.Event) {
 								selectedGroupID = &groupCopy.ID
 								groupDropdown.SetText(groupCopy.Name)
+								// Apply selected styling
+								groupDropdown.Styler(appstyles.StyleGroupDropdownButtonSelectedGrow)
+								groupDropdown.Update()
 							})
 						}
 					}, groupDropdown, groupDropdown.ContextMenuPos(e))

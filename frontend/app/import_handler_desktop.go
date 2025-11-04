@@ -35,7 +35,7 @@ type ImportData struct {
 func (h *ImportHandler) SelectFile(callback func(content string, filename string, err error)) {
 	// For desktop, we'll use Cogent Core's file dialog
 	// This is a simplified version - you may want to enhance with proper file dialog
-	core.ErrorSnackbar(h.app, fmt.Errorf("file selection not implemented for desktop"), "Not Implemented")
+	h.app.SafeShowErrorSnackbar(fmt.Errorf("file selection not implemented for desktop"), "Not Implemented")
 	callback("", "", fmt.Errorf("file selection not implemented for desktop"))
 }
 
@@ -220,7 +220,7 @@ func (h *ImportHandler) ImportToContainer(containerID string, objects []types.Cr
 
 	// TODO: Call backend API to import objects
 	// For now, this is a placeholder
-	core.ErrorSnackbar(h.app, fmt.Errorf("import not yet implemented"), "Import Error")
+	h.app.SafeShowErrorSnackbar(fmt.Errorf("import not yet implemented"), "Import Error")
 	return fmt.Errorf("import not yet implemented")
 }
 
@@ -229,6 +229,6 @@ func (h *ImportHandler) DistributeToCollection(collectionID string, objects []ty
 	// TODO: Implement distribution logic
 	// For automatic mode, this will use the backend distribution service
 	// For manual mode, user selects containers
-	core.ErrorSnackbar(h.app, fmt.Errorf("distribution not yet implemented"), "Import Error")
+	h.app.SafeShowErrorSnackbar(fmt.Errorf("distribution not yet implemented"), "Import Error")
 	return fmt.Errorf("distribution not yet implemented")
 }
