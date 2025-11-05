@@ -29,7 +29,7 @@ func TestGetAllContainersUseCase_Execute(t *testing.T) {
 	ctx := context.Background()
 	userID, _ := entities.UserIDFromString("test-user-123")
 	userToken := "test-jwt-token"
-	
+
 	// Create test groups
 	groupID1, _ := entities.GroupIDFromString("group-1")
 	groupName1, _ := entities.NewGroupName("Test Group 1")

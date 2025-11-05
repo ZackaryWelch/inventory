@@ -42,7 +42,7 @@ func LoadConfig() *Config {
 	}
 
 	// Debug: Print loaded config
-	fmt.Printf("Loaded config: AuthURL=%s, ClientID=%s, RedirectURL=%s, Port=%s\n", 
+	fmt.Printf("Loaded config: AuthURL=%s, ClientID=%s, RedirectURL=%s, Port=%s\n",
 		config.AuthURL, config.ClientID, config.RedirectURL, config.Port)
 
 	return &config

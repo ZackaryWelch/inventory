@@ -18,21 +18,29 @@ import (
 
 // ImportDialogState tracks the state of the import wizard
 type ImportDialogState struct {
-	Step            int // 1=upload, 2=preview, 3=settings, 4=progress
-	ImportData      *ImportData
-	Filename        string
+	Step              int // 1=upload, 2=preview, 3=settings, 4=progress
+	ImportData        *ImportData
+	Filename          string
 	SelectedContainer string
-	DistributionMode string // "automatic" or "manual" or "target"
-	ImportErrors    []string
+	DistributionMode  string // "automatic" or "manual" or "target"
+	ImportErrors      []string
 }
 
 // ShowImportDialog shows a multi-step import wizard dialog
 func (app *App) ShowImportDialog(containerID string, collectionID string) {
+	// Set initial distribution mode based on whether a container was specified
+	distributionMode := "automatic"
+	if containerID != "" {
+		distributionMode = "target"
+	}
+
 	state := &ImportDialogState{
 		Step:              1,
 		SelectedContainer: containerID,
-		DistributionMode:  "automatic",
+		DistributionMode:  distributionMode,
 	}
+
+	app.logger.Info("ShowImportDialog", "containerID", containerID, "collectionID", collectionID, "distributionMode", distributionMode)
 
 	app.showImportDialogStep(state, collectionID)
 }
@@ -63,12 +71,18 @@ func (app *App) showImportUploadStep(state *ImportDialogState, collectionID stri
 			uploadBtn := core.NewButton(dialog).SetText("Select File").SetIcon(icons.UploadFile)
 			uploadBtn.Styler(appstyles.StyleButtonPrimary)
 			uploadBtn.OnClick(func(e events.Event) {
+				// Show loading indicator
+				core.MessageSnackbar(app.body, "Selecting file...")
+
 				handler := NewImportHandler(app)
 				handler.SelectFile(func(content string, filename string, err error) {
 					if err != nil {
 						core.ErrorSnackbar(app.body, err, "File Selection Error")
 						return
 					}
+
+					// Show parsing indicator
+					core.MessageSnackbar(app.body, "Parsing file...")
 
 					// Parse the file
 					data, parseErr := handler.Parse(content, filename)
@@ -80,6 +94,9 @@ func (app *App) showImportUploadStep(state *ImportDialogState, collectionID stri
 					state.ImportData = data
 					state.Filename = filename
 					state.Step = 2
+
+					// Close current dialog and show next step
+					closeDialog()
 					app.showImportDialogStep(state, collectionID)
 				})
 			})
@@ -100,7 +117,7 @@ func (app *App) showImportUploadStep(state *ImportDialogState, collectionID stri
 				s.Min.Y = units.Dp(200)
 			})
 		},
-		SubmitButtonText: "Next",
+		SubmitButtonText:  "Next",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
 		OnSubmit: func() {
 			if textField.Text() == "" {
@@ -198,7 +215,7 @@ func (app *App) showImportPreviewStep(state *ImportDialogState, collectionID str
 				})
 			}
 		},
-		SubmitButtonText: "Next",
+		SubmitButtonText:  "Next",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
 		OnSubmit: func() {
 			state.Step = 3
@@ -213,6 +230,8 @@ func (app *App) showImportPreviewStep(state *ImportDialogState, collectionID str
 
 // showImportSettingsStep shows step 3: distribution settings
 func (app *App) showImportSettingsStep(state *ImportDialogState, collectionID string) {
+	app.logger.Info("showImportSettingsStep", "selectedContainer", state.SelectedContainer, "distributionMode", state.DistributionMode)
+
 	app.showDialog(DialogConfig{
 		Title:   "Import Data - Step 3: Settings",
 		Message: "Choose how to distribute the imported items",
@@ -240,6 +259,7 @@ func (app *App) showImportSettingsStep(state *ImportDialogState, collectionID st
 			})
 			autoBtn.OnClick(func(e events.Event) {
 				state.DistributionMode = "automatic"
+				radioFrame.Update()
 			})
 
 			core.NewText(radioFrame).SetText("Automatically distribute items across containers based on capacity and type").Styler(func(s *styles.Style) {
@@ -261,6 +281,7 @@ func (app *App) showImportSettingsStep(state *ImportDialogState, collectionID st
 				})
 				targetBtn.OnClick(func(e events.Event) {
 					state.DistributionMode = "target"
+					radioFrame.Update()
 				})
 
 				core.NewText(radioFrame).SetText("Import all items to the selected container").Styler(func(s *styles.Style) {
@@ -270,11 +291,12 @@ func (app *App) showImportSettingsStep(state *ImportDialogState, collectionID st
 				})
 			}
 		},
-		SubmitButtonText: "Import",
+		SubmitButtonText:  "Import",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
 		OnSubmit: func() {
 			state.Step = 4
-			app.performImport(state, collectionID)
+			// Show progress dialog first
+			app.showImportProgressStep(state, collectionID)
 		},
 		OnCancel: func() {
 			state.Step = 2
@@ -295,33 +317,57 @@ func (app *App) showImportProgressStep(state *ImportDialogState, collectionID st
 
 			// Progress indicator (spinner)
 			// TODO: Add actual progress bar when available in Cogent Core
+
+			// Start the import asynchronously
+			app.performImport(state, collectionID, closeDialog)
 		},
 		OnCancel: nil, // No cancel button during import
 	})
 }
 
 // performImport executes the import based on the selected settings
-func (app *App) performImport(state *ImportDialogState, collectionID string) {
+func (app *App) performImport(state *ImportDialogState, collectionID string, closeDialog func()) {
 	handler := NewImportHandler(app)
 
-	var err error
-	if state.DistributionMode == "target" && state.SelectedContainer != "" {
-		// Import to specific container
-		err = handler.ImportToContainer(state.SelectedContainer, state.ImportData.Objects)
-	} else {
-		// Automatic distribution
-		err = handler.DistributeToCollection(collectionID, state.ImportData.Objects, state.DistributionMode)
-	}
+	// Run import asynchronously
+	go func() {
+		var err error
+		if state.DistributionMode == "target" && state.SelectedContainer != "" {
+			// Import to specific container
+			err = handler.ImportToContainer(state.SelectedContainer, state.ImportData.Objects)
+		} else {
+			// Automatic distribution
+			err = handler.DistributeToCollection(collectionID, state.ImportData.Objects, state.DistributionMode)
+		}
 
-	if err != nil {
-		core.ErrorSnackbar(app.body, err, "Import Error")
-		return
-	}
+		// Update UI on main thread
+		app.mainContainer.AsyncLock()
+		defer app.mainContainer.AsyncUnlock()
 
-	core.MessageSnackbar(app.body, fmt.Sprintf("Successfully imported %d items", len(state.ImportData.Objects)))
+		// Close progress dialog
+		closeDialog()
 
-	// Refresh the current view by re-showing the collection detail
-	if app.selectedCollection != nil {
-		app.showCollectionDetailView(*app.selectedCollection)
-	}
+		if err != nil {
+			app.logger.Error("Import failed", "error", err)
+			core.ErrorSnackbar(app.body, err, "Import Error")
+			return
+		}
+
+		app.logger.Info("Import completed successfully", "count", len(state.ImportData.Objects))
+		core.MessageSnackbar(app.body, fmt.Sprintf("Successfully imported %d items", len(state.ImportData.Objects)))
+
+		// Refresh the current view by fetching fresh data and re-showing
+		if app.selectedCollection != nil {
+			// Fetch fresh collection data from backend
+			freshCollection, err := app.collectionsClient.Get(app.currentUser.ID, app.selectedCollection.ID)
+			if err != nil {
+				app.logger.Error("Failed to refresh collection after import", "error", err)
+				// Fall back to showing with stale data
+				app.showCollectionDetailView(*app.selectedCollection)
+			} else {
+				app.logger.Info("Refreshed collection data", "containers", len(freshCollection.Containers))
+				app.showCollectionDetailView(*freshCollection)
+			}
+		}
+	}()
 }

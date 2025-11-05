@@ -29,9 +29,9 @@ type CreateContainerResponse struct {
 }
 
 type CreateContainerUseCase struct {
-	containerRepo   repositories.ContainerRepository
-	collectionRepo  repositories.CollectionRepository
-	authService     services.AuthService
+	containerRepo  repositories.ContainerRepository
+	collectionRepo repositories.CollectionRepository
+	authService    services.AuthService
 }
 
 func NewCreateContainerUseCase(containerRepo repositories.ContainerRepository, collectionRepo repositories.CollectionRepository, authService services.AuthService) *CreateContainerUseCase {

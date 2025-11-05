@@ -356,12 +356,12 @@ func TestAuthentikAuthService_ProxyTokenExchange(t *testing.T) {
 	t.Skip("Skipping test that requires OIDC provider mocking - needs refactoring for multi-client support")
 
 	tests := []struct {
-		name             string
-		inputRequest     map[string]interface{}
-		serverResponse   map[string]interface{}
-		serverStatus     int
-		expectError      bool
-		expectedStatus   int
+		name              string
+		inputRequest      map[string]interface{}
+		serverResponse    map[string]interface{}
+		serverStatus      int
+		expectError       bool
+		expectedStatus    int
 		verifyCredentials bool
 	}{
 		{
@@ -506,7 +506,7 @@ func TestAuthentikAuthService_ProxyTokenExchange(t *testing.T) {
 					t.Errorf("Expected response to contain key %q", key)
 					continue
 				}
-				
+
 				// Handle numeric values (JSON unmarshaling converts to float64)
 				if expectedInt, ok := expected.(int); ok {
 					if actualFloat, ok := actual.(float64); ok {
@@ -516,7 +516,7 @@ func TestAuthentikAuthService_ProxyTokenExchange(t *testing.T) {
 						continue
 					}
 				}
-				
+
 				if actual != expected {
 					t.Errorf("Expected %s to be %v, got %v", key, expected, actual)
 				}

@@ -157,7 +157,7 @@ func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 		s.Direction = styles.Row
 		s.Align.Items = styles.Center
 		s.Gap.Set(units.Dp(12))
-		s.Grow.Set(1, 0)
+		// No Grow needed - parent uses SpaceBetween which handles spacing
 	})
 
 	// Icon
@@ -169,12 +169,13 @@ func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 		})
 	}
 
-	// Title
+	// Title - sizes naturally to content
 	titleText := core.NewText(leftSide).SetText(config.Title)
 	titleText.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(18)
 		s.Font.Weight = appstyles.WeightSemiBold
-		s.Color = colors.Uniform(appstyles.ColorBlack) // Ensure title is visible
+		s.Color = colors.Uniform(appstyles.ColorBlack)
+		// No WrapNever needed - container sizes naturally without Grow
 	})
 
 	// Actions
@@ -201,12 +202,13 @@ func (app *App) createCard(parent core.Widget, config CardConfig) *core.Frame {
 		}
 	}
 
-	// Description
+	// Description - sizes naturally to content
 	if config.Description != "" {
 		desc := core.NewText(card).SetText(config.Description)
 		desc.Styler(func(s *styles.Style) {
 			s.Font.Size = units.Dp(14)
 			s.Color = colors.Uniform(appstyles.ColorTextSecondary)
+			// Text can wrap naturally if needed for long descriptions
 		})
 	}
 
@@ -265,8 +267,7 @@ func createTextField(parent core.Widget, placeholder string) *core.TextField {
 	field.SetName(placeholder)
 	field.Styler(func(s *styles.Style) {
 		appstyles.StyleInputRounded(s)
-		// Ensure input respects parent constraints
-		s.Max.X.Set(100, units.UnitPw) // Don't exceed parent width
+		// Removed Max.X - field sizes naturally to parent
 	})
 	return field
 }
@@ -318,4 +319,3 @@ type BreadcrumbItem struct {
 	Label   string
 	OnClick func()
 }
-

@@ -27,74 +27,74 @@ func StyleH1(s *styles.Style) {
 
 // H2: className="text-xl"
 func StyleH2(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXL) // text-xl
-	s.Font.Weight = WeightSemiBold     // Make section headers semibold
+	s.Font.Size = units.Dp(FontSizeXL)   // text-xl
+	s.Font.Weight = WeightSemiBold       // Make section headers semibold
 	s.Color = colors.Uniform(ColorBlack) // Ensure visibility
 }
 
 // H3: className="text-lg"
 func StyleH3(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeLG) // text-lg
-	s.Font.Weight = WeightSemiBold    // Make section headers semibold
+	s.Font.Size = units.Dp(FontSizeLG)   // text-lg
+	s.Font.Weight = WeightSemiBold       // Make section headers semibold
 	s.Color = colors.Uniform(ColorBlack) // Ensure visibility
 }
 
 func StyleAppTitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSize2XL)         // text-2xl
+	s.Font.Size = units.Dp(FontSize2XL) // text-2xl
 	s.Font.Weight = WeightBold
 	s.Color = colors.Uniform(ColorPrimary)
-	s.Text.WhiteSpace = text.WrapNever          // Don't wrap title text
+	s.Text.WhiteSpace = text.WrapNever // Don't wrap title text
 }
 
 func StyleSubtitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeBase)        // text-base
+	s.Font.Size = units.Dp(FontSizeBase) // text-base
 	s.Color = colors.Uniform(ColorGrayDark)
-	s.Text.WhiteSpace = text.WrapNever          // Don't wrap subtitle text
+	s.Text.WhiteSpace = text.WrapNever // Don't wrap subtitle text
 }
 
 func StyleSectionTitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXL)          // text-xl (matching H2 component)
+	s.Font.Size = units.Dp(FontSizeXL) // text-xl (matching H2 component)
 	s.Font.Weight = WeightSemiBold
 	s.Color = colors.Uniform(ColorBlack)
-	s.Text.WhiteSpace = text.WrapNever          // Don't wrap section titles
+	s.Text.WhiteSpace = text.WrapNever // Don't wrap section titles
 }
 
 // StylePageTitle creates centered page titles (Groups, Foods, Profile)
 // Matches React MobileLayout heading pattern: text-center text-2xl font-semibold
 func StylePageTitle(s *styles.Style) {
-	s.Text.Align = text.Center                  // text-center
-	s.Font.Size = units.Dp(FontSize2XL)         // text-2xl
-	s.Font.Weight = WeightSemiBold              // font-semibold
+	s.Text.Align = text.Center          // text-center
+	s.Font.Size = units.Dp(FontSize2XL) // text-2xl
+	s.Font.Weight = WeightSemiBold      // font-semibold
 	s.Color = colors.Uniform(ColorBlack)
 	s.Padding.Set(units.Dp(Spacing4), units.Dp(0)) // py-4
-	s.Background = colors.Uniform(ColorWhite)   // bg-white
+	s.Background = colors.Uniform(ColorWhite)      // bg-white
 }
 
 func StyleCardTitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeLG)          // text-lg (matching group card titles)
+	s.Font.Size = units.Dp(FontSizeLG) // text-lg (matching group card titles)
 	s.Font.Weight = WeightSemiBold
-	s.Margin.Bottom = units.Dp(Spacing0_5)      // Simulate React's "leading-6" line height spacing
-	s.Text.WhiteSpace = text.WrapNever          // Don't wrap card titles
+	s.Margin.Bottom = units.Dp(Spacing0_5) // Simulate React's "leading-6" line height spacing
+	s.Text.WhiteSpace = text.WrapNever     // Don't wrap card titles
 }
 
 func StyleSmallText(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXS)          // text-xs
-	s.Color = colors.Uniform(ColorBlack)        // Black for visibility on white backgrounds
+	s.Font.Size = units.Dp(FontSizeXS)   // text-xs
+	s.Color = colors.Uniform(ColorBlack) // Black for visibility on white backgrounds
 }
 
 // Description text styling (matching frontend text-sm text-gray-dark)
 func StyleDescriptionText(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeSM)          // text-sm
+	s.Font.Size = units.Dp(FontSizeSM) // text-sm
 	s.Color = colors.Uniform(ColorGrayDark)
 }
 
 // Form label styling - prevents wrapping, semibold weight
 func StyleFormLabel(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeBase)        // text-base
-	s.Font.Weight = WeightSemiBold              // font-semibold
+	s.Font.Size = units.Dp(FontSizeBase) // text-base
+	s.Font.Weight = WeightSemiBold       // font-semibold
 	s.Color = colors.Uniform(ColorBlack)
-	s.Text.WhiteSpace = text.WrapNever          // Don't wrap labels
-	s.Margin.Top = units.Dp(Spacing2)           // Add some top spacing
+	s.Text.WhiteSpace = text.WrapNever // Don't wrap labels
+	s.Margin.Top = units.Dp(Spacing2)  // Add some top spacing
 }
 
 // ====================================================================================
@@ -103,34 +103,34 @@ func StyleFormLabel(s *styles.Style) {
 
 // className="text-xs text-gray-dark flex items-center gap-1 my-1.5"
 func StyleTextXsGrayWithIcon(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXS)          // text-xs
-	s.Color = colors.Uniform(ColorGrayDark)     // text-gray-dark
-	s.Display = styles.Flex                     // flex
-	s.Align.Items = styles.Center               // items-center
-	s.Gap.Set(units.Dp(Spacing1))               // gap-1
+	s.Font.Size = units.Dp(FontSizeXS)              // text-xs
+	s.Color = colors.Uniform(ColorGrayDark)         // text-gray-dark
+	s.Display = styles.Flex                         // flex
+	s.Align.Items = styles.Center                   // items-center
+	s.Gap.Set(units.Dp(Spacing1))                   // gap-1
 	s.Margin.Set(units.Dp(Spacing1_5), units.Dp(0)) // my-1.5
 }
 
 // className="text-sm flex items-center gap-1"
 func StyleTextSmWithIcon(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeSM)          // text-sm
-	s.Display = styles.Flex                     // flex
-	s.Align.Items = styles.Center               // items-center
-	s.Gap.Set(units.Dp(Spacing1))               // gap-1
+	s.Font.Size = units.Dp(FontSizeSM) // text-sm
+	s.Display = styles.Flex            // flex
+	s.Align.Items = styles.Center      // items-center
+	s.Gap.Set(units.Dp(Spacing1))      // gap-1
 }
 
 func StyleStatsTitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeLG)          // text-lg
+	s.Font.Size = units.Dp(FontSizeLG) // text-lg
 	s.Font.Weight = WeightSemiBold
-	s.Color = colors.Uniform(ColorBlack)        // Ensure text is visible
-	s.Text.WhiteSpace = text.WrapNever          // Don't wrap stats title
+	s.Color = colors.Uniform(ColorBlack) // Ensure text is visible
+	s.Text.WhiteSpace = text.WrapNever   // Don't wrap stats title
 }
 
 func StyleDevTitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeBase)        // text-base
+	s.Font.Size = units.Dp(FontSizeBase) // text-base
 	s.Font.Weight = WeightSemiBold
 	s.Color = colors.Uniform(ColorGrayDark)
-	s.Text.WhiteSpace = text.WrapNever          // Don't wrap dev section title
+	s.Text.WhiteSpace = text.WrapNever // Don't wrap dev section title
 }
 
 func StyleUserFieldLabel(s *styles.Style) {
@@ -146,24 +146,24 @@ func StyleEmptyText(s *styles.Style) {
 
 // Stat text styles
 func StyleStatValue(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSize2XL)         // text-2xl
+	s.Font.Size = units.Dp(FontSize2XL) // text-2xl
 	s.Font.Weight = WeightBold
 	s.Color = colors.Uniform(ColorWhite)
 }
 
 func StyleStatLabel(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeSM)          // text-sm
+	s.Font.Size = units.Dp(FontSizeSM) // text-sm
 	s.Color = colors.Uniform(ColorWhite)
 }
 
 func StyleStatValuePrimary(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeLG)          // text-lg
+	s.Font.Size = units.Dp(FontSizeLG) // text-lg
 	s.Font.Weight = WeightBold
 	s.Color = colors.Uniform(ColorPrimary)
 }
 
 func StyleStatValueAccent(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeLG)          // text-lg
+	s.Font.Size = units.Dp(FontSizeLG) // text-lg
 	s.Font.Weight = WeightBold
 	s.Color = colors.Uniform(ColorAccent)
 }
@@ -173,40 +173,40 @@ func StyleStatValueAccent(s *styles.Style) {
 // ====================================================================================
 
 func StyleObjectCardName(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeBase)        // text-base
+	s.Font.Size = units.Dp(FontSizeBase) // text-base
 	s.Font.Weight = WeightSemiBold
 	s.Color = colors.Uniform(ColorBlack)
 }
 
 func StyleObjectCardDescription(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeSM)          // text-sm
+	s.Font.Size = units.Dp(FontSizeSM) // text-sm
 	s.Color = colors.Uniform(ColorGrayDark)
 }
 
 func StyleCollectionName(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeBase)        // text-base
+	s.Font.Size = units.Dp(FontSizeBase) // text-base
 	s.Font.Weight = WeightSemiBold
 	s.Color = colors.Uniform(ColorBlack)
 }
 
 func StyleCollectionType(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXS)          // text-xs
+	s.Font.Size = units.Dp(FontSizeXS) // text-xs
 	s.Color = colors.Uniform(ColorGrayDark)
 }
 
 func StyleContainerName(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeBase)        // text-base
+	s.Font.Size = units.Dp(FontSizeBase) // text-base
 	s.Font.Weight = WeightSemiBold
 }
 
 func StyleContainerDescription(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeSM)          // text-sm
+	s.Font.Size = units.Dp(FontSizeSM) // text-sm
 	s.Color = colors.Uniform(ColorGrayDark)
 }
 
 func StyleContainerCount(s *styles.Style) {
 	s.Font.Size = units.Dp(FontSizeBase) // Changed from XS to Base for better readability
-	s.Color = colors.Uniform(ColorBlack)  // Changed from ColorGrayDark for white backgrounds
+	s.Color = colors.Uniform(ColorBlack) // Changed from ColorGrayDark for white backgrounds
 }
 
 // ====================================================================================
@@ -214,18 +214,18 @@ func StyleContainerCount(s *styles.Style) {
 // ====================================================================================
 
 func StylePropertiesTitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXS)          // text-xs
+	s.Font.Size = units.Dp(FontSizeXS) // text-xs
 	s.Font.Weight = WeightSemiBold
 	s.Color = colors.Uniform(ColorGrayDark)
 }
 
 func StylePropertyKey(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXS)          // text-xs
+	s.Font.Size = units.Dp(FontSizeXS) // text-xs
 	s.Color = colors.Uniform(ColorGrayDark)
 }
 
 func StylePropertyValue(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXS)          // text-xs
+	s.Font.Size = units.Dp(FontSizeXS) // text-xs
 	s.Font.Weight = WeightMedium
 }
 
@@ -234,38 +234,38 @@ func StylePropertyValue(s *styles.Style) {
 // ====================================================================================
 
 func StyleFilterLabel(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXS)          // text-xs
+	s.Font.Size = units.Dp(FontSizeXS) // text-xs
 	s.Font.Weight = WeightSemiBold
 	s.Color = colors.Uniform(ColorGrayDark)
 }
 
 func StyleFilterTitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeLG)          // text-lg
+	s.Font.Size = units.Dp(FontSizeLG) // text-lg
 	s.Font.Weight = WeightSemiBold
 }
 
 func StyleFilterSubtitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeSM)          // text-sm
+	s.Font.Size = units.Dp(FontSizeSM) // text-sm
 	s.Font.Weight = WeightSemiBold
 }
 
 func StyleSectionSubtitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeBase)        // text-base
+	s.Font.Size = units.Dp(FontSizeBase) // text-base
 	s.Font.Weight = WeightSemiBold
 }
 
 func StyleObjectTitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXL)          // text-xl
+	s.Font.Size = units.Dp(FontSizeXL) // text-xl
 	s.Font.Weight = WeightBold
 }
 
 func StyleMoreText(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSize2XS)         // text-xs
+	s.Font.Size = units.Dp(FontSize2XS) // text-xs
 	s.Color = colors.Uniform(ColorGrayDark)
 }
 
 func StyleActiveFilterText(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXS)          // text-xs
+	s.Font.Size = units.Dp(FontSizeXS) // text-xs
 	s.Color = colors.Uniform(ColorPrimary)
 }
 
@@ -274,12 +274,12 @@ func StyleSearchResultTitle(s *styles.Style) {
 }
 
 func StyleSearchResultDescription(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXS)          // text-xs
+	s.Font.Size = units.Dp(FontSizeXS) // text-xs
 	s.Color = colors.Uniform(ColorGrayDark)
 }
 
 func StyleSearchResultPath(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSize2XS)         // text-xs
+	s.Font.Size = units.Dp(FontSize2XS) // text-xs
 	s.Color = colors.Uniform(ColorPrimary)
 }
 
@@ -299,10 +299,10 @@ func StyleFoodCardContainerInfo(s *styles.Style) {
 
 // FoodCard quantity info: className="text-sm flex items-center gap-1"
 func StyleFoodCardQuantityInfo(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeSM)              // text-sm
-	s.Display = styles.Flex                         // flex
-	s.Align.Items = styles.Center                   // items-center
-	s.Gap.Set(units.Dp(Spacing1))                   // gap-1
+	s.Font.Size = units.Dp(FontSizeSM) // text-sm
+	s.Display = styles.Flex            // flex
+	s.Align.Items = styles.Center      // items-center
+	s.Gap.Set(units.Dp(Spacing1))      // gap-1
 }
 
 // FoodCard time display: className="ml-auto"
@@ -312,8 +312,8 @@ func StyleFoodCardTime(s *styles.Style) {
 }
 
 func StyleTimeDisplay(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeSM)          // text-sm (matching quantity)
-	s.Color = colors.Uniform(ColorGrayDark)     // subtle color for dates
+	s.Font.Size = units.Dp(FontSizeSM)      // text-sm (matching quantity)
+	s.Color = colors.Uniform(ColorGrayDark) // subtle color for dates
 }
 
 // ====================================================================================
@@ -559,14 +559,14 @@ func StyleNavButton(s *styles.Style) {
 // StyleBottomMenuItem matches React BottomMenuLink:
 // className="inline-flex flex-col items-center justify-center"
 func StyleBottomMenuItem(s *styles.Style) {
-	s.Display = styles.Flex                  // inline-flex
-	s.Direction = styles.Column              // flex-col
-	s.Align.Items = styles.Center            // items-center
-	s.Justify.Content = styles.Center        // justify-center
-	s.Background = nil                       // transparent
-	s.Padding.Set(units.Dp(Spacing2))        // Padding for clickable area
-	s.Gap.Set(units.Dp(2))                   // Small gap between icon and label (mb-1)
-	s.Cursor = cursors.Pointer               // Clickable cursor
+	s.Display = styles.Flex           // inline-flex
+	s.Direction = styles.Column       // flex-col
+	s.Align.Items = styles.Center     // items-center
+	s.Justify.Content = styles.Center // justify-center
+	s.Background = nil                // transparent
+	s.Padding.Set(units.Dp(Spacing2)) // Padding for clickable area
+	s.Gap.Set(units.Dp(2))            // Small gap between icon and label (mb-1)
+	s.Cursor = cursors.Pointer        // Clickable cursor
 }
 
 func StyleUserButton(s *styles.Style) {
@@ -588,7 +588,7 @@ func StyleLogoutButton(s *styles.Style) {
 
 func StyleCreateButton(s *styles.Style) {
 	s.Align.Self = styles.End
-	s.Background = nil // ghost
+	s.Background = nil                   // ghost
 	s.Color = colors.Uniform(ColorBlack) // Changed from default for better visibility
 	s.Padding.Set(units.Dp(Spacing2))
 	s.Min.X.Set(48, units.UnitDp)
@@ -684,12 +684,12 @@ func StyleClearFiltersButton(s *styles.Style) {
 
 // className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"
 func StyleLoadingSpinner(s *styles.Style) {
-	s.Border.Radius = sides.NewValues(units.Dp(RadiusFull))     // rounded-full
-	s.Min.Y.Set(48, units.UnitDp)                               // h-12
-	s.Min.X.Set(48, units.UnitDp)                               // w-12
-	s.Border.Style.Set(styles.BorderSolid)                      // border
-	s.Border.Width.Bottom = units.Dp(2)                         // border-b-2
-	s.Border.Color.Set(colors.Uniform(ColorPrimary))            // border-primary (using primary instead of blue-600)
+	s.Border.Radius = sides.NewValues(units.Dp(RadiusFull))                   // rounded-full
+	s.Min.Y.Set(48, units.UnitDp)                                             // h-12
+	s.Min.X.Set(48, units.UnitDp)                                             // w-12
+	s.Border.Style.Set(styles.BorderSolid)                                    // border
+	s.Border.Width.Bottom = units.Dp(2)                                       // border-b-2
+	s.Border.Color.Set(colors.Uniform(ColorPrimary))                          // border-primary (using primary instead of blue-600)
 	s.Margin.Set(units.Dp(0), units.Dp(-1), units.Dp(Spacing4), units.Dp(-1)) // mx-auto mb-4
 }
 
@@ -704,28 +704,28 @@ func StyleLoadingSkeleton(s *styles.Style) {
 // Logo patterns: className="w-32 h-26 mb-20"
 // Logo patterns: className="w-32 h-26 mb-20"
 func StyleLoginLogo(s *styles.Style) {
-	s.Display = styles.Flex                  // flex (to center logo text)
-	s.Align.Items = styles.Center            // items-center
-	s.Justify.Content = styles.Center        // justify-center
-	s.Min.X.Set(128, units.UnitDp)           // w-32
-	s.Min.Y.Set(104, units.UnitDp)           // h-26 (104px)
-	s.Margin.Bottom = units.Dp(Spacing20)    // mb-20
+	s.Display = styles.Flex               // flex (to center logo text)
+	s.Align.Items = styles.Center         // items-center
+	s.Justify.Content = styles.Center     // justify-center
+	s.Min.X.Set(128, units.UnitDp)        // w-32
+	s.Min.Y.Set(104, units.UnitDp)        // h-26 (104px)
+	s.Margin.Bottom = units.Dp(Spacing20) // mb-20
 }
 
 // Login button container: className="w-full max-w-sm"
 // Natural sizing - no hard constraints, just column direction for button + subtitle
 func StyleLoginButtonContainer(s *styles.Style) {
 	s.Direction = styles.Column
-	s.Align.Items = styles.Center  // Center children horizontally
-	s.Gap.Set(units.Dp(Spacing4))  // gap between button and subtitle
+	s.Align.Items = styles.Center // Center children horizontally
+	s.Gap.Set(units.Dp(Spacing4)) // gap between button and subtitle
 }
 
 // Login subtitle text: className="mt-4 text-center" with "text-sm text-gray-600"
 func StyleLoginSubtitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeSM)       // text-sm
-	s.Color = colors.Uniform(ColorGray600)   // text-gray-600
-	s.Text.Align = AlignCenter               // text-center
-	s.Margin.Top = units.Dp(Spacing4)        // mt-4
+	s.Font.Size = units.Dp(FontSizeSM)     // text-sm
+	s.Color = colors.Uniform(ColorGray600) // text-gray-600
+	s.Text.Align = AlignCenter             // text-center
+	s.Margin.Top = units.Dp(Spacing4)      // mt-4
 }
 
 // ====================================================================================
@@ -741,7 +741,7 @@ func StyleMarginRightAuto(s *styles.Style) {
 }
 
 func StyleMarginAuto(s *styles.Style) {
-	s.Margin.Left = units.Dp(-1)  // mx-auto equivalent
+	s.Margin.Left = units.Dp(-1) // mx-auto equivalent
 	s.Margin.Right = units.Dp(-1)
 }
 
@@ -774,36 +774,36 @@ func StyleAspectSquare(s *styles.Style) {
 // Badge with custom padding: className="pl-1 pr-0 gap-0"
 func StyleFilterBadge(s *styles.Style) {
 	StyleBadgeBase(s)
-	s.Padding.Left = units.Dp(Spacing1)  // pl-1
-	s.Padding.Right = units.Dp(0)        // pr-0
-	s.Gap.Set(units.Dp(0))               // gap-0
+	s.Padding.Left = units.Dp(Spacing1) // pl-1
+	s.Padding.Right = units.Dp(0)       // pr-0
+	s.Gap.Set(units.Dp(0))              // gap-0
 }
 
 // FilterBadge icon circle: className="bg-white w-4 h-4 rounded-full p-[3.5px] mr-1 flex items-center justify-center"
 func StyleFilterBadgeIconCircle(s *styles.Style) {
-	s.Background = colors.Uniform(ColorWhite)         // bg-white
-	s.Min.X.Set(16, units.UnitDp)                     // w-4
-	s.Min.Y.Set(16, units.UnitDp)                     // h-4
+	s.Background = colors.Uniform(ColorWhite)               // bg-white
+	s.Min.X.Set(16, units.UnitDp)                           // w-4
+	s.Min.Y.Set(16, units.UnitDp)                           // h-4
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusFull)) // rounded-full
-	s.Padding.Set(units.Dp(3.5))                      // p-[3.5px]
-	s.Margin.Right = units.Dp(Spacing1)               // mr-1
-	s.Display = styles.Flex                           // flex
-	s.Align.Items = styles.Center                     // items-center
-	s.Justify.Content = styles.Center                 // justify-center
+	s.Padding.Set(units.Dp(3.5))                            // p-[3.5px]
+	s.Margin.Right = units.Dp(Spacing1)                     // mr-1
+	s.Display = styles.Flex                                 // flex
+	s.Align.Items = styles.Center                           // items-center
+	s.Justify.Content = styles.Center                       // justify-center
 }
 
 // FilterBadge emoji circle: className="bg-white w-4 h-4 rounded-full p-[3px] mr-1 flex items-center justify-center text-2xs select-none"
 func StyleFilterBadgeEmojiCircle(s *styles.Style) {
-	s.Background = colors.Uniform(ColorWhite)         // bg-white
-	s.Min.X.Set(16, units.UnitDp)                     // w-4
-	s.Min.Y.Set(16, units.UnitDp)                     // h-4
+	s.Background = colors.Uniform(ColorWhite)               // bg-white
+	s.Min.X.Set(16, units.UnitDp)                           // w-4
+	s.Min.Y.Set(16, units.UnitDp)                           // h-4
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusFull)) // rounded-full
-	s.Padding.Set(units.Dp(3))                        // p-[3px]
-	s.Margin.Right = units.Dp(Spacing1)               // mr-1
-	s.Display = styles.Flex                           // flex
-	s.Align.Items = styles.Center                     // items-center
-	s.Justify.Content = styles.Center                 // justify-center
-	s.Font.Size = units.Dp(FontSize2XS)               // text-2xs (10px)
+	s.Padding.Set(units.Dp(3))                              // p-[3px]
+	s.Margin.Right = units.Dp(Spacing1)                     // mr-1
+	s.Display = styles.Flex                                 // flex
+	s.Align.Items = styles.Center                           // items-center
+	s.Justify.Content = styles.Center                       // justify-center
+	s.Font.Size = units.Dp(FontSize2XS)                     // text-2xs (10px)
 	// Note: select-none would need text selection control
 }
 
@@ -820,24 +820,24 @@ func StyleFilterBadgeCloseButton(s *styles.Style) {
 // Food Card Styles (Specific Patterns)
 // ====================================================================================
 
-// Complete FoodCard pattern: Card className="mb-2 w-full flex"
+// Complete FoodCard pattern: Card className="mb-2 flex"
 func StyleFoodCardContainer(s *styles.Style) {
-	StyleCard(s)                       // Apply base card styles
-	s.Margin.Bottom = units.Dp(Spacing2)  // mb-2
-	s.Min.X.Set(100, units.UnitPw)     // w-full (parent width)
-	s.Display = styles.Flex            // flex
+	StyleCard(s)                         // Apply base card styles
+	s.Margin.Bottom = units.Dp(Spacing2) // mb-2
+	// Removed Min.X - let cards size naturally in grid, not force full width
+	s.Display = styles.Flex // flex
 }
 
 // FoodCard button: className="flex grow gap-4 items-center text-left pl-4 py-2"
 func StyleFoodCardButton(s *styles.Style) {
-	s.Display = styles.Flex                                                        // flex
-	s.Grow.Set(1, 0)                                                               // grow
-	s.Gap.Set(units.Dp(Spacing4))                                                  // gap-4
-	s.Align.Items = styles.Center                                                  // items-center
-	s.Text.Align = AlignStart                                                      // text-left
+	s.Display = styles.Flex                                                                // flex
+	s.Grow.Set(1, 0)                                                                       // grow
+	s.Gap.Set(units.Dp(Spacing4))                                                          // gap-4
+	s.Align.Items = styles.Center                                                          // items-center
+	s.Text.Align = AlignStart                                                              // text-left
 	s.Padding.Set(units.Dp(Spacing2), units.Dp(0), units.Dp(Spacing2), units.Dp(Spacing4)) // pl-4 py-2
-	s.Background = colors.Uniform(color.RGBA{R: 0, G: 0, B: 0, A: 0})              // transparent button
-	s.Border.Style.Set(styles.BorderNone)                                          // no border
+	s.Background = colors.Uniform(color.RGBA{R: 0, G: 0, B: 0, A: 0})                      // transparent button
+	s.Border.Style.Set(styles.BorderNone)                                                  // no border
 	s.Cursor = cursors.Pointer
 }
 
@@ -875,10 +875,10 @@ func StyleExpiryField(s *styles.Style) {
 // Filter dot pattern
 // className="absolute -top-[3px] -right-[5px] w-2 h-2 rounded-full bg-danger"
 func StyleFilterDot(s *styles.Style) {
-	s.Min.X.Set(8, units.UnitDp)                      // w-2
-	s.Min.Y.Set(8, units.UnitDp)                      // h-2
+	s.Min.X.Set(8, units.UnitDp)                            // w-2
+	s.Min.Y.Set(8, units.UnitDp)                            // h-2
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusFull)) // rounded-full
-	s.Background = colors.Uniform(ColorDanger)        // bg-danger
+	s.Background = colors.Uniform(ColorDanger)              // bg-danger
 	// Note: absolute positioning (-top-[3px] -right-[5px]) would need positioning system
 }
 
@@ -887,9 +887,9 @@ func StyleFilterDot(s *styles.Style) {
 // In canvas-based rendering, Body automatically fills the viewport
 func StyleMainBackground(s *styles.Style) {
 	s.Background = colors.Uniform(ColorPrimaryLightest) // bg-primary-lightest (#e6f2f1)
-	s.Display = styles.Flex                              // Make Body a flex container
-	s.Direction = styles.Column                          // Column layout
-	s.Grow.Set(1, 1)                                     // Fill viewport
+	s.Display = styles.Flex                             // Make Body a flex container
+	s.Direction = styles.Column                         // Column layout
+	s.Grow.Set(1, 1)                                    // Fill viewport
 }
 
 // Select-none equivalent for emoji and icons
@@ -913,7 +913,7 @@ func StyleStatCard(cardColor color.RGBA) func(*styles.Style) {
 		s.Padding.Set(units.Dp(Spacing4))
 		s.Gap.Set(units.Dp(Spacing1))
 		s.Min.X.Set(120, units.UnitDp) // Reasonable minimum width for stat cards
-		s.Grow.Set(1, 0)                // Allow cards to grow and fill available space equally
+		s.Grow.Set(1, 0)               // Allow cards to grow and fill available space equally
 	}
 }
 
@@ -1066,10 +1066,10 @@ func StyleMembersContainer(s *styles.Style) {
 // StyleActionRowRight - action row aligned to right (h-12 w-full flex items-center justify-end)
 func StyleActionRowRight(s *styles.Style) {
 	s.Direction = styles.Row
-	s.Justify.Content = styles.End      // justify-end
-	s.Align.Items = styles.Center       // items-center
-	s.Min.Y.Set(48, units.UnitDp)       // h-12
-	s.Min.X.Set(100, units.UnitPw)      // w-full
+	s.Justify.Content = styles.End // justify-end
+	s.Align.Items = styles.Center  // items-center
+	s.Min.Y.Set(48, units.UnitDp)  // h-12
+	s.Min.X.Set(100, units.UnitPw) // w-full
 	s.Margin.Bottom = units.Dp(Spacing2)
 }
 
@@ -1288,16 +1288,16 @@ func StyleGroupDropdownButton(s *styles.Style) {
 	s.Padding.Set(units.Dp(Spacing2), units.Dp(Spacing3))
 	s.Color = colors.Uniform(ColorBlack)
 	s.Justify.Content = styles.SpaceBetween
-	s.Min.X.Set(100, units.UnitPw) // Full width
+	s.Min.X.Set(100, units.UnitPw)     // Full width
 	s.Text.WhiteSpace = text.WrapNever // Don't wrap dropdown text
 }
 
 // StyleGroupDropdownButtonSelected - Enhanced styling when a group is selected
 func StyleGroupDropdownButtonSelected(s *styles.Style) {
-	StyleGroupDropdownButton(s) // Apply base styles
+	StyleGroupDropdownButton(s)                         // Apply base styles
 	s.Background = colors.Uniform(ColorPrimaryLightest) // Subtle teal background
 	s.Border.Color.Set(colors.Uniform(ColorPrimary))    // Primary border color
-	s.Font.Weight = WeightMedium                         // Slightly bolder text
+	s.Font.Weight = WeightMedium                        // Slightly bolder text
 }
 
 // StyleParentInfo - parent container info text
@@ -1315,7 +1315,7 @@ func StyleParentInfo(s *styles.Style) {
 // StyleTypeButtonContainer - container for type selection buttons with wrapping
 func StyleTypeButtonContainer(s *styles.Style) {
 	s.Wrap = true
-	s.Max.X.Set(100, units.UnitPw) // Constrain to parent width for wrapping
+	// Removed Max.X - wrapping works naturally without constraint
 }
 
 // StyleGroupLabelWithMargin - group label with top margin for spacing

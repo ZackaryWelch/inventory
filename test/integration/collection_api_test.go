@@ -328,4 +328,3 @@ func TestCollectionAPI_DeleteCollection(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
 }
-

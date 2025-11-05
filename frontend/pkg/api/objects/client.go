@@ -50,8 +50,9 @@ func (c *Client) Update(accountID, objectID string, req types.UpdateObjectReques
 }
 
 // Delete deletes an object
-func (c *Client) Delete(accountID, objectID string) error {
-	resp, err := c.common.Delete(fmt.Sprintf("/accounts/%s/objects/%s", accountID, objectID))
+func (c *Client) Delete(accountID, objectID, containerID string) error {
+	url := fmt.Sprintf("/accounts/%s/objects/%s?container_id=%s", accountID, objectID, containerID)
+	resp, err := c.common.Delete(url)
 	if err != nil {
 		return err
 	}

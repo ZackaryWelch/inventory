@@ -28,14 +28,14 @@ var (
 	ColorAccentDark = color.RGBA{R: 242, G: 192, B: 78, A: 255}  // #f2c04e
 
 	// Danger colors (matching --color-danger-*)
-	ColorDanger     = color.RGBA{R: 205, G: 90, B: 90, A: 255}  // #cd5a5a (--color-danger)
-	ColorDangerDark = color.RGBA{R: 184, G: 72, B: 72, A: 255}  // #b84848
+	ColorDanger     = color.RGBA{R: 205, G: 90, B: 90, A: 255} // #cd5a5a (--color-danger)
+	ColorDangerDark = color.RGBA{R: 184, G: 72, B: 72, A: 255} // #b84848
 
 	// Gray scale (matching --color-gray-*)
 	ColorGrayLightest = color.RGBA{R: 249, G: 250, B: 251, A: 255} // #f9fafb
 	ColorGrayLight    = color.RGBA{R: 229, G: 231, B: 235, A: 255} // #e5e7eb
 	ColorGray         = color.RGBA{R: 156, G: 163, B: 175, A: 255} // #9ca3af
-	ColorGrayDark     = color.RGBA{R: 75, G: 85, B: 99, A: 255}   // #4b5563
+	ColorGrayDark     = color.RGBA{R: 75, G: 85, B: 99, A: 255}    // #4b5563
 
 	// Base colors (matching --color-white/black)
 	ColorWhite       = color.RGBA{R: 255, G: 255, B: 255, A: 255} // #ffffff
@@ -48,9 +48,9 @@ var (
 	ColorTextSecondary = ColorGray     // Secondary/muted text color
 
 	// Blue colors (for Authentik login button matching React frontend)
-	ColorBlue600 = color.RGBA{R: 37, G: 99, B: 235, A: 255}   // #2563eb - blue-600
-	ColorBlue700 = color.RGBA{R: 29, G: 78, B: 216, A: 255}   // #1d4ed8 - blue-700
-	ColorGray600 = color.RGBA{R: 75, G: 85, B: 99, A: 255}    // #4b5563 - gray-600 (matching React subtitle)
+	ColorBlue600 = color.RGBA{R: 37, G: 99, B: 235, A: 255} // #2563eb - blue-600
+	ColorBlue700 = color.RGBA{R: 29, G: 78, B: 216, A: 255} // #1d4ed8 - blue-700
+	ColorGray600 = color.RGBA{R: 75, G: 85, B: 99, A: 255}  // #4b5563 - gray-600 (matching React subtitle)
 )
 
 // ====================================================================================
@@ -103,21 +103,21 @@ const (
 
 // Spacing values in dp (4px base unit)
 const (
-	Spacing0   = 0   // 0
-	Spacing1   = 4   // 0.25rem
-	Spacing2   = 8   // 0.5rem
-	Spacing3   = 12  // 0.75rem
-	Spacing4   = 16  // 1rem
-	Spacing4_5 = 18  // 1.125rem (custom)
-	Spacing5   = 20  // 1.25rem
-	Spacing6   = 24  // 1.5rem
-	Spacing8   = 32  // 2rem
-	Spacing10  = 40  // 2.5rem
-	Spacing12  = 48  // 3rem
-	Spacing16  = 64  // 4rem
-	Spacing18  = 72  // 4.5rem (custom)
-	Spacing20  = 80  // 5rem
-	Spacing24  = 96  // 6rem
+	Spacing0   = 0  // 0
+	Spacing1   = 4  // 0.25rem
+	Spacing2   = 8  // 0.5rem
+	Spacing3   = 12 // 0.75rem
+	Spacing4   = 16 // 1rem
+	Spacing4_5 = 18 // 1.125rem (custom)
+	Spacing5   = 20 // 1.25rem
+	Spacing6   = 24 // 1.5rem
+	Spacing8   = 32 // 2rem
+	Spacing10  = 40 // 2.5rem
+	Spacing12  = 48 // 3rem
+	Spacing16  = 64 // 4rem
+	Spacing18  = 72 // 4.5rem (custom)
+	Spacing20  = 80 // 5rem
+	Spacing24  = 96 // 6rem
 )
 
 // ====================================================================================

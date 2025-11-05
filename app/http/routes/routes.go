@@ -79,13 +79,12 @@ func Setup(router *gin.Engine, appContainer *container.Container) {
 		containers.PUT("/:container_id", containerController.UpdateContainer)
 	}
 
-
 	// Account routes (mapped to user functionality)
 	accounts := router.Group("/accounts")
 	accounts.Use(authMiddleware.RequireAuth())
 	{
 		accounts.GET("/:id", userController.GetUser)
-		
+
 		// Collections under accounts
 		accounts.GET("/:id/collections", collectionController.GetCollections)
 		accounts.POST("/:id/collections", collectionController.CreateCollection)
@@ -105,12 +104,12 @@ func Setup(router *gin.Engine, appContainer *container.Container) {
 		// Collection objects
 		accounts.GET("/:id/collections/:collection_id/objects", objectController.GetCollectionObjects)
 		accounts.POST("/:id/collections/:collection_id/import", objectController.BulkImportToCollection)
-		
+
 		// Objects under accounts
 		accounts.POST("/:id/objects", objectController.CreateObject)
 		accounts.PUT("/:id/objects/:object_id", objectController.UpdateObject)
 		accounts.DELETE("/:id/objects/:object_id", objectController.DeleteObject)
-		
+
 		// Bulk operations
 		accounts.POST("/:id/import", objectController.BulkImport)
 	}

@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/nishiki/backend-go/domain/entities"
 	"github.com/nishiki/backend-go/domain/repositories"
@@ -10,22 +11,22 @@ import (
 )
 
 type BulkImportCollectionRequest struct {
-	UserID           entities.UserID
-	CollectionID     entities.CollectionID
+	UserID            entities.UserID
+	CollectionID      entities.CollectionID
 	TargetContainerID *entities.ContainerID // Optional: specific container to import to
-	DistributionMode string                 // "automatic", "manual", "target"
-	Data             []map[string]interface{}
-	DefaultTags      []string
-	UserToken        string
+	DistributionMode  string                // "automatic", "manual", "target"
+	Data              []map[string]interface{}
+	DefaultTags       []string
+	UserToken         string
 }
 
 type BulkImportCollectionResponse struct {
-	Imported         int                    `json:"imported"`
-	Failed           int                    `json:"failed"`
-	Total            int                    `json:"total"`
-	Errors           []string               `json:"errors,omitempty"`
-	CapacityWarnings []CapacityWarning      `json:"capacity_warnings,omitempty"`
-	Assignments      map[string]int         `json:"assignments,omitempty"` // containerID -> count
+	Imported         int               `json:"imported"`
+	Failed           int               `json:"failed"`
+	Total            int               `json:"total"`
+	Errors           []string          `json:"errors,omitempty"`
+	CapacityWarnings []CapacityWarning `json:"capacity_warnings,omitempty"`
+	Assignments      map[string]int    `json:"assignments,omitempty"` // containerID -> count
 }
 
 type CapacityWarning struct {
@@ -112,15 +113,18 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 
 		// Get containers for assignment
 		containerMap := make(map[string]*entities.Container)
+		log.Printf("[AutoDist] Building containerMap from %d assignments", len(distributionPlan.Assignments))
 		for _, assignment := range distributionPlan.Assignments {
 			if _, exists := containerMap[assignment.ContainerID.String()]; !exists {
 				container, err := uc.containerRepo.GetByID(ctx, assignment.ContainerID)
 				if err != nil {
 					return nil, fmt.Errorf("failed to get container %s: %w", assignment.ContainerID.String(), err)
 				}
+				log.Printf("[AutoDist] Fetched container %s with %d existing objects", container.ID().String(), len(container.Objects()))
 				containerMap[assignment.ContainerID.String()] = container
 			}
 		}
+		log.Printf("[AutoDist] ContainerMap built with %d unique containers", len(containerMap))
 
 		// Store distribution plan for later use
 		// We'll use it after creating objects
@@ -237,9 +241,16 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		imported++
 	}
 
-	// Save the updated collection (which contains the container with objects)
-	if err := uc.collectionRepo.Update(ctx, collection); err != nil {
-		return nil, fmt.Errorf("failed to save collection with imported objects: %w", err)
+	// Save the updated container with objects
+	if err := uc.containerRepo.Update(ctx, targetContainer); err != nil {
+		return nil, fmt.Errorf("failed to save container with imported objects: %w", err)
+	}
+
+	// If a new container was created (default case), also update the collection
+	if len(collection.Containers()) > 0 && collection.Containers()[len(collection.Containers())-1].ID().Equals(targetContainer.ID()) {
+		if err := uc.collectionRepo.Update(ctx, collection); err != nil {
+			return nil, fmt.Errorf("failed to save collection: %w", err)
+		}
 	}
 
 	total := imported + failed
@@ -348,6 +359,7 @@ func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.
 			failed++
 			continue
 		}
+		log.Printf("[AutoDist] Added object '%s' to container %s (now has %d objects)", name, container.ID().String(), len(container.Objects()))
 
 		imported++
 
@@ -357,11 +369,15 @@ func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.
 	}
 
 	// Update all affected containers
+	log.Printf("[AutoDist] Updating %d containers with new objects", len(containerMap))
 	for _, container := range containerMap {
+		log.Printf("[AutoDist] Updating container %s with %d total objects", container.ID().String(), len(container.Objects()))
 		if err := uc.containerRepo.Update(ctx, container); err != nil {
 			return nil, fmt.Errorf("failed to update container %s: %w", container.ID().String(), err)
 		}
+		log.Printf("[AutoDist] Successfully updated container %s", container.ID().String())
 	}
+	log.Printf("[AutoDist] All containers updated successfully")
 
 	total := imported + failed
 

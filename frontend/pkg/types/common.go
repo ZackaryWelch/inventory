@@ -117,20 +117,7 @@ const (
 	SortByExpiresAt = "expires_at"
 )
 
-// BulkImportRequest represents a bulk import request
-type BulkImportRequest struct {
-	CollectionID      string                   `json:"collection_id"`
-	TargetContainerID *string                  `json:"target_container_id,omitempty"`
-	DistributionMode  string                   `json:"distribution_mode"` // "target" or "auto"
-	Format            string                   `json:"format"`            // "json" or "csv"
-	Data              []map[string]interface{} `json:"data"`
-}
-
-// InviteUserRequest represents a request to invite a user to a group
-type InviteUserRequest struct {
-	UserID string `json:"user_id"`
-	Email  string `json:"email"`
-}
+// Note: BulkImportRequest and BulkImportCollectionRequest are re-exported in user.go from backend types
 
 // Container type constants
 const (

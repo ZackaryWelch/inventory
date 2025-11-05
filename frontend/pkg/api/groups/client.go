@@ -80,14 +80,14 @@ func (c *Client) GetMembers(id string) ([]types.User, error) {
 }
 
 // InviteUser invites a user to join a group
-func (c *Client) InviteUser(groupID string, req types.InviteUserRequest) error {
+/*func (c *Client) InviteUser(groupID string, req types.InviteUserRequest) error {
 	resp, err := c.common.Post(fmt.Sprintf("/groups/%s/invite", groupID), req)
 	if err != nil {
 		return err
 	}
 
 	return common.CheckResponse(resp)
-}
+}*/
 
 // RemoveMember removes a member from a group
 func (c *Client) RemoveMember(groupID, userID string) error {

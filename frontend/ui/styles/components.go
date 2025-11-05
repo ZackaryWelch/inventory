@@ -21,15 +21,15 @@ import (
 
 // Base: 'text-base min-w-[70px] rounded inline-flex items-center justify-center gap-2.5'
 func StyleButtonBase(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeBase)             // text-base
+	s.Font.Size = units.Dp(FontSizeBase) // text-base
 	// Removed Min.X constraint - let buttons size naturally based on content
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusDefault)) // rounded
-	s.Display = styles.Flex                          // inline-flex
-	s.Align.Items = styles.Center                    // items-center
-	s.Justify.Content = styles.Center                // justify-center
-	s.Gap.Set(units.Dp(Spacing2_5))                  // gap-2.5 (10px)
+	s.Display = styles.Flex                                    // inline-flex
+	s.Align.Items = styles.Center                              // items-center
+	s.Justify.Content = styles.Center                          // justify-center
+	s.Gap.Set(units.Dp(Spacing2_5))                            // gap-2.5 (10px)
 	s.Cursor = cursors.Pointer
-	s.Text.WhiteSpace = text.WrapNever               // Button text should never wrap
+	s.Text.WhiteSpace = text.WrapNever // Button text should never wrap
 }
 
 // variant: 'primary': 'bg-primary text-white enabled:hover:bg-primary-dark disabled:opacity-50'
@@ -75,7 +75,7 @@ func StyleButtonSm(s *styles.Style) {
 // size: 'md': 'px-12' (48px horizontal padding) - height determined by padding
 func StyleButtonMd(s *styles.Style) {
 	s.Padding.Set(units.Dp(10), units.Dp(48)) // 10px = 2.5 spacing
-	s.Min.X.Set(100, units.UnitPw) // w-full (parent width) - buttons should be full width in column layouts
+	s.Min.X.Set(100, units.UnitPw)            // w-full (parent width) - buttons should be full width in column layouts
 }
 
 // size: 'lg': 'px-12' (48px horizontal padding) - height determined by padding
@@ -103,10 +103,10 @@ func StyleButtonLogin(s *styles.Style) {
 	s.Cursor = cursors.Pointer
 
 	// Login-specific styles - natural sizing based on content
-	s.Padding.Set(units.Dp(12), units.Dp(16))             // py-3 px-4 (12px, 16px)
-	s.Background = colors.Uniform(ColorBlue600)           // bg-blue-600
-	s.Color = colors.Uniform(ColorWhite)                  // text-white
-	s.Font.Weight = WeightMedium                          // font-medium
+	s.Padding.Set(units.Dp(12), units.Dp(16))   // py-3 px-4 (12px, 16px)
+	s.Background = colors.Uniform(ColorBlue600) // bg-blue-600
+	s.Color = colors.Uniform(ColorWhite)        // text-white
+	s.Font.Weight = WeightMedium                // font-medium
 	// Note: shadow-sm and hover:bg-blue-700 would need additional Cogent Core support
 }
 
@@ -116,54 +116,54 @@ func StyleButtonLogin(s *styles.Style) {
 
 // Card styles matching nishiki-frontend Card component exactly (bg-white rounded)
 func StyleCard(s *styles.Style) {
-	s.Background = colors.Uniform(ColorWhite)              // bg-white
+	s.Background = colors.Uniform(ColorWhite)                  // bg-white
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusDefault)) // rounded (DEFAULT = 0.625rem = 10px)
-	s.Margin.Bottom = units.Dp(Spacing2)                   // mb-2 (matching React FoodCard and GroupCard spacing)
-	s.Min.X.Set(100, units.UnitPw)                         // w-full (parent width) - CRITICAL: cards must span full width
+	s.Margin.Bottom = units.Dp(Spacing2)                       // mb-2 (matching React FoodCard and GroupCard spacing)
+	s.Min.X.Set(100, units.UnitPw)                             // w-full - cards fill parent width (mobile-first column layouts)
 }
 
 func StyleProfileCard(s *styles.Style) {
-	StyleCard(s)                             // Apply base card styles
-	s.Direction = styles.Column              // Stack fields vertically
-	s.Padding.Set(units.Dp(Spacing4))        // p-4 for spacing inside card
-	s.Gap.Set(units.Dp(Spacing2))            // gap-2 between fields
+	StyleCard(s)                      // Apply base card styles
+	s.Direction = styles.Column       // Stack fields vertically
+	s.Padding.Set(units.Dp(Spacing4)) // p-4 for spacing inside card
+	s.Gap.Set(units.Dp(Spacing2))     // gap-2 between fields
 }
 
 // Card layout patterns from nishiki-frontend Tailwind classes
 // Pattern: Card + className="flex justify-between gap-2"
 func StyleCardFlexBetween(s *styles.Style) {
-	StyleCard(s)                             // Apply card base styles
-	s.Display = styles.Flex                  // Ensure flex display
+	StyleCard(s)            // Apply card base styles
+	s.Display = styles.Flex // Ensure flex display
 	s.Direction = styles.Row
 	s.Justify.Content = styles.SpaceBetween
-	s.Gap.Set(units.Dp(Spacing2))            // gap-2
+	s.Gap.Set(units.Dp(Spacing2)) // gap-2
 }
 
 // Pattern: className="flex grow gap-4 items-center pl-4 py-2" (member/container card content)
 func StyleCardContentGrow(s *styles.Style) {
-	s.Display = styles.Flex                  // flex
+	s.Display = styles.Flex // flex
 	s.Direction = styles.Row
-	s.Grow.Set(1, 0)                         // grow
-	s.Gap.Set(units.Dp(Spacing4))            // gap-4
-	s.Align.Items = styles.Center            // items-center
+	s.Grow.Set(1, 0)                                                                       // grow
+	s.Gap.Set(units.Dp(Spacing4))                                                          // gap-4
+	s.Align.Items = styles.Center                                                          // items-center
 	s.Padding.Set(units.Dp(Spacing2), units.Dp(0), units.Dp(Spacing2), units.Dp(Spacing4)) // pl-4 py-2
-	s.Cursor = cursors.Pointer               // Make clickable like React Link
+	s.Cursor = cursors.Pointer                                                             // Make clickable like React Link
 }
 
 // Pattern: className="flex grow flex-col gap-3 pl-4 py-2" (group card content)
 func StyleCardContentColumn(s *styles.Style) {
-	s.Display = styles.Flex                  // flex
+	s.Display = styles.Flex // flex
 	s.Direction = styles.Column
-	s.Grow.Set(1, 0)                         // grow
-	s.Gap.Set(units.Dp(Spacing3))            // gap-3
+	s.Grow.Set(1, 0)                                                                       // grow
+	s.Gap.Set(units.Dp(Spacing3))                                                          // gap-3
 	s.Padding.Set(units.Dp(Spacing2), units.Dp(0), units.Dp(Spacing2), units.Dp(Spacing4)) // pl-4 py-2
-	s.Cursor = cursors.Pointer               // Make clickable like React Link
+	s.Cursor = cursors.Pointer                                                             // Make clickable like React Link
 }
 
 func StyleCardInfo(s *styles.Style) {
 	s.Direction = styles.Column
-	s.Gap.Set(units.Dp(Spacing3))            // gap-3 (matching frontend GroupCard flex-col gap-3)
-	s.Grow.Set(1, 0)                         // grow
+	s.Gap.Set(units.Dp(Spacing3)) // gap-3 (matching frontend GroupCard flex-col gap-3)
+	s.Grow.Set(1, 0)              // grow
 }
 
 // ====================================================================================
@@ -172,8 +172,8 @@ func StyleCardInfo(s *styles.Style) {
 
 // Base: 'flex w-full text-base focus:outline-none disabled:cursor-not-allowed'
 func StyleInputBase(s *styles.Style) {
-	s.Display = styles.Flex           // flex
-	s.Min.X.Set(100, units.UnitPw)    // w-full (parent width)
+	s.Display = styles.Flex              // flex
+	s.Min.X.Set(100, units.UnitPw)       // w-full (parent width)
 	s.Font.Size = units.Dp(FontSizeBase) // text-base
 	s.Cursor = cursors.Text
 }
@@ -209,12 +209,12 @@ func StyleSearchInputWithIcon(s *styles.Style) {
 
 // Base: 'inline-flex items-center rounded-full text-sm h-6 px-3.5'
 func StyleBadgeBase(s *styles.Style) {
-	s.Display = styles.Flex                           // inline-flex
-	s.Align.Items = styles.Center                     // items-center
+	s.Display = styles.Flex                                 // inline-flex
+	s.Align.Items = styles.Center                           // items-center
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusFull)) // rounded-full
-	s.Font.Size = units.Dp(FontSizeSM)                // text-sm
-	s.Min.Y.Set(24, units.UnitDp)                     // h-6 (24px)
-	s.Padding.Set(units.Dp(0), units.Dp(14))          // px-3.5 (14px)
+	s.Font.Size = units.Dp(FontSizeSM)                      // text-sm
+	s.Min.Y.Set(24, units.UnitDp)                           // h-6 (24px)
+	s.Padding.Set(units.Dp(0), units.Dp(14))                // px-3.5 (14px)
 }
 
 // variant: 'light': 'bg-primary-light'
@@ -232,23 +232,24 @@ func StyleBadgeLightest(s *styles.Style) {
 // variant: 'outline': 'bg-gray-lightest border border-primary text-primary'
 func StyleBadgeOutline(s *styles.Style) {
 	StyleBadgeBase(s)
-	s.Background = colors.Uniform(ColorGrayLightest)    // bg-gray-lightest
-	s.Border.Style.Set(styles.BorderSolid)              // border
-	s.Border.Width.Set(units.Dp(1))                     // border
-	s.Border.Color.Set(colors.Uniform(ColorPrimary))    // border-primary
-	s.Color = colors.Uniform(ColorPrimary)              // text-primary
+	s.Background = colors.Uniform(ColorGrayLightest) // bg-gray-lightest
+	s.Border.Style.Set(styles.BorderSolid)           // border
+	s.Border.Width.Set(units.Dp(1))                  // border
+	s.Border.Color.Set(colors.Uniform(ColorPrimary)) // border-primary
+	s.Color = colors.Uniform(ColorPrimary)           // text-primary
 }
 
 func StyleTagBadge(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSize2XS)                 // text-xs
+	s.Font.Size = units.Dp(FontSize2XS) // text-xs
 	s.Background = colors.Uniform(ColorPrimaryLightest)
 	s.Color = colors.Uniform(ColorPrimary)
 	s.Padding.Set(units.Dp(Spacing1), units.Dp(Spacing2)) // py-1 px-2
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusFull))
+	s.Text.WhiteSpace = text.WrapNever // Prevent tag text from wrapping
 }
 
 func StyleTagBadgeSecondary(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSize2XS)                 // text-xs
+	s.Font.Size = units.Dp(FontSize2XS) // text-xs
 	s.Background = colors.Uniform(color.RGBA{R: 240, G: 240, B: 240, A: 255})
 	s.Color = colors.Uniform(ColorGrayDark)
 	s.Padding.Set(units.Dp(Spacing1), units.Dp(Spacing2)) // py-1 px-2
@@ -325,10 +326,10 @@ func StyleDropdownMenuTrigger(s *styles.Style) {
 // DropdownMenuContent: className="z-50 min-w-64 overflow-hidden rounded bg-white text-black shadow-around"
 func StyleDropdownMenuContent(s *styles.Style) {
 	// Note: z-50 would need z-index system
-	s.Min.X.Set(256, units.UnitDp)                          // min-w-64 (256px)
+	s.Min.X.Set(256, units.UnitDp)                             // min-w-64 (256px)
 	s.Border.Radius = sides.NewValues(units.Dp(RadiusDefault)) // rounded
-	s.Background = colors.Uniform(ColorWhite)               // bg-white
-	s.Color = colors.Uniform(ColorBlack)                    // text-black
+	s.Background = colors.Uniform(ColorWhite)                  // bg-white
+	s.Color = colors.Uniform(ColorBlack)                       // text-black
 	// Note: overflow-hidden and shadow-around would need additional systems
 }
 

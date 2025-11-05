@@ -26,3 +26,5 @@ type CreateObjectRequest = request.CreateObjectRequest
 type UpdateObjectRequest = request.UpdateObjectRequest
 type CreateCategoryRequest = request.CreateCategoryRequest
 type UpdateCategoryRequest = request.UpdateCategoryRequest
+type BulkImportRequest = request.BulkImportRequest
+type BulkImportCollectionRequest = request.BulkImportCollectionRequest

@@ -31,7 +31,7 @@ type AuthentikForbiddenError struct {
 
 type AuthentikValidationError struct {
 	NonFieldErrors []string `json:"non_field_errors"`
-	Code          string   `json:"code"`
+	Code           string   `json:"code"`
 }
 
 type clientProvider struct {
@@ -393,7 +393,7 @@ func (s *AuthentikAuthService) hasNishikiRole(group AuthentikGroup) bool {
 			return true
 		}
 	}
-	
+
 	// Also check if group name contains 'nishiki' as fallback
 	return strings.Contains(strings.ToLower(group.Name), "nishiki")
 }
@@ -432,7 +432,7 @@ func (s *AuthentikAuthService) CreateGroup(ctx context.Context, userToken, name 
 	apiClient := api.NewAPIClient(s.apiConfig)
 	auth := context.WithValue(ctx, api.ContextAccessToken, s.config.APIToken)
 
-	s.logger.Debug("Creating group in Authentik", 
+	s.logger.Debug("Creating group in Authentik",
 		slog.String("group_name", name),
 		slog.String("creator_id", creatorID))
 
@@ -441,9 +441,9 @@ func (s *AuthentikAuthService) CreateGroup(ctx context.Context, userToken, name 
 		"role": "nishiki",
 	}
 	groupRequest := api.GroupRequest{
-		Name:         name,
-		IsSuperuser:  api.PtrBool(false),
-		Attributes:   attributes,
+		Name:        name,
+		IsSuperuser: api.PtrBool(false),
+		Attributes:  attributes,
 	}
 
 	// Create the group
@@ -452,7 +452,7 @@ func (s *AuthentikAuthService) CreateGroup(ctx context.Context, userToken, name 
 		// Parse detailed error response
 		var errorDetail string
 		var errorCode string
-		
+
 		if httpResp != nil && httpResp.Body != nil {
 			if body, readErr := io.ReadAll(httpResp.Body); readErr == nil {
 				switch httpResp.StatusCode {
@@ -473,13 +473,13 @@ func (s *AuthentikAuthService) CreateGroup(ctx context.Context, userToken, name 
 				}
 			}
 		}
-		
-		s.logger.Error("Failed to create group in Authentik", 
+
+		s.logger.Error("Failed to create group in Authentik",
 			slog.Any("error", err),
 			slog.String("detail", errorDetail),
 			slog.String("code", errorCode),
 			slog.Int("status_code", httpResp.StatusCode))
-		
+
 		// Return auth error for 403, validation error for others
 		if httpResp != nil && httpResp.StatusCode == http.StatusForbidden {
 			return nil, fmt.Errorf("authentication failed: %s", errorDetail)
@@ -509,7 +509,7 @@ func (s *AuthentikAuthService) CreateGroup(ctx context.Context, userToken, name 
 	// Authentik doesn't provide description, so use empty string
 	description := entities.NewGroupDescription("")
 	group := entities.ReconstructGroup(groupID, groupName, description, time.Now(), time.Now())
-	
+
 	s.logger.Info("Group created successfully",
 		slog.String("group_id", group.ID().String()),
 		slog.String("group_name", group.Name().String()),
@@ -547,7 +547,7 @@ func (s *AuthentikAuthService) addUserToGroup(ctx context.Context, groupID, user
 
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		s.logger.Error("Failed to add user to group in Authentik", 
+		s.logger.Error("Failed to add user to group in Authentik",
 			slog.Int("status", resp.StatusCode),
 			slog.String("response", string(body)))
 		return fmt.Errorf("authentik API returned status %d", resp.StatusCode)
@@ -556,12 +556,12 @@ func (s *AuthentikAuthService) addUserToGroup(ctx context.Context, groupID, user
 	return nil
 }
 
-// addUserToGroupWithToken adds a user to a group in Authentik using API token  
+// addUserToGroupWithToken adds a user to a group in Authentik using API token
 func (s *AuthentikAuthService) addUserToGroupWithToken(ctx context.Context, groupID, userID string) error {
 	apiClient := api.NewAPIClient(s.apiConfig)
 	auth := context.WithValue(ctx, api.ContextAccessToken, s.config.APIToken)
 
-	s.logger.Debug("Adding user to group", 
+	s.logger.Debug("Adding user to group",
 		slog.String("group_id", groupID),
 		slog.String("user_id", userID))
 
@@ -586,7 +586,7 @@ func (s *AuthentikAuthService) GetGroupUsers(ctx context.Context, userToken, gro
 	apiClient := api.NewAPIClient(s.apiConfig)
 	auth := context.WithValue(ctx, api.ContextAccessToken, s.config.APIToken)
 
-	s.logger.Debug("Fetching group users from Authentik API", 
+	s.logger.Debug("Fetching group users from Authentik API",
 		slog.String("group_id", groupID))
 
 	// List users for the group
@@ -633,7 +633,7 @@ func (s *AuthentikAuthService) GetUserByID(ctx context.Context, userToken, userI
 	apiClient := api.NewAPIClient(s.apiConfig)
 	auth := context.WithValue(ctx, api.ContextAccessToken, s.config.APIToken)
 
-	s.logger.Debug("Fetching user by ID from Authentik API", 
+	s.logger.Debug("Fetching user by ID from Authentik API",
 		slog.String("user_id", userID))
 
 	// Get user by ID
@@ -668,7 +668,7 @@ func (s *AuthentikAuthService) GetGroupByID(ctx context.Context, userToken, grou
 	apiClient := api.NewAPIClient(s.apiConfig)
 	auth := context.WithValue(ctx, api.ContextAccessToken, s.config.APIToken)
 
-	s.logger.Debug("Fetching group by ID from Authentik API", 
+	s.logger.Debug("Fetching group by ID from Authentik API",
 		slog.String("group_id", groupID))
 
 	// Get group by ID

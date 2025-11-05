@@ -309,4 +309,3 @@ func TestContainerController_GetContainer(t *testing.T) {
 		assert.Equal(t, http.StatusForbidden, rr.Code)
 	})
 }
-

@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -83,11 +84,22 @@ func (r *MongoContainerRepository) GetByID(ctx context.Context, id entities.Cont
 		return nil, fmt.Errorf("failed to get container: %w", err)
 	}
 
-	return documentToContainer(&doc)
+	log.Printf("[ContainerRepo] GetByID: Retrieved container %s from MongoDB with %d objects in document", id.String(), len(doc.Objects))
+
+	container, err := documentToContainer(&doc)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("[ContainerRepo] GetByID: Converted to entity with %d objects", len(container.Objects()))
+	return container, nil
 }
 
 func (r *MongoContainerRepository) Update(ctx context.Context, container *entities.Container) error {
 	doc := containerToDocument(container)
+
+	log.Printf("[ContainerRepo] Updating container %s: converting %d objects to document", container.ID().String(), len(container.Objects()))
+	log.Printf("[ContainerRepo] Document has %d objects after conversion", len(doc.Objects))
 
 	filter := bson.M{"_id": container.ID().String()}
 	update := bson.M{"$set": doc}
@@ -100,6 +112,8 @@ func (r *MongoContainerRepository) Update(ctx context.Context, container *entiti
 	if result.MatchedCount == 0 {
 		return fmt.Errorf("container not found")
 	}
+
+	log.Printf("[ContainerRepo] Successfully updated container %s in MongoDB (matched: %d, modified: %d)", container.ID().String(), result.MatchedCount, result.ModifiedCount)
 
 	return nil
 }

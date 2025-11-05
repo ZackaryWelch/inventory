@@ -68,7 +68,7 @@ func (uc *UpdateCollectionUseCase) Execute(ctx context.Context, req UpdateCollec
 			collection.CategoryID(),
 			collection.ObjectType(),
 			collection.Containers(),
-			req.Tags, // Use new tags
+			req.Tags,      // Use new tags
 			*req.Location, // Use new location
 			collection.CreatedAt(),
 			collection.UpdatedAt(),

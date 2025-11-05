@@ -14,7 +14,7 @@ type BulkImportRequest struct {
 }
 
 type BulkImportCollectionRequest struct {
-	CollectionID      string                   `json:"collection_id" binding:"required"`
+	CollectionID      string                   `json:"collection_id,omitempty"` // Optional - collection_id comes from URL path
 	TargetContainerID *string                  `json:"target_container_id,omitempty"`
 	DistributionMode  string                   `json:"distribution_mode,omitempty"` // "automatic", "manual", "target"
 	Format            string                   `json:"format" binding:"required"`   // "csv" or "json"
@@ -22,26 +22,25 @@ type BulkImportCollectionRequest struct {
 	DefaultTags       []string                 `json:"default_tags,omitempty"`
 }
 
-
 func (r *BulkImportRequest) Validate() error {
 	if r.Format != "csv" && r.Format != "json" {
 		return fmt.Errorf("format must be 'csv' or 'json'")
 	}
-	
+
 	if len(r.Data) == 0 {
 		return fmt.Errorf("data is required and cannot be empty")
 	}
-	
+
 	// Validate object type
 	objectType := entities.ObjectType(r.ObjectType)
 	switch objectType {
 	case entities.ObjectTypeFood, entities.ObjectTypeBook, entities.ObjectTypeVideoGame,
-		 entities.ObjectTypeMusic, entities.ObjectTypeBoardGame, entities.ObjectTypeGeneral:
+		entities.ObjectTypeMusic, entities.ObjectTypeBoardGame, entities.ObjectTypeGeneral:
 		// Valid object type
 	default:
 		return fmt.Errorf("invalid object_type: %s", r.ObjectType)
 	}
-	
+
 	return nil
 }
 
@@ -54,9 +53,7 @@ func (r *BulkImportCollectionRequest) Validate() error {
 		return fmt.Errorf("data is required and cannot be empty")
 	}
 
-	if r.CollectionID == "" {
-		return fmt.Errorf("collection_id is required")
-	}
+	// Note: CollectionID comes from URL path, not validated here
 
 	// Validate distribution mode if provided
 	if r.DistributionMode != "" {

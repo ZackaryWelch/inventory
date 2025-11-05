@@ -85,13 +85,13 @@ func (c *Container) setupLogger() error {
 		}
 
 		seqLogger := seqlogger.New(seqConfig)
-		
+
 		// Use slog-multi to combine console and Seq logging
 		multiHandler := slogmulti.Fanout(
 			consoleHandler,
 			seqLogger.Handler(),
 		)
-		
+
 		c.logger = slog.New(multiHandler)
 	} else {
 		// Only console logging

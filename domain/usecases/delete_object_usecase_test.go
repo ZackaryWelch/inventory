@@ -416,9 +416,9 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			collectionID,
 			containerName,
 			entities.ContainerTypeGeneral,
-			nil, // No parent container
-			nil, // No category
-			nil, // No group
+			nil,                 // No parent container
+			nil,                 // No category
+			nil,                 // No group
 			[]entities.Object{}, // Empty
 			"",
 			nil, // No width

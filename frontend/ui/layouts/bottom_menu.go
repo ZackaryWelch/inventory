@@ -48,12 +48,12 @@ func createBottomMenuItem(parent core.Widget, item BottomMenuItem, isActive bool
 
 	btn.Styler(func(s *corestyles.Style) {
 		// Apply StyleBottomMenuItem styling
-		s.Direction = corestyles.Column        // Stack icon above text
-		s.Align.Items = corestyles.Center      // Center horizontally
-		s.Justify.Content = corestyles.Center  // Center vertically
-		s.Background = nil                     // Transparent background
+		s.Direction = corestyles.Column       // Stack icon above text
+		s.Align.Items = corestyles.Center     // Center horizontally
+		s.Justify.Content = corestyles.Center // Center vertically
+		s.Background = nil                    // Transparent background
 		s.Padding.Set(units.Dp(styles.Spacing2))
-		s.Gap.Set(units.Dp(2))                 // Small gap between icon and text
+		s.Gap.Set(units.Dp(2)) // Small gap between icon and text
 
 		// Text sizing
 		s.Font.Size.Set(12, units.UnitDp) // text-xs for label

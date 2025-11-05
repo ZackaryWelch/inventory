@@ -11,6 +11,7 @@ import (
 	"cogentcore.org/core/icons"
 	"cogentcore.org/core/styles"
 	"cogentcore.org/core/styles/units"
+	"cogentcore.org/core/text/text"
 
 	"github.com/nishiki/frontend/ui/layouts"
 	appstyles "github.com/nishiki/frontend/ui/styles"
@@ -388,6 +389,7 @@ func (app *App) createSearchResultCard(parent core.Widget, result SearchResult) 
 	titleText := core.NewText(contentContainer).SetText(result.Title)
 	titleText.Styler(func(s *styles.Style) {
 		s.Font.Weight = appstyles.WeightSemiBold
+		s.Text.WhiteSpace = text.WrapNever // Titles should be single line
 	})
 
 	if result.Description != "" {
@@ -402,6 +404,7 @@ func (app *App) createSearchResultCard(parent core.Widget, result SearchResult) 
 	pathText.Styler(func(s *styles.Style) {
 		s.Font.Size = units.Dp(10)
 		s.Color = colors.Uniform(appstyles.ColorPrimary)
+		s.Text.WhiteSpace = text.WrapNever // Paths should be single line
 	})
 
 	// Action button

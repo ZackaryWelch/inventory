@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	ErrInvalidCollectionID     = errors.New("invalid collection ID")
-	ErrInvalidCollectionName   = errors.New("collection name must be between 1 and 255 characters")
-	ErrContainerNotFound       = errors.New("container not found in collection")
+	ErrInvalidCollectionID   = errors.New("invalid collection ID")
+	ErrInvalidCollectionName = errors.New("collection name must be between 1 and 255 characters")
+	ErrContainerNotFound     = errors.New("container not found in collection")
 )
 
 type CollectionID struct {
@@ -59,17 +59,17 @@ func (c CollectionName) Equals(other CollectionName) bool {
 }
 
 type Collection struct {
-	id          CollectionID
-	userID      UserID       // Owner of the collection
-	groupID     *GroupID     // Optional group for sharing this collection
-	name        CollectionName
-	categoryID  *CategoryID  // Optional category for this collection
-	objectType  ObjectType   // Type of objects this collection holds
-	containers  []Container  // Containers within this collection
-	tags        []string
-	location    string
-	createdAt   time.Time
-	updatedAt   time.Time
+	id         CollectionID
+	userID     UserID   // Owner of the collection
+	groupID    *GroupID // Optional group for sharing this collection
+	name       CollectionName
+	categoryID *CategoryID // Optional category for this collection
+	objectType ObjectType  // Type of objects this collection holds
+	containers []Container // Containers within this collection
+	tags       []string
+	location   string
+	createdAt  time.Time
+	updatedAt  time.Time
 }
 
 type CollectionProps struct {
@@ -99,8 +99,8 @@ func NewCollection(props CollectionProps) (*Collection, error) {
 	}, nil
 }
 
-func ReconstructCollection(id CollectionID, userID UserID, groupID *GroupID, name CollectionName, 
-	categoryID *CategoryID, objectType ObjectType, containers []Container, tags []string, location string, 
+func ReconstructCollection(id CollectionID, userID UserID, groupID *GroupID, name CollectionName,
+	categoryID *CategoryID, objectType ObjectType, containers []Container, tags []string, location string,
 	createdAt, updatedAt time.Time) *Collection {
 	return &Collection{
 		id:         id,

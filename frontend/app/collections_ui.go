@@ -143,12 +143,19 @@ func (app *App) createEnhancedCollectionCard(parent core.Widget, collection Coll
 			statsContainer := core.NewFrame(card)
 			statsContainer.Styler(appstyles.StyleStatsRow)
 
+			// Calculate actual counts
+			containerCount := len(collection.Containers)
+			totalObjects := 0
+			for _, container := range collection.Containers {
+				totalObjects += len(container.Objects)
+			}
+
 			// Containers count
 			containersStats := createFlexColumn(statsContainer, 2)
 			containersStats.Styler(func(s *styles.Style) {
 				s.Align.Items = styles.Center
 			})
-			containersCount := core.NewText(containersStats).SetText("0")
+			containersCount := core.NewText(containersStats).SetText(fmt.Sprintf("%d", containerCount))
 			containersCount.Styler(appstyles.StyleStatValuePrimary)
 			containersLabel := core.NewText(containersStats).SetText("Containers")
 			containersLabel.Styler(appstyles.StyleSmallText)
@@ -158,7 +165,7 @@ func (app *App) createEnhancedCollectionCard(parent core.Widget, collection Coll
 			objectsStats.Styler(func(s *styles.Style) {
 				s.Align.Items = styles.Center
 			})
-			objectsCount := core.NewText(objectsStats).SetText("0")
+			objectsCount := core.NewText(objectsStats).SetText(fmt.Sprintf("%d", totalObjects))
 			objectsCount.Styler(appstyles.StyleStatValueAccent)
 			objectsLabel := core.NewText(objectsStats).SetText("Objects")
 			objectsLabel.Styler(appstyles.StyleSmallText)
@@ -607,26 +614,6 @@ func (app *App) handleEditContainerWithDetails(collectionID, containerID, name, 
 	}
 }
 
-func (app *App) handleDeleteContainer(collectionID, containerID string) {
-	if app.currentUser == nil {
-		app.logger.Error("No current user for container deletion")
-		return
-	}
-
-	// Make API call to delete container using client
-	app.logger.Info("Deleting container", "collection_id", collectionID, "container_id", containerID)
-	err := app.containersClient.Delete(app.currentUser.ID, collectionID, containerID)
-	if err != nil {
-		app.logger.Error("Failed to delete container", "error", err)
-		return
-	}
-
-	app.logger.Info("Container deleted successfully")
-
-	// Refresh the collection detail view to show updated containers
-	app.refreshCurrentCollectionView()
-}
-
 func (app *App) showEditCollectionDialog(collection Collection) {
 	var nameField, descField *core.TextField
 
@@ -913,8 +900,43 @@ func (app *App) showDeleteContainerDialog(container types.Container, collection 
 		SubmitButtonText:  "Delete",
 		SubmitButtonStyle: appstyles.StyleButtonDanger,
 		OnSubmit: func() {
-			app.handleDeleteContainer(collection.ID, container.ID)
+			app.handleDeleteContainer(container, collection)
 		},
 	})
 }
 
+func (app *App) handleDeleteContainer(container types.Container, collection Collection) {
+	app.logger.Info("Deleting container", "container_id", container.ID, "collection_id", collection.ID)
+
+	// Make API call
+	err := app.containersClient.Delete(app.currentUser.ID, collection.ID, container.ID)
+	if err != nil {
+		app.logger.Error("Failed to delete container", "error", err)
+		core.ErrorSnackbar(app.body, err, "Failed to Delete Container")
+		return
+	}
+
+	app.logger.Info("Container deleted successfully", "container_id", container.ID)
+	core.MessageSnackbar(app.body, "Container deleted successfully")
+
+	// Remove the container from the local collection's Containers array
+	updatedContainers := make([]types.Container, 0, len(collection.Containers)-1)
+	for _, c := range collection.Containers {
+		if c.ID != container.ID {
+			updatedContainers = append(updatedContainers, c)
+		}
+	}
+
+	// Update the collection with the filtered containers
+	collection.Containers = updatedContainers
+
+	// Update selected collection if it matches
+	if app.selectedCollection != nil && app.selectedCollection.ID == collection.ID {
+		app.selectedCollection.Containers = updatedContainers
+	}
+
+	app.logger.Info("Updated local collection state", "containers_count", len(collection.Containers))
+
+	// Re-render the collection view with updated local data
+	app.showCollectionDetailView(collection)
+}

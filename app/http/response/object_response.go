@@ -71,4 +71,3 @@ type BulkImportResponse struct {
 	Total    int      `json:"total"`
 	Errors   []string `json:"errors,omitempty"`
 }
-

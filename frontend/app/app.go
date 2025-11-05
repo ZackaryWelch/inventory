@@ -44,21 +44,22 @@ type (
 
 // App holds the main application state
 type App struct {
-	config             *Config
-	authService        *AuthService
-	currentUser        *User
-	groups             []Group
-	collections        []Collection
-	selectedCollection *Collection // Currently selected collection for detail view
-	currentView        string
-	isSignedIn         bool
-	body               *core.Body // Reference to the body for dialogs
-	mainContainer      *core.Frame
-	bottomMenu         *core.Frame // Reference to the bottom menu
-	dialogState        *DialogState
-	searchFilter       *SearchFilter
-	logger             *slog.Logger
-	uiReady            bool // Flag to indicate UI is fully initialized
+	config                  *Config
+	authService             *AuthService
+	currentUser             *User
+	groups                  []Group
+	collections             []Collection
+	selectedCollection      *Collection // Currently selected collection for detail view
+	currentView             string
+	isSignedIn              bool
+	body                    *core.Body // Reference to the body for dialogs
+	mainContainer           *core.Frame
+	bottomMenu              *core.Frame // Reference to the bottom menu
+	dialogState             *DialogState
+	searchFilter            *SearchFilter
+	containerExpansionState map[string]bool // Tracks which containers are expanded in tree view
+	logger                  *slog.Logger
+	uiReady                 bool // Flag to indicate UI is fully initialized
 	// API clients
 	apiClient         *apiCommon.Client
 	authClient        *authAPI.Client
@@ -128,6 +129,9 @@ func NewApp() *App {
 		SortBy:        "name",
 		SortDirection: "asc",
 	}
+
+	// Initialize container expansion state
+	app.containerExpansionState = make(map[string]bool)
 
 	// Check authentication state on startup
 	app.initializeAuthState()

@@ -42,15 +42,15 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			collectionID,
 			containerName,
 			entities.ContainerTypeGeneral,
-			nil, // No parent container
-			nil, // No category
-			nil, // No group
+			nil,                 // No parent container
+			nil,                 // No category
+			nil,                 // No group
 			[]entities.Object{}, // Empty objects
-			"", // Empty location
-			nil, // No width
-			nil, // No depth
-			nil, // No rows
-			nil, // No capacity
+			"",                  // Empty location
+			nil,                 // No width
+			nil,                 // No depth
+			nil,                 // No rows
+			nil,                 // No capacity
 			time.Now(),
 			time.Now(),
 		)

@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	ErrInvalidContainerID    = errors.New("invalid container ID")
-	ErrInvalidContainerName  = errors.New("container name must be between 1 and 255 characters")
-	ErrInvalidContainerType  = errors.New("invalid container type")
+	ErrInvalidContainerID   = errors.New("invalid container ID")
+	ErrInvalidContainerName = errors.New("container name must be between 1 and 255 characters")
+	ErrInvalidContainerType = errors.New("invalid container type")
 )
 
 // ContainerType represents the type of physical container
@@ -103,10 +103,10 @@ type Container struct {
 	objects           []Object      // Objects stored in this container
 	location          string        // Physical location within collection
 	// Physical dimensions for capacity planning
-	width    *float64 // Width in inches
-	depth    *float64 // Depth in inches
-	rows     *int     // Number of rows/shelves
-	capacity *float64 // Total capacity in units
+	width     *float64 // Width in inches
+	depth     *float64 // Depth in inches
+	rows      *int     // Number of rows/shelves
+	capacity  *float64 // Total capacity in units
 	createdAt time.Time
 	updatedAt time.Time
 }
@@ -175,7 +175,7 @@ func ReconstructContainer(id ContainerID, collectionID CollectionID, name Contai
 		location:          location,
 		width:             width,
 		depth:             depth,
-		rows:             rows,
+		rows:              rows,
 		capacity:          capacity,
 		createdAt:         createdAt,
 		updatedAt:         updatedAt,

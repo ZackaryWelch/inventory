@@ -35,10 +35,13 @@ func (app *App) BuildContainerHierarchy(containers []types.Container) []*Contain
 
 	// First pass: create all nodes
 	for i := range containers {
+		// Check if this container was previously expanded
+		expanded := app.containerExpansionState[containers[i].ID]
+
 		node := &ContainerNode{
 			Container: &containers[i],
 			Children:  make([]*ContainerNode, 0),
-			Expanded:  false,
+			Expanded:  expanded,
 		}
 		nodeMap[containers[i].ID] = node
 	}
@@ -118,7 +121,11 @@ func (app *App) RenderContainerTreeNode(parent core.Widget, node *ContainerNode,
 			s.Min.Set(units.Dp(24))
 		})
 		expandBtn.OnClick(func(e events.Event) {
-			node.Expanded = !node.Expanded
+			// Toggle expansion state in persistent map
+			containerID := node.Container.ID
+			app.containerExpansionState[containerID] = !app.containerExpansionState[containerID]
+
+			// Rebuild view with updated expansion state
 			if app.selectedCollection != nil {
 				app.showCollectionDetailView(*app.selectedCollection)
 			}
@@ -132,8 +139,9 @@ func (app *App) RenderContainerTreeNode(parent core.Widget, node *ContainerNode,
 		})
 	}
 
-	// Container type icon
+	// Container type icon with tooltip
 	iconBtn := core.NewButton(row).SetIcon(GetContainerTypeIcon(node.Container.Type))
+	iconBtn.SetTooltip(node.Container.Type) // Show type name on mouseover
 	iconBtn.Styler(func(s *styles.Style) {
 		s.Background = colors.Uniform(appstyles.ColorPrimaryLightest)
 		s.Color = colors.Uniform(appstyles.ColorPrimary)
@@ -146,21 +154,37 @@ func (app *App) RenderContainerTreeNode(parent core.Widget, node *ContainerNode,
 	infoFrame := core.NewFrame(row)
 	infoFrame.Styler(func(s *styles.Style) {
 		s.Direction = styles.Column
-		s.Grow.Set(1, 0)
+		// No Grow - sizes naturally to content, preventing unwanted text wrapping
 	})
 
-	// Container name
+	// Container name - sizes naturally to content
 	nameText := core.NewText(infoFrame).SetText(node.Container.Name)
 	nameText.Styler(func(s *styles.Style) {
 		s.Font.Weight = appstyles.WeightSemiBold
 		s.Font.Size = units.Dp(14)
+		s.Color = colors.Uniform(appstyles.ColorBlack)
+		// No WrapNever or Max.X needed - container sizes naturally without Grow
 	})
 
-	// Container details (type + object count)
-	detailsText := core.NewText(infoFrame).SetText(fmt.Sprintf("%s • %d objects", node.Container.Type, len(node.Container.Objects)))
-	detailsText.Styler(func(s *styles.Style) {
-		s.Color = colors.Uniform(appstyles.ColorBlack)
+	// Container details (object count with icon)
+	detailsRow := core.NewFrame(infoFrame)
+	detailsRow.Styler(func(s *styles.Style) {
+		s.Direction = styles.Row
+		s.Align.Items = styles.Center
+		s.Gap.Set(units.Dp(4))
+	})
+
+	objectIcon := core.NewIcon(detailsRow).SetIcon(icons.Inventory2)
+	objectIcon.Styler(func(s *styles.Style) {
+		s.Color = colors.Uniform(appstyles.ColorTextSecondary)
+		s.Font.Size = units.Dp(14)
+	})
+
+	objectCountText := core.NewText(detailsRow).SetText(fmt.Sprintf("%d", len(node.Container.Objects)))
+	objectCountText.Styler(func(s *styles.Style) {
+		s.Color = colors.Uniform(appstyles.ColorTextSecondary)
 		s.Font.Size = units.Dp(12)
+		// Count won't wrap anyway, but no explicit WrapNever needed
 	})
 
 	// Capacity indicator
@@ -181,15 +205,29 @@ func (app *App) RenderContainerTreeNode(parent core.Widget, node *ContainerNode,
 		e.SetHandled()
 	})
 
-	// Actions button
-	actionsBtn := core.NewButton(row).SetIcon(icons.MoreVert)
-	actionsBtn.Styler(func(s *styles.Style) {
+	// Edit button
+	editBtn := core.NewButton(row).SetIcon(icons.Edit)
+	editBtn.Styler(func(s *styles.Style) {
 		s.Background = nil
 		s.Padding.Set(units.Dp(4))
+		s.Color = colors.Uniform(appstyles.ColorAccent)
 	})
-	actionsBtn.SetTooltip("Container actions")
-	actionsBtn.OnClick(func(e events.Event) {
-		app.showContainerActions(node.Container)
+	editBtn.SetTooltip("Edit container")
+	editBtn.OnClick(func(e events.Event) {
+		app.showEditContainerDialog(*node.Container, *app.selectedCollection)
+		e.SetHandled()
+	})
+
+	// Delete button
+	deleteBtn := core.NewButton(row).SetIcon(icons.Delete)
+	deleteBtn.Styler(func(s *styles.Style) {
+		s.Background = nil
+		s.Padding.Set(units.Dp(4))
+		s.Color = colors.Uniform(appstyles.ColorDanger)
+	})
+	deleteBtn.SetTooltip("Delete container")
+	deleteBtn.OnClick(func(e events.Event) {
+		app.showDeleteContainerDialog(*node.Container, *app.selectedCollection)
 		e.SetHandled()
 	})
 
@@ -339,6 +377,8 @@ func (app *App) showContainerDetail(container *types.Container) {
 			importBtn := core.NewButton(actionsRow).SetText("Import to Container").SetIcon(icons.Upload)
 			importBtn.Styler(appstyles.StyleButtonPrimary)
 			importBtn.OnClick(func(e events.Event) {
+				// Close parent dialog before opening import dialog
+				closeDialog()
 				app.ShowImportDialog(container.ID, container.CollectionID)
 			})
 
@@ -529,6 +569,8 @@ func (app *App) showContainerActions(container *types.Container) {
 			importBtn := core.NewButton(actionsFrame).SetText("Import to Container").SetIcon(icons.Upload)
 			importBtn.Styler(appstyles.StyleButtonPrimary)
 			importBtn.OnClick(func(e events.Event) {
+				// Close parent dialog before opening import dialog
+				closeDialog()
 				app.ShowImportDialog(container.ID, container.CollectionID)
 			})
 
@@ -562,6 +604,7 @@ func (app *App) showContainerActions(container *types.Container) {
 			deleteBtn := core.NewButton(actionsFrame).SetText("Delete Container").SetIcon(icons.Delete)
 			deleteBtn.Styler(appstyles.StyleButtonDanger)
 			deleteBtn.OnClick(func(e events.Event) {
+				closeDialog()
 				app.showDeleteContainerDialog(*container, *app.selectedCollection)
 			})
 		},

@@ -408,10 +408,18 @@ func (ctrl *ObjectController) DeleteObject(c *gin.Context) {
 		return
 	}
 
-	containerID, err := request.GetContainerIDFromPath(c)
+	// Get container ID from query parameter
+	containerIDStr := c.Query("container_id")
+	if containerIDStr == "" {
+		ctrl.logger.Warn("Missing container_id query parameter")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "container_id query parameter is required"})
+		return
+	}
+
+	containerID, err := entities.ContainerIDFromString(containerIDStr)
 	if err != nil {
-		ctrl.logger.Warn("Invalid container ID in path", slog.Any("error", err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctrl.logger.Warn("Invalid container ID", slog.Any("error", err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid container_id"})
 		return
 	}
 
@@ -638,13 +646,27 @@ func (ctrl *ObjectController) BulkImportToCollection(c *gin.Context) {
 		return
 	}
 
+	// Parse target container ID if provided
+	var targetContainerID *entities.ContainerID
+	if req.TargetContainerID != nil {
+		cID, err := entities.ContainerIDFromString(*req.TargetContainerID)
+		if err != nil {
+			ctrl.logger.Warn("Invalid target container ID", slog.Any("error", err))
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid target_container_id"})
+			return
+		}
+		targetContainerID = &cID
+	}
+
 	// Use collection's object type (will be validated in use case)
 	ucReq := usecases.BulkImportCollectionRequest{
-		UserID:       pathUserID,
-		CollectionID: collectionID,
-		Data:         req.Data,
-		DefaultTags:  req.DefaultTags,
-		UserToken:    userToken,
+		UserID:            pathUserID,
+		CollectionID:      collectionID,
+		TargetContainerID: targetContainerID,
+		DistributionMode:  req.DistributionMode,
+		Data:              req.Data,
+		DefaultTags:       req.DefaultTags,
+		UserToken:         userToken,
 	}
 
 	resp, err := ctrl.bulkImportCollectionUC.Execute(c.Request.Context(), ucReq)

@@ -118,6 +118,9 @@ func (app *App) showContainerDetailView(container Container, collection Collecti
 
 	bulkImportBtn := core.NewButton(addSection).SetText("Bulk Import").SetIcon(icons.Upload)
 	bulkImportBtn.Styler(appstyles.StyleButtonAccent)
+	bulkImportBtn.OnClick(func(e events.Event) {
+		app.ShowImportDialog(container.ID, collection.ID)
+	})
 
 	// Objects section
 	objectsTitle := core.NewText(content).SetText("Objects")
@@ -224,13 +227,14 @@ func (app *App) createObjectCard(parent core.Widget, object Object, container Co
 					propKey := core.NewText(propRow).SetText(strings.Title(strings.ReplaceAll(key, "_", " ")) + ":")
 					propKey.Styler(func(s *styles.Style) {
 						s.Font.Size = units.Dp(12)
-						s.Color = colors.Uniform(appstyles.ColorGrayDark)
+						s.Color = colors.Uniform(appstyles.ColorBlack) // Dark text for better readability
 					})
 
 					propValue := core.NewText(propRow).SetText(fmt.Sprintf("%v", value))
 					propValue.Styler(func(s *styles.Style) {
 						s.Font.Size = units.Dp(12)
 						s.Font.Weight = appstyles.WeightMedium
+						s.Color = colors.Uniform(appstyles.ColorBlack) // Dark text for better readability
 					})
 
 					count++
@@ -369,16 +373,11 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 		s.Gap.Set(units.Dp(2))
 	})
 
-	objectName := core.NewText(titleContainer).SetText(object.Name)
-	objectName.Styler(func(s *styles.Style) {
-		s.Font.Size = units.Dp(20)
-		s.Font.Weight = appstyles.WeightBold
-	})
-
+	// Object name is already shown in the header, so only show description here
 	if object.Description != "" {
 		objectDesc := core.NewText(titleContainer).SetText(object.Description)
 		objectDesc.Styler(func(s *styles.Style) {
-			s.Color = colors.Uniform(appstyles.ColorGrayDark)
+			s.Color = colors.Uniform(appstyles.ColorBlack) // Better contrast than gray
 		})
 	}
 
@@ -432,11 +431,12 @@ func (app *App) showObjectDetailView(object Object, container Container, collect
 			propKey := core.NewText(propRow).SetText(strings.Title(strings.ReplaceAll(key, "_", " ")) + ":")
 			propKey.Styler(func(s *styles.Style) {
 				s.Font.Weight = appstyles.WeightMedium
+				s.Color = colors.Uniform(appstyles.ColorBlack) // Dark text for better readability
 			})
 
 			propValue := core.NewText(propRow).SetText(fmt.Sprintf("%v", value))
 			propValue.Styler(func(s *styles.Style) {
-				s.Color = colors.Uniform(appstyles.ColorGrayDark)
+				s.Color = colors.Uniform(appstyles.ColorBlack) // Dark text for better readability
 			})
 		}
 	}
@@ -689,8 +689,8 @@ func (app *App) showEditObjectDialog(object Object, container Container, collect
 	var propertyFields map[string]*core.TextField
 
 	app.showDialog(DialogConfig{
-		Title:            "Edit Object",
-		SubmitButtonText: "Save Changes",
+		Title:             "Edit Object",
+		SubmitButtonText:  "Save Changes",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
 		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			// Basic fields
@@ -843,17 +843,32 @@ func (app *App) showDeleteObjectDialog(object Object, container Container, colle
 }
 
 func (app *App) handleDeleteObject(objectID string, container Container, collection Collection) {
-	app.logger.Info("Deleting object", "object_id", objectID)
+	app.logger.Info("Deleting object", "object_id", objectID, "container_id", container.ID)
 
-	// Make API call
-	err := app.objectsClient.Delete(app.currentUser.ID, objectID)
+	// Make API call with container ID
+	err := app.objectsClient.Delete(app.currentUser.ID, objectID, container.ID)
 	if err != nil {
 		app.logger.Error("Failed to delete object", "error", err)
+		core.ErrorSnackbar(app.body, err, "Failed to Delete Object")
 		return
 	}
 
 	app.logger.Info("Object deleted successfully", "object_id", objectID)
+	core.MessageSnackbar(app.body, "Object deleted successfully")
 
-	// Refresh the container view
+	// Remove the object from the local container's Objects array
+	updatedObjects := make([]Object, 0, len(container.Objects)-1)
+	for _, obj := range container.Objects {
+		if obj.ID != objectID {
+			updatedObjects = append(updatedObjects, obj)
+		}
+	}
+
+	// Update the container with the filtered objects
+	container.Objects = updatedObjects
+
+	app.logger.Info("Updated local container state", "objects_count", len(container.Objects))
+
+	// Re-render the container view with updated local data
 	app.showContainerDetailView(container, collection)
 }

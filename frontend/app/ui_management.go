@@ -19,20 +19,20 @@ import (
 
 // Dialog states for UI management
 type DialogState struct {
-	createGroupOpen       bool
-	editGroupOpen         bool
-	deleteGroupOpen       bool
-	createCollectionOpen  bool
-	editCollectionOpen    bool
-	deleteCollectionOpen  bool
-	createContainerOpen   bool
-	editContainerOpen     bool
-	createObjectOpen      bool
-	editObjectOpen        bool
-	selectedGroup         *Group
-	selectedCollection    *Collection
-	selectedContainer     *Container
-	selectedObject        *Object
+	createGroupOpen      bool
+	editGroupOpen        bool
+	deleteGroupOpen      bool
+	createCollectionOpen bool
+	editCollectionOpen   bool
+	deleteCollectionOpen bool
+	createContainerOpen  bool
+	editContainerOpen    bool
+	createObjectOpen     bool
+	editObjectOpen       bool
+	selectedGroup        *Group
+	selectedCollection   *Collection
+	selectedContainer    *Container
+	selectedObject       *Object
 }
 
 // Add dialog state to App
@@ -278,8 +278,8 @@ func (app *App) showCreateGroupDialog() {
 	var nameField, descField *core.TextField
 
 	app.showDialog(DialogConfig{
-		Title:            "Create New Group",
-		SubmitButtonText: "Create Group",
+		Title:             "Create New Group",
+		SubmitButtonText:  "Create Group",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
 		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			nameField = createTextField(dialog, "Group name")
@@ -295,8 +295,8 @@ func (app *App) showEditGroupDialog(group Group) {
 	var nameField, descField *core.TextField
 
 	app.showDialog(DialogConfig{
-		Title:            "Edit Group",
-		SubmitButtonText: "Save Changes",
+		Title:             "Edit Group",
+		SubmitButtonText:  "Save Changes",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
 		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			nameField = createTextField(dialog, "Group name")
@@ -312,9 +312,9 @@ func (app *App) showEditGroupDialog(group Group) {
 
 func (app *App) showDeleteGroupDialog(group Group) {
 	app.showDialog(DialogConfig{
-		Title:            "Delete Group",
-		Message:          fmt.Sprintf("Are you sure you want to delete \"%s\"? This action cannot be undone.", group.Name),
-		SubmitButtonText: "Delete",
+		Title:             "Delete Group",
+		Message:           fmt.Sprintf("Are you sure you want to delete \"%s\"? This action cannot be undone.", group.Name),
+		SubmitButtonText:  "Delete",
 		SubmitButtonStyle: appstyles.StyleButtonDanger,
 		OnSubmit: func() {
 			app.handleDeleteGroup(group.ID)
@@ -366,7 +366,7 @@ func (app *App) handleCreateGroup(name, description string) {
 	app.logger.Info("Group created successfully", "group_id", group.ID)
 
 	// Dialog closes automatically
-	app.fetchGroups() // Refresh the list
+	app.fetchGroups()            // Refresh the list
 	app.showEnhancedGroupsView() // Refresh the view
 }
 
@@ -418,8 +418,8 @@ func (app *App) showJoinGroupDialog() {
 	var inviteField *core.TextField
 
 	app.showDialog(DialogConfig{
-		Title:            "Join Group",
-		SubmitButtonText: "Join Group",
+		Title:             "Join Group",
+		SubmitButtonText:  "Join Group",
 		SubmitButtonStyle: appstyles.StyleButtonPrimary,
 		ContentBuilder: func(dialog core.Widget, closeDialog func()) {
 			inviteField = createTextField(dialog, "Invitation code")

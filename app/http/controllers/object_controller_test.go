@@ -380,4 +380,3 @@ func TestObjectController_BulkImport(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }
-

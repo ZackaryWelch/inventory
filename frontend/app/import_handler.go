@@ -37,11 +37,13 @@ func (h *ImportHandler) SelectFile(callback func(content string, filename string
 	input.Set("type", "file")
 	input.Set("accept", ".csv,.json")
 
-	// Create a channel to handle the async file reading
-	changeHandler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	// Create change handler - will be released after file is processed
+	var changeHandler js.Func
+	changeHandler = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		files := input.Get("files")
 		if files.Length() == 0 {
 			callback("", "", fmt.Errorf("no file selected"))
+			changeHandler.Release()
 			return nil
 		}
 
@@ -51,20 +53,27 @@ func (h *ImportHandler) SelectFile(callback func(content string, filename string
 		// Create FileReader
 		reader := js.Global().Get("FileReader").New()
 
-		// Set up load handler
-		loadHandler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		// Set up load handler - release after callback executes
+		var loadHandler js.Func
+		loadHandler = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			result := reader.Get("result").String()
 			callback(result, filename, nil)
+			// Release handlers after successful load
+			loadHandler.Release()
+			changeHandler.Release()
 			return nil
 		})
-		defer loadHandler.Release()
 
-		// Set up error handler
-		errorHandler := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		// Set up error handler - release after callback executes
+		var errorHandler js.Func
+		errorHandler = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			callback("", filename, fmt.Errorf("failed to read file"))
+			// Release handlers after error
+			errorHandler.Release()
+			loadHandler.Release()
+			changeHandler.Release()
 			return nil
 		})
-		defer errorHandler.Release()
 
 		reader.Set("onload", loadHandler)
 		reader.Set("onerror", errorHandler)
@@ -73,7 +82,6 @@ func (h *ImportHandler) SelectFile(callback func(content string, filename string
 		reader.Call("readAsText", file)
 		return nil
 	})
-	defer changeHandler.Release()
 
 	input.Call("addEventListener", "change", changeHandler)
 	input.Call("click")
@@ -124,30 +132,44 @@ func (h *ImportHandler) parseCSVRow(record []string, headerMap map[string]int) (
 		Tags:       make([]string, 0),
 	}
 
-	// Get name (required)
-	if idx, ok := headerMap["name"]; ok && idx < len(record) {
-		obj.Name = strings.TrimSpace(record[idx])
-	} else if idx, ok := headerMap["title"]; ok && idx < len(record) {
-		obj.Name = strings.TrimSpace(record[idx])
-	} else {
-		return nil, fmt.Errorf("missing required field 'name' or 'title'")
+	// Get name (required) - try multiple field names
+	nameFound := false
+	nameFields := []string{"name", "title", "item"}
+	for _, field := range nameFields {
+		if idx, ok := headerMap[field]; ok && idx < len(record) {
+			if name := strings.TrimSpace(record[idx]); name != "" {
+				obj.Name = name
+				nameFound = true
+				break
+			}
+		}
 	}
 
-	if obj.Name == "" {
-		return nil, fmt.Errorf("name cannot be empty")
+	if !nameFound {
+		return nil, fmt.Errorf("missing required field 'name', 'title', or 'item'")
 	}
 
-	// Get description
-	if idx, ok := headerMap["description"]; ok && idx < len(record) {
-		obj.Description = strings.TrimSpace(record[idx])
+	// Get description - try multiple field names
+	descFields := []string{"description", "notes", "summary"}
+	for _, field := range descFields {
+		if idx, ok := headerMap[field]; ok && idx < len(record) {
+			if desc := strings.TrimSpace(record[idx]); desc != "" {
+				obj.Description = desc
+				break
+			}
+		}
 	}
 
-	// Get quantity
-	if idx, ok := headerMap["quantity"]; ok && idx < len(record) {
-		if qtyStr := strings.TrimSpace(record[idx]); qtyStr != "" {
-			qty, err := strconv.ParseFloat(qtyStr, 64)
-			if err == nil {
-				obj.Quantity = &qty
+	// Get quantity - try multiple field names
+	qtyFields := []string{"quantity", "copies", "amount"}
+	for _, field := range qtyFields {
+		if idx, ok := headerMap[field]; ok && idx < len(record) {
+			if qtyStr := strings.TrimSpace(record[idx]); qtyStr != "" {
+				qty, err := strconv.ParseFloat(qtyStr, 64)
+				if err == nil {
+					obj.Quantity = &qty
+					break
+				}
 			}
 		}
 	}
@@ -157,17 +179,52 @@ func (h *ImportHandler) parseCSVRow(record []string, headerMap map[string]int) (
 		obj.Unit = strings.TrimSpace(record[idx])
 	}
 
-	// Get tags
-	if idx, ok := headerMap["tags"]; ok && idx < len(record) {
-		tagsStr := strings.TrimSpace(record[idx])
-		if tagsStr != "" {
-			tags := strings.Split(tagsStr, ",")
-			for _, tag := range tags {
-				if trimmed := strings.TrimSpace(tag); trimmed != "" {
-					obj.Tags = append(obj.Tags, trimmed)
+	// Get tags - try multiple field names and formats
+	tagsFields := []string{"tags", "tag", "categories"}
+	for _, field := range tagsFields {
+		if idx, ok := headerMap[field]; ok && idx < len(record) {
+			tagsStr := strings.TrimSpace(record[idx])
+			if tagsStr != "" {
+				// Split by comma, semicolon, or pipe
+				var tags []string
+				if strings.Contains(tagsStr, ",") {
+					tags = strings.Split(tagsStr, ",")
+				} else if strings.Contains(tagsStr, ";") {
+					tags = strings.Split(tagsStr, ";")
+				} else if strings.Contains(tagsStr, "|") {
+					tags = strings.Split(tagsStr, "|")
+				} else {
+					tags = []string{tagsStr}
 				}
+
+				for _, tag := range tags {
+					if trimmed := strings.TrimSpace(tag); trimmed != "" {
+						obj.Tags = append(obj.Tags, trimmed)
+					}
+				}
+				break
 			}
 		}
+	}
+
+	// Define fields to skip when adding to properties
+	skipFields := map[string]bool{
+		"name":        true,
+		"title":       true,
+		"item":        true,
+		"description": true,
+		"notes":       true,
+		"summary":     true,
+		"quantity":    true,
+		"copies":      true,
+		"amount":      true,
+		"unit":        true,
+		"tags":        true,
+		"tag":         true,
+		"categories":  true,
+		"category":    true,
+		"id":          true, // Skip ID fields from source data
+		"_id":         true,
 	}
 
 	// Parse all other columns as properties
@@ -177,8 +234,7 @@ func (h *ImportHandler) parseCSVRow(record []string, headerMap map[string]int) (
 		}
 
 		// Skip already handled fields
-		if header == "name" || header == "title" || header == "description" ||
-			header == "category" || header == "quantity" || header == "unit" || header == "tags" {
+		if skipFields[header] {
 			continue
 		}
 
@@ -239,13 +295,17 @@ func (h *ImportHandler) Parse(content string, filename string) (*ImportData, err
 
 // ImportToContainer imports objects to a specific container
 func (h *ImportHandler) ImportToContainer(containerID string, objects []types.CreateObjectRequest) error {
+	h.app.logger.Info("ImportToContainer called",
+		"containerID", containerID,
+		"collectionID", h.app.selectedCollection.ID,
+		"objectCount", len(objects))
+
 	// Convert CreateObjectRequest to map[string]interface{} for backend
 	data := make([]map[string]interface{}, len(objects))
 	for i, obj := range objects {
 		data[i] = map[string]interface{}{
 			"name":        obj.Name,
 			"description": obj.Description,
-			"object_type": obj.ObjectType,
 			"quantity":    obj.Quantity,
 			"unit":        obj.Unit,
 			"tags":        obj.Tags,
@@ -256,8 +316,10 @@ func (h *ImportHandler) ImportToContainer(containerID string, objects []types.Cr
 		}
 	}
 
-	// Call backend bulk import API
-	req := types.BulkImportRequest{
+	h.app.logger.Info("Sample object data", "first", data[0])
+
+	// Call backend bulk import API using backend request type
+	req := types.BulkImportCollectionRequest{
 		CollectionID:      h.app.selectedCollection.ID,
 		TargetContainerID: &containerID,
 		DistributionMode:  "target",
@@ -265,23 +327,34 @@ func (h *ImportHandler) ImportToContainer(containerID string, objects []types.Cr
 		Data:              data,
 	}
 
+	h.app.logger.Info("Sending import request",
+		"url", fmt.Sprintf("/accounts/%s/collections/%s/import", h.app.currentUser.ID, h.app.selectedCollection.ID),
+		"targetContainerID", containerID,
+		"distributionMode", "target")
+
 	err := h.app.collectionsClient.ImportObjects(h.app.currentUser.ID, h.app.selectedCollection.ID, req)
 	if err != nil {
+		h.app.logger.Error("Import API call failed", "error", err)
 		return fmt.Errorf("failed to import objects: %w", err)
 	}
 
+	h.app.logger.Info("Import API call succeeded")
 	return nil
 }
 
 // DistributeToCollection distributes objects across containers in a collection
 func (h *ImportHandler) DistributeToCollection(collectionID string, objects []types.CreateObjectRequest, distributionMode string) error {
+	h.app.logger.Info("DistributeToCollection called",
+		"collectionID", collectionID,
+		"distributionMode", distributionMode,
+		"objectCount", len(objects))
+
 	// Convert CreateObjectRequest to map[string]interface{} for backend
 	data := make([]map[string]interface{}, len(objects))
 	for i, obj := range objects {
 		data[i] = map[string]interface{}{
 			"name":        obj.Name,
 			"description": obj.Description,
-			"object_type": obj.ObjectType,
 			"quantity":    obj.Quantity,
 			"unit":        obj.Unit,
 			"tags":        obj.Tags,
@@ -292,18 +365,26 @@ func (h *ImportHandler) DistributeToCollection(collectionID string, objects []ty
 		}
 	}
 
-	// Call backend bulk import API with automatic distribution
-	req := types.BulkImportRequest{
+	h.app.logger.Info("Sample object data", "first", data[0])
+
+	// Call backend bulk import API with automatic distribution using backend request type
+	req := types.BulkImportCollectionRequest{
 		CollectionID:     collectionID,
 		DistributionMode: distributionMode,
 		Format:           "json",
 		Data:             data,
 	}
 
+	h.app.logger.Info("Sending import request",
+		"url", fmt.Sprintf("/accounts/%s/collections/%s/import", h.app.currentUser.ID, collectionID),
+		"distributionMode", distributionMode)
+
 	err := h.app.collectionsClient.ImportObjects(h.app.currentUser.ID, collectionID, req)
 	if err != nil {
+		h.app.logger.Error("Import API call failed", "error", err)
 		return fmt.Errorf("failed to distribute objects: %w", err)
 	}
 
+	h.app.logger.Info("Import API call succeeded")
 	return nil
 }

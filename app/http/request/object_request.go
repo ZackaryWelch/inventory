@@ -82,4 +82,3 @@ func GetObjectIDFromPath(c *gin.Context) (entities.ObjectID, error) {
 
 	return objectID, nil
 }
-

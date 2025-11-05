@@ -77,7 +77,7 @@ func (app *App) createMainUI(b *core.Body) {
 	app.mainContainer = core.NewFrame(b)
 	app.mainContainer.Styler(func(s *styles.Style) {
 		appstyles.StyleMainContainer(s)
-		s.Grow.Set(1, 1) // Grow to fill available space
+		s.Grow.Set(1, 1)                   // Grow to fill available space
 		s.Overflow.Y = styles.OverflowAuto // Allow scrolling if content is tall
 	})
 
@@ -396,7 +396,7 @@ func (app *App) createCollectionCard(parent core.Widget, collection Collection) 
 	icon := core.NewIcon(iconCircle).SetIcon(app.getIcon(collection.ObjectType))
 	icon.Styler(func(s *styles.Style) {
 		s.Color = colors.Uniform(appstyles.ColorBlack) // color="black" for accent background
-		s.Font.Size = units.Dp(24)           // size={6} in frontend (24px)
+		s.Font.Size = units.Dp(24)                     // size={6} in frontend (24px)
 	})
 
 	// Collection name (leading-5)

@@ -70,7 +70,7 @@ func (c *Client) Delete(accountID, collectionID string) error {
 }
 
 // ImportObjects imports objects to a collection in bulk
-func (c *Client) ImportObjects(accountID, collectionID string, req types.BulkImportRequest) error {
+func (c *Client) ImportObjects(accountID, collectionID string, req types.BulkImportCollectionRequest) error {
 	resp, err := c.common.Post(fmt.Sprintf("/accounts/%s/collections/%s/import", accountID, collectionID), req)
 	if err != nil {
 		return err

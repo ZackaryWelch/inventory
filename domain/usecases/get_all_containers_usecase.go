@@ -38,7 +38,7 @@ func (uc *GetAllContainersUseCase) Execute(ctx context.Context, req GetAllContai
 	}
 
 	allContainers := make([]*entities.Container, 0)
-	
+
 	// Get containers for each group the user is a member of
 	for _, group := range userGroups {
 		containers, err := uc.containerRepo.GetByGroupID(ctx, group.ID())

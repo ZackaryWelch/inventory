@@ -20,7 +20,7 @@ type DistributionPlan struct {
 
 // ObjectAssignment represents an object assigned to a container
 type ObjectAssignment struct {
-	ObjectIndex   int                  // Index in the input objects array
+	ObjectIndex   int // Index in the input objects array
 	ContainerID   entities.ContainerID
 	ContainerName string
 	EstimatedSize float64

@@ -27,8 +27,8 @@ func StyleMobileLayoutContainer(s *styles.Style) {
 // MobileLayout content: className="flex flex-col gap-2 px-4 pt-6 pb-16"
 func StyleMobileLayoutContent(s *styles.Style) {
 	s.Display = styles.Flex
-	s.Direction = styles.Column                  // flex-col
-	s.Gap.Set(units.Dp(Spacing2))                // gap-2 (8px)
+	s.Direction = styles.Column   // flex-col
+	s.Gap.Set(units.Dp(Spacing2)) // gap-2 (8px)
 	s.Padding.Set(
 		units.Dp(Spacing6),  // pt-6 (24px)
 		units.Dp(Spacing4),  // px-4 (16px)
@@ -45,23 +45,23 @@ func StyleMobileLayoutContent(s *styles.Style) {
 // This is the app's main container, used for all authenticated views
 // NOTE: Background color is on <body>, NOT here!
 func StyleMainContainer(s *styles.Style) {
-	s.Direction = styles.Column                                                        // flex-col for vertical stacking
+	s.Direction = styles.Column                                                       // flex-col for vertical stacking
 	s.Padding.Set(units.Dp(Spacing12), units.Dp(0), units.Dp(Spacing16), units.Dp(0)) // pt-12 pb-16
-	s.Grow.Set(1, 1)                                                                   // Grow to fill Body
+	s.Grow.Set(1, 1)                                                                  // Grow to fill Body
 	// Background is on Body, not here
 }
 
 // StyleContentColumn matches GroupsPage content: className="pt-6 px-4 pb-2 flex flex-col gap-2"
 func StyleContentColumn(s *styles.Style) {
-	s.Display = styles.Flex                                                                        // flex
-	s.Direction = styles.Column                                                                    // flex-col
+	s.Display = styles.Flex                                                                       // flex
+	s.Direction = styles.Column                                                                   // flex-col
 	s.Padding.Set(units.Dp(Spacing6), units.Dp(Spacing4), units.Dp(Spacing2), units.Dp(Spacing4)) // pt-6 px-4 pb-2
-	s.Gap.Set(units.Dp(Spacing2))                                                                  // gap-2
+	s.Gap.Set(units.Dp(Spacing2))                                                                 // gap-2
 	// No Align.Items - let children size naturally (stretch to full width by default)
 }
 
 func StyleCenteredContainer(s *styles.Style) {
-	s.Display = styles.Flex           // CRITICAL: Must set Display to Flex for centering to work
+	s.Display = styles.Flex // CRITICAL: Must set Display to Flex for centering to work
 	s.Direction = styles.Column
 	s.Align.Items = styles.Center
 	s.Justify.Content = styles.Center
@@ -87,19 +87,19 @@ func StyleMainHeader(s *styles.Style) {
 
 // HeaderBackButton: className="h-full aspect-square pl-4 flex items-center"
 func StyleHeaderBackButton(s *styles.Style) {
-	s.Min.Y.Set(100, units.UnitPh)                 // h-full (parent height)
-	s.Min.X.Set(48, units.UnitDp)                  // aspect-square (48px for h-12)
-	s.Padding.Left = units.Dp(Spacing4)            // pl-4
-	s.Display = styles.Flex                        // flex
-	s.Align.Items = styles.Center                  // items-center
+	s.Min.Y.Set(100, units.UnitPh)      // h-full (parent height)
+	s.Min.X.Set(48, units.UnitDp)       // aspect-square (48px for h-12)
+	s.Padding.Left = units.Dp(Spacing4) // pl-4
+	s.Display = styles.Flex             // flex
+	s.Align.Items = styles.Center       // items-center
 }
 
 // HeaderMenuCircleButton: className="h-full px-4 flex items-center"
 func StyleHeaderMenuButton(s *styles.Style) {
-	s.Min.Y.Set(100, units.UnitPh)                       // h-full (parent height)
-	s.Padding.Set(units.Dp(0), units.Dp(Spacing4))       // px-4
-	s.Display = styles.Flex                              // flex
-	s.Align.Items = styles.Center                        // items-center
+	s.Min.Y.Set(100, units.UnitPh)                 // h-full (parent height)
+	s.Padding.Set(units.Dp(0), units.Dp(Spacing4)) // px-4
+	s.Display = styles.Flex                        // flex
+	s.Align.Items = styles.Center                  // items-center
 }
 
 func StyleHeaderRow(s *styles.Style) {
@@ -107,18 +107,18 @@ func StyleHeaderRow(s *styles.Style) {
 	s.Align.Items = styles.Center
 	s.Justify.Content = styles.Center // Center the title
 	// No background - header should be transparent to match React design
-	s.Min.Y.Set(48, units.UnitDp)                        // h-12 (48px)
+	s.Min.Y.Set(48, units.UnitDp) // h-12 (48px)
 	// Let it size naturally to parent width
-	s.Padding.Set(units.Dp(0), units.Dp(Spacing4))       // px-4 for proper edge spacing
+	s.Padding.Set(units.Dp(0), units.Dp(Spacing4)) // px-4 for proper edge spacing
 }
 
 func StyleHeaderTitle(s *styles.Style) {
-	s.Font.Size = units.Dp(FontSizeXL)          // text-xl (matching React)
+	s.Font.Size = units.Dp(FontSizeXL) // text-xl (matching React)
 	s.Font.Weight = WeightSemiBold
 	s.Color = colors.Uniform(ColorBlack)
-	s.Text.WhiteSpace = text.WrapNever          // Never wrap header titles
-	s.Text.Align = AlignCenter                   // Center text
-	s.Grow.Set(1, 0)                             // Grow to fill space horizontally
+	s.Text.WhiteSpace = text.WrapNever // Never wrap header titles
+	s.Text.Align = AlignCenter         // Center text
+	s.Grow.Set(1, 0)                   // Grow to fill space horizontally
 }
 
 func StyleHeaderLeftContainer(s *styles.Style) {
@@ -168,18 +168,18 @@ func StyleActionsRow(s *styles.Style) {
 // ActionBar - matches React's h-12 w-full flex items-center justify-end pattern
 func StyleActionBar(s *styles.Style) {
 	s.Display = styles.Flex
-	s.Min.Y.Set(48, units.UnitDp)                      // h-12 (48px)
-	s.Min.X.Set(100, units.UnitPw)                     // w-full (parent width)
-	s.Align.Items = styles.Center                      // items-center
-	s.Justify.Content = styles.End                     // justify-end (matching React GroupsPage)
+	s.Min.Y.Set(48, units.UnitDp)  // h-12 (48px)
+	s.Min.X.Set(100, units.UnitPw) // w-full (parent width)
+	s.Align.Items = styles.Center  // items-center
+	s.Justify.Content = styles.End // justify-end (matching React GroupsPage)
 }
 
 func StyleActionsSplit(s *styles.Style) {
 	s.Direction = styles.Row
 	s.Gap.Set(units.Dp(Spacing3))
-	s.Justify.Content = styles.End  // Align buttons to the right (matching React justify-end)
-	s.Min.Y.Set(48, units.UnitDp)   // h-12 container height
-	s.Min.X.Set(100, units.UnitPw)  // w-full (parent width) - CRITICAL: container must span full width for justify-end to work
+	s.Justify.Content = styles.End // Align buttons to the right (matching React justify-end)
+	s.Min.Y.Set(48, units.UnitDp)  // h-12 container height
+	s.Min.X.Set(100, units.UnitPw) // w-full (parent width) - CRITICAL: container must span full width for justify-end to work
 }
 
 // ====================================================================================
@@ -194,16 +194,16 @@ func StyleGridContainer(s *styles.Style) {
 
 // Grid patterns: className="grid grid-cols-2 gap-6"
 func StyleGrid2Cols(s *styles.Style) {
-	s.Display = styles.Grid                // grid
-	s.Gap.Set(units.Dp(Spacing6))          // gap-6
+	s.Display = styles.Grid       // grid
+	s.Gap.Set(units.Dp(Spacing6)) // gap-6
 	// Note: grid-cols-2 would need CSS Grid implementation in Cogent Core
 }
 
 // Navigation button grids: className="grid grid-cols-2 gap-4 w-full"
 func StyleNavGrid(s *styles.Style) {
-	s.Display = styles.Grid                // grid
-	s.Gap.Set(units.Dp(Spacing4))          // gap-4
-	s.Min.X.Set(100, units.UnitPw)         // w-full (parent width)
+	s.Display = styles.Grid        // grid
+	s.Gap.Set(units.Dp(Spacing4))  // gap-4
+	s.Min.X.Set(100, units.UnitPw) // w-full (parent width)
 	// Note: grid-cols-2 would need CSS Grid implementation
 }
 
@@ -220,7 +220,7 @@ func StyleCollectionsGrid(s *styles.Style) {
 }
 
 func StyleNavContainer(s *styles.Style) {
-	s.Direction = styles.Column  // Stack buttons vertically on mobile
+	s.Direction = styles.Column // Stack buttons vertically on mobile
 	s.Gap.Set(units.Dp(Spacing3))
 	// Items in column layout naturally take full width of parent
 }
@@ -325,25 +325,25 @@ func StyleActiveFiltersRow(s *styles.Style) {
 
 // Form patterns: className="flex flex-col gap-4" (common drawer body)
 func StyleFormContainer(s *styles.Style) {
-	s.Display = styles.Flex                         // flex
-	s.Direction = styles.Column                     // flex-col
-	s.Gap.Set(units.Dp(Spacing4))                   // gap-4
+	s.Display = styles.Flex       // flex
+	s.Direction = styles.Column   // flex-col
+	s.Gap.Set(units.Dp(Spacing4)) // gap-4
 }
 
 // className="flex flex-wrap gap-1.5 whitespace-nowrap"
 func StyleFlexWrap(s *styles.Style) {
-	s.Display = styles.Flex                         // flex
-	s.Wrap = true                                   // flex-wrap
-	s.Gap.Set(units.Dp(Spacing1_5))                 // gap-1.5
+	s.Display = styles.Flex         // flex
+	s.Wrap = true                   // flex-wrap
+	s.Gap.Set(units.Dp(Spacing1_5)) // gap-1.5
 	// Note: whitespace-nowrap would need text wrapping control
 }
 
 func StylePropertiesContainer(s *styles.Style) {
 	s.Direction = styles.Column
-	s.Gap.Set(units.Dp(Spacing2))                       // gap-2 (8px)
+	s.Gap.Set(units.Dp(Spacing2)) // gap-2 (8px)
 	s.Background = colors.Uniform(ColorGrayLightest)
 	s.Border.Radius = styles.BorderRadiusMedium
-	s.Padding.Set(units.Dp(Spacing3))                   // p-3 (12px)
+	s.Padding.Set(units.Dp(Spacing3)) // p-3 (12px)
 }
 
 func StylePropertyRow(s *styles.Style) {
@@ -450,12 +450,12 @@ func StyleBreadcrumbRow(s *styles.Style) {
 // This is applied to mainContainer for the login page
 // Using Column direction so Justify.Content centers vertically (main axis)
 func StyleLoginContainer(s *styles.Style) {
-	s.Display = styles.Flex            // flex
-	s.Direction = styles.Column        // Column: main axis = vertical
-	s.Justify.Content = styles.Center  // justify-center (vertical centering on main axis)
-	s.Align.Items = styles.Center      // items-center (horizontal centering on cross axis)
-	s.Align.Content = styles.Center    // Also center the content collection
-	s.Grow.Set(1, 1)                   // Grow to fill parent container (Body)
+	s.Display = styles.Flex           // flex
+	s.Direction = styles.Column       // Column: main axis = vertical
+	s.Justify.Content = styles.Center // justify-center (vertical centering on main axis)
+	s.Align.Items = styles.Center     // items-center (horizontal centering on cross axis)
+	s.Align.Content = styles.Center   // Also center the content collection
+	s.Grow.Set(1, 1)                  // Grow to fill parent container (Body)
 }
 
 // className="transform flex flex-col items-center justify-center"
@@ -541,13 +541,13 @@ func StyleEmptyState(s *styles.Style) {
 // ====================================================================================
 
 const (
-	Spacing0_5  = 2  // 0.125rem - gap-0.5 / spacing-0.5
-	Spacing1_5  = 6  // 0.375rem - gap-1.5 / spacing-1.5
-	Spacing2_5  = 10 // 0.625rem - gap-2.5 / spacing-2.5
-	Spacing3_5  = 14 // 0.875rem - gap-3.5 / spacing-3.5
-	Spacing7    = 28 // 1.75rem - gap-7 / spacing-7
-	Spacing9    = 36 // 2.25rem - gap-9 / spacing-9
-	Spacing11   = 44 // 2.75rem - gap-11 / spacing-11
-	Spacing14   = 56 // 3.5rem - gap-14 / spacing-14
-	Spacing32   = 128 // 8rem - gap-32 / spacing-32
+	Spacing0_5 = 2   // 0.125rem - gap-0.5 / spacing-0.5
+	Spacing1_5 = 6   // 0.375rem - gap-1.5 / spacing-1.5
+	Spacing2_5 = 10  // 0.625rem - gap-2.5 / spacing-2.5
+	Spacing3_5 = 14  // 0.875rem - gap-3.5 / spacing-3.5
+	Spacing7   = 28  // 1.75rem - gap-7 / spacing-7
+	Spacing9   = 36  // 2.25rem - gap-9 / spacing-9
+	Spacing11  = 44  // 2.75rem - gap-11 / spacing-11
+	Spacing14  = 56  // 3.5rem - gap-14 / spacing-14
+	Spacing32  = 128 // 8rem - gap-32 / spacing-32
 )
