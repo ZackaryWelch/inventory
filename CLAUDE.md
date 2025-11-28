@@ -20,11 +20,17 @@ go run main.go
 # Run with Docker
 docker compose up --build
 
+# Generate mocks (required before running tests)
+go generate ./domain/...
+
 # Run tests
 go test ./...
 
 # Format code
 gofmt -w .
+
+# Lint
+golangci-lint run
 ```
 
 ### Frontend Development
@@ -53,14 +59,18 @@ go test ./...
 
 **Application Layer** (`app/`)
 - HTTP controllers (6 total: Auth, User, Group, Collection, Container, Object)
-- Middleware (authentication, logging, CORS, error handling)
+- Middleware (authentication, logging, CORS, panic recovery)
+- HTTP utilities (`httputil/` - JSON helpers, context management, response writer wrapper)
 - Configuration management (TOML with Viper)
 - Dependency injection container
 
 **Infrastructure Layer** (`external/`)
 - MongoDB repositories with transaction support
 - Authentik OIDC service integration
-- Mocks for testing
+
+**Mocks** (`mocks/`)
+- Generated via `go generate ./domain/...`
+- Uses mockgen from go.uber.org/mock
 
 ### Frontend (Cogent Core + WebAssembly)
 
@@ -277,6 +287,9 @@ groupLabel.Styler(appstyles.StyleGroupLabelWithMargin)
 
 ### Backend
 ```bash
+# Generate mocks first (if not already done)
+go generate ./domain/...
+
 # All tests
 go test ./...
 
@@ -313,6 +326,62 @@ go test ./...
 ## Technology Stack
 
 - **Language**: Go 1.24+
-- **Backend**: Gin (HTTP), MongoDB, Authentik (OIDC), Viper (config), Zap (logging)
+- **Backend**: net/http with Go 1.22+ routing patterns, MongoDB, Authentik (OIDC), Viper (config), slog (logging)
 - **Frontend**: Cogent Core v0.3.12 (UI), OAuth2 (auth), WebAssembly
 - **Testing**: Testcontainers, go-mock
+
+## Backend HTTP Layer
+
+The backend uses Go's standard library `net/http` with Go 1.22+ enhanced routing patterns.
+
+### Package Structure (`app/http/`)
+- `controllers/` - HTTP handlers with signature `(w http.ResponseWriter, r *http.Request)`
+- `middleware/` - Middleware using `func(http.Handler) http.Handler` pattern
+- `httputil/` - Helpers for JSON, context, response writing, and middleware chaining
+- `request/` - Request DTOs and path parameter extraction via `r.PathValue()`
+- `response/` - Response DTOs
+- `routes/` - Route registration with `http.ServeMux`
+
+### Routing Patterns
+```go
+// Go 1.22+ method-based routing
+mux.HandleFunc("GET /users/{id}", handler)
+mux.HandleFunc("POST /accounts/{id}/collections", handler)
+
+// Path parameters
+userID := r.PathValue("id")
+collectionID := r.PathValue("collection_id")
+```
+
+### Middleware Pattern
+```go
+func MyMiddleware() func(http.Handler) http.Handler {
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            // before
+            next.ServeHTTP(w, r)
+            // after
+        })
+    }
+}
+```
+
+### Context for Auth Data
+```go
+// Setting (in middleware)
+r = httputil.SetContextValue(r, httputil.AuthUserKey, user)
+
+// Getting (in handlers)
+user, ok := middleware.GetCurrentUser(r)
+token, ok := middleware.GetCurrentToken(r)
+```
+
+### JSON Helpers
+```go
+// Response
+httputil.JSON(w, http.StatusOK, data)
+httputil.Error(w, http.StatusBadRequest, "error message")
+
+// Request parsing
+httputil.DecodeJSON(r, &requestStruct)
+```

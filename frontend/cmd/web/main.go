@@ -3,14 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
-
-	"cogentcore.org/core/cmd/config"
-	"cogentcore.org/core/cmd/web"
 )
 
 func main() {
-	fmt.Println("Building for web with cogentcore...")
+	fmt.Println("Building Gio app for WebAssembly...")
 
 	// Get current working directory (should be frontend root)
 	cwd, err := os.Getwd()
@@ -20,37 +18,79 @@ func main() {
 	}
 
 	// Paths relative to frontend root
-	webMainDir := filepath.Join(cwd, "cmd", "webmain")
-	webOutputDir := filepath.Join(cwd, "web")
+	webMainDir := filepath.Join(cwd, "cmd", "gio-webmain")
+	webOutputDir := filepath.Join(cwd, "gio-web")
+	wasmOutput := filepath.Join(webOutputDir, "app.wasm")
 
 	// Verify we're in the right place
 	if _, err := os.Stat(webMainDir); os.IsNotExist(err) {
-		fmt.Printf("Error: cmd/webmain directory not found. Please run this command from the frontend root directory.\n")
+		fmt.Printf("Error: cmd/gio-webmain directory not found. Please run this command from the frontend root directory.\n")
 		fmt.Printf("Current directory: %s\n", cwd)
 		os.Exit(1)
 	}
 
-	// Change to the webmain directory before building
-	if err := os.Chdir(webMainDir); err != nil {
-		fmt.Printf("Error changing to webmain directory: %v\n", err)
+	// Create output directory
+	if err := os.MkdirAll(webOutputDir, 0755); err != nil {
+		fmt.Printf("Error creating output directory: %v\n", err)
 		os.Exit(1)
 	}
 
-	cfg := &config.Config{
-		Build: config.Build{
-			Output: webOutputDir,
-		},
-		Web: config.Web{
-			Gzip: false,
-		},
-	}
+	// Build the WASM binary
+	cmd := exec.Command("go", "build",
+		"-o", wasmOutput,
+		"./cmd/gio-webmain")
 
-	if err := web.Build(cfg); err != nil {
-		fmt.Printf("Error building for web: %v\n", err)
+	cmd.Env = append(os.Environ(),
+		"GOOS=js",
+		"GOARCH=wasm",
+	)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	fmt.Println("Running: GOOS=js GOARCH=wasm go build -o", wasmOutput, "./cmd/gio-webmain")
+
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("Error building WASM: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("Web build completed successfully!")
-	fmt.Println("Built files are in the 'web' directory.")
-	fmt.Println("To serve the application, run: go run cmd/serve/main.go")
+	// Copy wasm_exec.js from Go installation
+	goRoot := os.Getenv("GOROOT")
+	if goRoot == "" {
+		// Try to get GOROOT from go env
+		cmd := exec.Command("go", "env", "GOROOT")
+		output, err := cmd.Output()
+		if err != nil {
+			fmt.Printf("Error getting GOROOT: %v\n", err)
+			os.Exit(1)
+		}
+		goRoot = string(output[:len(output)-1]) // Remove trailing newline
+	}
+
+	// Copy wasm_exec.js from Go installation (Go 1.23+)
+	wasmExecSrc := filepath.Join(goRoot, "lib", "wasm", "wasm_exec.js")
+	wasmExecDst := filepath.Join(webOutputDir, "wasm_exec.js")
+
+	input, err := os.ReadFile(wasmExecSrc)
+	if err != nil {
+		fmt.Printf("Error reading wasm_exec.js from %s: %v\n", wasmExecSrc, err)
+		os.Exit(1)
+	}
+
+	if err := os.WriteFile(wasmExecDst, input, 0644); err != nil {
+		fmt.Printf("Error writing wasm_exec.js: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("✓ WASM build completed successfully!")
+	fmt.Printf("✓ Output: %s\n", wasmOutput)
+	fmt.Printf("✓ WASM size: ")
+
+	if stat, err := os.Stat(wasmOutput); err == nil {
+		fmt.Printf("%.2f MB\n", float64(stat.Size())/(1024*1024))
+	}
+
+	fmt.Println("\nNext steps:")
+	fmt.Println("1. Create index.html in the gio-web directory")
+	fmt.Println("2. Serve the application with: go run cmd/serve/main.go")
 }

@@ -15,7 +15,7 @@ COPY . .
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -ldflags='-w -s -extldflags "-static"' \
-    -o nishiki-backend .
+    -o backend .
 
 # Final stage
 FROM debian:trixie-slim
@@ -30,7 +30,7 @@ RUN groupadd -g 1001 nishiki && \
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /app/nishiki-backend .
+COPY --from=builder /app/backend .
 
 # Copy configuration files
 COPY --from=builder /app/app.toml .
@@ -49,4 +49,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3001/health || exit 1
 
 # Start the application
-CMD ["./nishiki-backend"]
+CMD ["./backend"]
