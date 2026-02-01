@@ -94,8 +94,26 @@ func (as *AuthService) HandleCallback() (*oauth2.Token, error) {
 
 	// Verify state parameter
 	storedState, err := as.getFromLocalStorage("auth_state")
-	if err != nil || storedState != returnedState {
-		return nil, fmt.Errorf("invalid state parameter")
+	if err != nil {
+		as.logger.Error("Failed to retrieve stored state - user may have refreshed callback page or state was cleared",
+			"error", err,
+			"returned_state", returnedState)
+		// Clear any stale auth data and suggest re-login
+		as.ClearToken()
+		return nil, fmt.Errorf("auth state not found in localStorage - please login again")
+	}
+
+	as.logger.Debug("State comparison",
+		"stored_state_prefix", storedState[:min(8, len(storedState))]+"...",
+		"returned_state_prefix", returnedState[:min(8, len(returnedState))]+"...",
+		"match", storedState == returnedState)
+
+	if storedState != returnedState {
+		as.logger.Error("State mismatch - possible CSRF attack or corrupted auth flow",
+			"stored", storedState,
+			"returned", returnedState)
+		as.ClearToken()
+		return nil, fmt.Errorf("invalid state parameter: state mismatch - please login again")
 	}
 
 	// Get stored code verifier
@@ -185,12 +203,10 @@ func (as *AuthService) RefreshToken() (*oauth2.Token, error) {
 	return newToken, nil
 }
 
-// Logout clears all stored authentication data
+// Logout clears all stored authentication data and redirects to logout
 func (as *AuthService) Logout() error {
 	// Clear all auth-related data from localStorage
-	as.removeFromLocalStorage("access_token")
-	as.removeFromLocalStorage("auth_state")
-	as.removeFromLocalStorage("code_verifier")
+	as.ClearToken()
 
 	// Optionally redirect to Authentik logout endpoint
 	logoutURL := fmt.Sprintf("%s/application/o/nishiki/end-session/", as.config.Endpoint.AuthURL[:len(as.config.Endpoint.AuthURL)-len("/application/o/authorize/")])
@@ -244,6 +260,13 @@ func (as *AuthService) getFromLocalStorage(key string) (string, error) {
 func (as *AuthService) removeFromLocalStorage(key string) {
 	localStorage := js.Global().Get("localStorage")
 	localStorage.Call("removeItem", key)
+}
+
+// ClearToken removes the stored token from localStorage
+func (as *AuthService) ClearToken() {
+	as.removeFromLocalStorage("access_token")
+	as.removeFromLocalStorage("auth_state")
+	as.removeFromLocalStorage("code_verifier")
 }
 
 func (as *AuthService) redirectTo(url string) error {

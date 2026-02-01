@@ -3,7 +3,8 @@ module github.com/nishiki/frontend
 go 1.24.0
 
 require (
-	cogentcore.org/core v0.3.12
+	cogentcore.org/core v0.3.12 // Will be removed during migration
+	gioui.org v0.9.0
 	github.com/nishiki/backend-go v0.0.0
 	github.com/spf13/viper v1.20.1
 	golang.org/x/oauth2 v0.32.0
@@ -12,6 +13,7 @@ require (
 replace github.com/nishiki/backend-go => ../
 
 require (
+	gioui.org/shader v1.0.8 // indirect
 	github.com/Bios-Marcel/wastebasket/v2 v2.0.3 // indirect
 	github.com/Masterminds/vcs v1.13.3 // indirect
 	github.com/alecthomas/chroma/v2 v2.13.0 // indirect
@@ -74,8 +76,9 @@ require (
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/arch v0.20.0 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
-	golang.org/x/image v0.25.0 // indirect
+	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+	golang.org/x/exp/shiny v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+	golang.org/x/image v0.26.0 // indirect
 	golang.org/x/mod v0.27.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect

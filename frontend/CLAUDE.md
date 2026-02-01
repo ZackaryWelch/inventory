@@ -18,10 +18,10 @@ Cross-platform UI application built with Go + Cogent Core v0.3.12, compiled to:
 
 ```bash
 # Build for web
-./bin/web
+go run cmd/go-web/main.go
 
 # Serve locally (uses port from config.toml)
-./bin/serve
+go run cmd/go-serve/main.go
 
 # Run tests
 go test ./...

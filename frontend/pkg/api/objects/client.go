@@ -1,6 +1,7 @@
 package objects
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/nishiki/frontend/pkg/api/common"
@@ -80,4 +81,26 @@ func (c *Client) Move(accountID, objectID, newContainerID string) (*types.Object
 	}
 
 	return common.DecodeResponse[types.Object](resp)
+}
+
+// ListByCollection lists all objects in a collection
+func (c *Client) ListByCollection(accountID, collectionID string) ([]types.Object, error) {
+	resp, err := c.common.Get(fmt.Sprintf("/accounts/%s/collections/%s/objects", accountID, collectionID))
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode the wrapped response
+	type objectListResponse struct {
+		Objects []types.Object `json:"objects"`
+		Total   int            `json:"total"`
+	}
+
+	defer resp.Body.Close()
+	var result objectListResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return result.Objects, nil
 }
