@@ -12,41 +12,51 @@ import (
 	"testing"
 	"time"
 
-	fake "github.com/brianvoe/gofakeit/v7"
 	"goauthentik.io/api/v3"
 
 	"github.com/nishiki/backend-go/app/config"
 )
 
+// newTestService constructs an AuthentikAuthService wired to the given mock HTTP server.
+// This bypasses NewAuthentikAuthService (which requires a live OIDC endpoint) by building
+// the struct directly with an apiConfig pointed at the mock.
+func newTestService(mockServer *httptest.Server) *AuthentikAuthService {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+	cfg := config.AuthConfig{
+		AuthentikURL: mockServer.URL,
+		Clients: []config.OAuthClient{
+			{ProviderName: "test-provider", ClientID: "test-client", ClientSecret: "test-secret", RedirectURL: "http://localhost/callback"},
+		},
+	}
+	apiConfig := api.NewConfiguration()
+	apiConfig.Host = strings.TrimPrefix(mockServer.URL, "http://")
+	apiConfig.Scheme = "http"
+	apiConfig.HTTPClient = mockServer.Client()
+	return &AuthentikAuthService{
+		config:     cfg,
+		logger:     logger,
+		httpClient: mockServer.Client(),
+		apiConfig:  apiConfig,
+	}
+}
+
 func TestAuthentikAuthService_GetUserGroups(t *testing.T) {
-	t.Skip("Skipping integration test that requires OIDC setup - needs proper mocking or integration test setup")
+	t.Skip("Skipping: requires ValidateToken which needs a live OIDC verifier")
 }
 
 func TestAuthentikAuthService_GetGroupUsers(t *testing.T) {
-	t.Skip("Skipping integration test that requires OIDC setup - needs proper mocking or integration test setup")
-}
+	email1 := "alice@example.com"
+	email2 := "bob@example.com"
 
-func TestAuthentikAuthService_GetGroupUsers_Old(t *testing.T) {
-	// Create mock server
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if the request is for users with groups query parameter
-		if r.URL.Path == "/api/v3/core/users/" && r.URL.Query().Has("groups") {
-			response := AuthentikUsersResponse{
-				Results: []AuthentikUser{
-					{
-						ID:       fake.UUID(),
-						Username: fake.Username(),
-						Email:    fake.Email(),
-						Name:     fake.Name(),
-					},
-					{
-						ID:       fake.UUID(),
-						Username: fake.Username(),
-						Email:    fake.Email(),
-						Name:     fake.Name(),
-					},
+		if r.URL.Path == "/api/v3/core/users/" && r.URL.Query().Get("groups_by_pk") == "group-uuid-1" {
+			response := map[string]interface{}{
+				"results": []map[string]interface{}{
+					{"pk": 1, "username": "alice", "email": &email1, "name": "Alice", "date_joined": "2024-01-01T00:00:00Z", "avatar": "", "is_superuser": false, "groups_obj": []interface{}{}},
+					{"pk": 2, "username": "bob", "email": &email2, "name": "Bob", "date_joined": "2024-01-01T00:00:00Z", "avatar": "", "is_superuser": false, "groups_obj": []interface{}{}},
 				},
-				Count: 2,
+				"pagination":   map[string]interface{}{},
+				"autocomplete": map[string]interface{}{},
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
@@ -56,71 +66,31 @@ func TestAuthentikAuthService_GetGroupUsers_Old(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	service := newTestService(mockServer)
 
-	cfg := config.AuthConfig{
-		AuthentikURL: mockServer.URL,
-		Clients: []config.OAuthClient{
-			{
-				ProviderName: "test-provider",
-				ClientID:     "test-client",
-				ClientSecret: "test-secret",
-				RedirectURL:  "http://localhost:3001/callback",
-			},
-		},
-	}
-
-	// Create API config for Authentik client
-	apiConfig := api.NewConfiguration()
-	apiConfig.Host = strings.TrimPrefix(mockServer.URL, "http://")
-	apiConfig.Scheme = "http"
-	apiConfig.HTTPClient = &http.Client{Timeout: 10 * time.Second}
-
-	service := &AuthentikAuthService{
-		config:     cfg,
-		logger:     logger,
-		httpClient: &http.Client{Timeout: 10 * time.Second},
-		apiConfig:  apiConfig,
-	}
-
-	// Test GetGroupUsers
-	ctx := context.Background()
-	users, err := service.GetGroupUsers(ctx, "test-token", "test-group-id")
-
+	users, err := service.GetGroupUsers(context.Background(), "test-token", "group-uuid-1")
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
-
 	if len(users) != 2 {
-		t.Errorf("Expected 2 users, got %d", len(users))
+		t.Fatalf("Expected 2 users, got %d", len(users))
 	}
-
-	if len(users) > 0 {
-		// Just verify we got valid user data (no specific value assertion since they're random)
-		if users[0].Username().String() == "" {
-			t.Error("Expected non-empty username")
-		}
-		if users[0].EmailAddress().String() == "" {
-			t.Error("Expected non-empty email")
-		}
+	if users[0].Username().String() != "alice" {
+		t.Errorf("Expected username 'alice', got %q", users[0].Username().String())
+	}
+	if users[1].Username().String() != "bob" {
+		t.Errorf("Expected username 'bob', got %q", users[1].Username().String())
 	}
 }
 
 func TestAuthentikAuthService_GetUserByID(t *testing.T) {
-	t.Skip("Skipping integration test that requires OIDC setup - needs proper mocking or integration test setup")
-}
+	email := "alice@example.com"
 
-func TestAuthentikAuthService_GetUserByID_Old(t *testing.T) {
-	// Create mock server
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if the request is for a specific user
-		if r.URL.Path == "/api/v3/core/users/test-user-1/" {
-			response := AuthentikUser{
-				ID:       fake.UUID(),
-				Username: fake.Username(),
-				Email:    fake.Email(),
-				Name:     fake.Name(),
-				IsActive: true,
+		if r.URL.Path == "/api/v3/core/users/42/" {
+			response := map[string]interface{}{
+				"pk": 42, "username": "alice", "email": &email, "name": "Alice",
+				"date_joined": "2024-01-01T00:00:00Z", "avatar": "", "is_superuser": false, "groups_obj": []interface{}{},
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
@@ -130,57 +100,28 @@ func TestAuthentikAuthService_GetUserByID_Old(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	service := newTestService(mockServer)
 
-	cfg := config.AuthConfig{
-		AuthentikURL: mockServer.URL,
-		Clients: []config.OAuthClient{
-			{
-				ProviderName: "test-provider",
-				ClientID:     "test-client",
-				ClientSecret: "test-secret",
-				RedirectURL:  "http://localhost:3001/callback",
-			},
-		},
-	}
-
-	service := &AuthentikAuthService{
-		config:     cfg,
-		logger:     logger,
-		httpClient: &http.Client{Timeout: 10 * time.Second},
-	}
-
-	// Test GetUserByID
-	ctx := context.Background()
-	user, err := service.GetUserByID(ctx, "test-token", "test-user-1")
-
+	user, err := service.GetUserByID(context.Background(), "test-token", "42")
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if user.Username().String() != "alice" {
+		t.Errorf("Expected username 'alice', got %q", user.Username().String())
 	}
 
-	if user.Username().String() == "" {
-		t.Error("Expected non-empty username")
-	}
-
-	if user.EmailAddress().String() == "" {
-		t.Error("Expected non-empty email")
-	}
-
-	// Test user not found
-	_, err = service.GetUserByID(ctx, "test-token", "nonexistent-user")
+	_, err = service.GetUserByID(context.Background(), "test-token", "99")
 	if err == nil {
 		t.Error("Expected error for nonexistent user, got nil")
 	}
 }
 
 func TestAuthentikAuthService_GetGroupByID(t *testing.T) {
-	// Create mock server
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if the request is for a specific group
-		if r.URL.Path == "/api/v3/core/groups/test-group-1/" {
-			response := AuthentikGroup{
-				ID:   fake.UUID(),
-				Name: fake.Company(),
+		if r.URL.Path == "/api/v3/core/groups/group-uuid-1/" {
+			response := map[string]interface{}{
+				"pk": "group-uuid-1", "num_pk": 1, "name": "Admins",
+				"users_obj": []interface{}{},
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
@@ -190,44 +131,22 @@ func TestAuthentikAuthService_GetGroupByID(t *testing.T) {
 	}))
 	defer mockServer.Close()
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	service := newTestService(mockServer)
 
-	cfg := config.AuthConfig{
-		AuthentikURL: mockServer.URL,
-		Clients: []config.OAuthClient{
-			{
-				ProviderName: "test-provider",
-				ClientID:     "test-client",
-				ClientSecret: "test-secret",
-				RedirectURL:  "http://localhost:3001/callback",
-			},
-		},
-	}
-
-	service := &AuthentikAuthService{
-		config:     cfg,
-		logger:     logger,
-		httpClient: &http.Client{Timeout: 10 * time.Second},
-	}
-
-	// Test GetGroupByID
-	ctx := context.Background()
-	group, err := service.GetGroupByID(ctx, "test-token", "test-group-1")
-
+	group, err := service.GetGroupByID(context.Background(), "test-token", "group-uuid-1")
 	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if group.Name().String() != "Admins" {
+		t.Errorf("Expected group name 'Admins', got %q", group.Name().String())
 	}
 
-	if group.Name().String() == "" {
-		t.Error("Expected non-empty group name")
-	}
-
-	// Test group not found
-	_, err = service.GetGroupByID(ctx, "test-token", "nonexistent-group")
+	_, err = service.GetGroupByID(context.Background(), "test-token", "nonexistent-group")
 	if err == nil {
 		t.Error("Expected error for nonexistent group, got nil")
 	}
 }
+
 
 func TestAuthentikAuthService_GetOIDCConfig(t *testing.T) {
 	tests := []struct {
