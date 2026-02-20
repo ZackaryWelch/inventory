@@ -7,6 +7,7 @@ import (
 	"github.com/nishiki/backend-go/app/http/controllers"
 	"github.com/nishiki/backend-go/app/http/httputil"
 	"github.com/nishiki/backend-go/app/http/middleware"
+	"github.com/nishiki/backend-go/app/http/openapi"
 )
 
 // Setup configures all routes and returns an http.Handler
@@ -46,6 +47,10 @@ func Setup(appContainer *container.Container) http.Handler {
 	withAuth := func(h http.HandlerFunc) http.HandlerFunc {
 		return httputil.WrapHandler(http.HandlerFunc(h), authRequired)
 	}
+
+	// API docs (no auth required)
+	mux.HandleFunc("GET /api/openapi.json", openapi.HandleOpenAPISpec)
+	mux.Handle("GET /docs", openapi.CreateRedocHandler())
 
 	// Health check endpoint (no auth required)
 	mux.HandleFunc("GET /health", authController.HealthCheck)
