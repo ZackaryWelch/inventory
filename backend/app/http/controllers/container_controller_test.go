@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,12 +28,10 @@ func TestContainerController_CreateContainer(t *testing.T) {
 	defer mockCtrl.Finish()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	// Mock repositories and services
 	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
 	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
-	// Create use cases with mocked dependencies
 	createContainerUC := usecases.NewCreateContainerUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
 	getAllContainersUC := usecases.NewGetAllContainersUseCase(mockContainerRepo, mockAuthService)
 	getContainerByIDUC := usecases.NewGetContainerByIDUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
@@ -55,29 +54,37 @@ func TestContainerController_CreateContainer(t *testing.T) {
 			Name:         "Test Container",
 		}
 
-		containerName, _ := entities.NewContainerName("Test Container")
-		testContainer, _ := entities.NewContainer(entities.ContainerProps{
-			CollectionID: collectionID,
-			Name:         containerName,
-		})
+		collectionName, _ := entities.NewCollectionName("Test Collection")
+		testCollection := entities.ReconstructCollection(
+			collectionID,
+			testUser.ID(),
+			nil,
+			collectionName,
+			nil,
+			entities.ObjectTypeGeneral,
+			[]entities.Container{},
+			[]string{},
+			"",
+			time.Now(),
+			time.Now(),
+		)
 
-		// Mock expectations
-		mockAuthService.EXPECT().ValidateToken(gomock.Any(), "test-token").Return(nil, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(nil, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
 		mockContainerRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+		mockCollectionRepo.EXPECT().Update(gomock.Any(), testCollection).Return(nil)
 
 		req := newTestRequest(http.MethodPost, "/containers", requestBody)
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.CreateContainer(rr, req)
 
 		assert.Equal(t, http.StatusCreated, rr.Code)
 
 		var resp response.ContainerResponse
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
-		assert.Equal(t, testContainer.ID().String(), resp.ID)
+		assert.NotEmpty(t, resp.ID)
 		assert.Equal(t, "Test Container", resp.Name)
 	})
 
@@ -85,7 +92,6 @@ func TestContainerController_CreateContainer(t *testing.T) {
 		testUser := randomUser()
 		collectionID := entities.NewCollectionID()
 
-		// Invalid request (empty name)
 		requestBody := request.CreateContainerRequest{
 			CollectionID: collectionID.String(),
 			Name:         "",
@@ -95,7 +101,6 @@ func TestContainerController_CreateContainer(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.CreateContainer(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -113,7 +118,6 @@ func TestContainerController_CreateContainer(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.CreateContainer(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -128,15 +132,30 @@ func TestContainerController_CreateContainer(t *testing.T) {
 			Name:         "Test Container",
 		}
 
-		// Simulate access denied from auth service
-		mockAuthService.EXPECT().ValidateToken(gomock.Any(), "test-token").Return(nil, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(nil, errors.New("user is not a member of the group"))
+		// Collection owned by a different user — use case returns access denied
+		otherUser := randomUser()
+		collectionName, _ := entities.NewCollectionName("Test Collection")
+		testCollection := entities.ReconstructCollection(
+			collectionID,
+			otherUser.ID(),
+			nil,
+			collectionName,
+			nil,
+			entities.ObjectTypeGeneral,
+			[]entities.Container{},
+			[]string{},
+			"",
+			time.Now(),
+			time.Now(),
+		)
+
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
 
 		req := newTestRequest(http.MethodPost, "/containers", requestBody)
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.CreateContainer(rr, req)
 
 		assert.Equal(t, http.StatusForbidden, rr.Code)
@@ -151,15 +170,13 @@ func TestContainerController_CreateContainer(t *testing.T) {
 			Name:         "Test Container",
 		}
 
-		// Simulate collection not found
-		mockAuthService.EXPECT().ValidateToken(gomock.Any(), "test-token").Return(nil, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
 		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(nil, errors.New("collection not found"))
 
 		req := newTestRequest(http.MethodPost, "/containers", requestBody)
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.CreateContainer(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
@@ -173,12 +190,10 @@ func TestContainerController_GetContainer(t *testing.T) {
 	defer mockCtrl.Finish()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	// Mock repositories and services
 	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
 	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
-	// Create use case with mocked dependencies
 	getContainerByIDUC := usecases.NewGetContainerByIDUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
 
 	controller := &ContainerController{
@@ -197,16 +212,30 @@ func TestContainerController_GetContainer(t *testing.T) {
 			Name:         containerName,
 		})
 
-		// Mock expectations
-		mockAuthService.EXPECT().ValidateToken(gomock.Any(), "test-token").Return(nil, nil)
+		collectionName, _ := entities.NewCollectionName("Test Collection")
+		testCollection := entities.ReconstructCollection(
+			collectionID,
+			testUser.ID(),
+			nil,
+			collectionName,
+			nil,
+			entities.ObjectTypeGeneral,
+			[]entities.Container{},
+			[]string{},
+			"",
+			time.Now(),
+			time.Now(),
+		)
+
 		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
 
 		req := newTestRequest(http.MethodGet, "/containers/"+containerID.String(), nil)
 		req.SetPathValue("container_id", containerID.String())
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.GetContainer(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -225,7 +254,6 @@ func TestContainerController_GetContainer(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.GetContainer(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -235,8 +263,6 @@ func TestContainerController_GetContainer(t *testing.T) {
 		testUser := randomUser()
 		containerID := entities.NewContainerID()
 
-		// Simulate container not found
-		mockAuthService.EXPECT().ValidateToken(gomock.Any(), "test-token").Return(nil, nil)
 		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(nil, errors.New("container not found"))
 
 		req := newTestRequest(http.MethodGet, "/containers/"+containerID.String(), nil)
@@ -244,7 +270,6 @@ func TestContainerController_GetContainer(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.GetContainer(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
@@ -253,16 +278,40 @@ func TestContainerController_GetContainer(t *testing.T) {
 	t.Run("error - access denied", func(t *testing.T) {
 		testUser := randomUser()
 		containerID := entities.NewContainerID()
+		collectionID := entities.NewCollectionID()
 
-		// Simulate access denied
-		mockAuthService.EXPECT().ValidateToken(gomock.Any(), "test-token").Return(nil, errors.New("access denied: user is not a member of the container's group"))
+		containerName, _ := entities.NewContainerName("Test Container")
+		testContainer, _ := entities.NewContainer(entities.ContainerProps{
+			CollectionID: collectionID,
+			Name:         containerName,
+		})
+
+		// Collection owned by a different user — use case returns access denied
+		otherUser := randomUser()
+		collectionName, _ := entities.NewCollectionName("Test Collection")
+		testCollection := entities.ReconstructCollection(
+			collectionID,
+			otherUser.ID(),
+			nil,
+			collectionName,
+			nil,
+			entities.ObjectTypeGeneral,
+			[]entities.Container{},
+			[]string{},
+			"",
+			time.Now(),
+			time.Now(),
+		)
+
+		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
 
 		req := newTestRequest(http.MethodGet, "/containers/"+containerID.String(), nil)
 		req.SetPathValue("container_id", containerID.String())
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.GetContainer(rr, req)
 
 		assert.Equal(t, http.StatusForbidden, rr.Code)

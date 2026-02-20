@@ -138,8 +138,12 @@ func (ctrl *ContainerController) CreateContainer(w http.ResponseWriter, r *http.
 	resp, err := ctrl.createContainerUC.Execute(r.Context(), ucReq)
 	if err != nil {
 		ctrl.logger.Error("Failed to create container", slog.Any("error", err))
-		if err.Error() == "user is not a member of the group" {
+		if strings.Contains(err.Error(), "access denied") {
 			httputil.Error(w, http.StatusForbidden, "access denied")
+			return
+		}
+		if strings.Contains(err.Error(), "not found") {
+			httputil.Error(w, http.StatusNotFound, "not found")
 			return
 		}
 		httputil.Error(w, http.StatusInternalServerError, "failed to create container")
@@ -287,14 +291,12 @@ func (ctrl *ContainerController) GetContainer(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		ctrl.logger.Error("Failed to get container", slog.Any("error", err))
 
-		// Check if it's an access denied error
-		if err.Error() == "access denied: user is not a member of the container's group" {
+		if strings.Contains(err.Error(), "access denied") {
 			httputil.Error(w, http.StatusForbidden, "access denied")
 			return
 		}
 
-		// Check if it's a not found error
-		if err.Error() == "container not found" {
+		if strings.Contains(err.Error(), "not found") {
 			httputil.Error(w, http.StatusNotFound, "container not found")
 			return
 		}

@@ -29,11 +29,9 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 	defer mockCtrl.Finish()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	// Mock repositories and services
 	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
-	// Create real use cases with mocked dependencies
 	createCollectionUC := usecases.NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
 
 	controller := &CollectionController{
@@ -49,12 +47,7 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 			ObjectType: "general",
 		}
 
-		// Set up mock expectations
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
+		// No GroupID → GetUserGroups is NOT called; only Create is called
 		mockCollectionRepo.EXPECT().
 			Create(gomock.Any(), gomock.Any()).
 			Return(nil).
@@ -65,7 +58,6 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.CreateCollection(rr, req)
 
 		assert.Equal(t, http.StatusCreated, rr.Code)
@@ -79,7 +71,6 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 	t.Run("error - invalid request body", func(t *testing.T) {
 		testUser := randomUser()
 
-		// Invalid request (empty name)
 		requestBody := request.CreateCollectionRequest{
 			Name:       "",
 			ObjectType: "general",
@@ -90,7 +81,6 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.CreateCollection(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -104,12 +94,7 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 			ObjectType: "general",
 		}
 
-		// Set up mock expectations for failure
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
+		// No GroupID → GetUserGroups NOT called; Create fails
 		mockCollectionRepo.EXPECT().
 			Create(gomock.Any(), gomock.Any()).
 			Return(errors.New("database connection failed")).
@@ -120,7 +105,6 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.CreateCollection(rr, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
@@ -128,13 +112,15 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 
 	t.Run("error - auth service failure", func(t *testing.T) {
 		testUser := randomUser()
+		groupIDStr := "group-123" // non-empty so GetGroupID returns non-nil → GetUserGroups is called
 
+		// Provide a GroupID so GetUserGroups IS called
 		requestBody := request.CreateCollectionRequest{
 			Name:       "Test Collection",
 			ObjectType: "general",
+			GroupID:    &groupIDStr,
 		}
 
-		// Set up mock expectations for auth failure
 		mockAuthService.EXPECT().
 			GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).
 			Return(nil, errors.New("auth service unavailable")).
@@ -145,7 +131,6 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.CreateCollection(rr, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
@@ -159,11 +144,9 @@ func TestCollectionController_GetCollections(t *testing.T) {
 	defer mockCtrl.Finish()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	// Mock repositories and services
 	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
-	// Create real use case with mocked dependencies
 	getCollectionsUC := usecases.NewGetCollectionsUseCase(mockCollectionRepo, mockAuthService)
 
 	controller := &CollectionController{
@@ -174,7 +157,6 @@ func TestCollectionController_GetCollections(t *testing.T) {
 	t.Run("success - get collections", func(t *testing.T) {
 		testUser := randomUser()
 
-		// Create test collections using ReconstructCollection
 		collections := []*entities.Collection{}
 		for i := 0; i < 2; i++ {
 			collectionName, _ := entities.NewCollectionName(fake.Company())
@@ -194,12 +176,7 @@ func TestCollectionController_GetCollections(t *testing.T) {
 			collections = append(collections, collection)
 		}
 
-		// Set up mock expectations
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
+		// GetCollectionsUseCase calls GetByUserID (no GetUserGroups in simple path)
 		mockCollectionRepo.EXPECT().
 			GetByUserID(gomock.Any(), testUser.ID()).
 			Return(collections, nil).
@@ -210,7 +187,6 @@ func TestCollectionController_GetCollections(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.GetCollections(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -229,7 +205,6 @@ func TestCollectionController_GetCollections(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.GetCollections(rr, req)
 
 		assert.Equal(t, http.StatusForbidden, rr.Code)
@@ -238,12 +213,7 @@ func TestCollectionController_GetCollections(t *testing.T) {
 	t.Run("error - database failure", func(t *testing.T) {
 		testUser := randomUser()
 
-		// Set up mock expectations for failure
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
+		// GetCollectionsUseCase calls GetByUserID which returns error
 		mockCollectionRepo.EXPECT().
 			GetByUserID(gomock.Any(), testUser.ID()).
 			Return(nil, errors.New("database connection failed")).
@@ -254,7 +224,6 @@ func TestCollectionController_GetCollections(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.GetCollections(rr, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
@@ -268,10 +237,8 @@ func TestCollectionController_DeleteCollection(t *testing.T) {
 	defer mockCtrl.Finish()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	// Mock repositories
 	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 
-	// Create real use case with mocked dependencies
 	deleteCollectionUC := usecases.NewDeleteCollectionUseCase(mockCollectionRepo)
 
 	controller := &CollectionController{
@@ -283,7 +250,6 @@ func TestCollectionController_DeleteCollection(t *testing.T) {
 		testUser := randomUser()
 		collectionID := entities.NewCollectionID()
 
-		// Create test collection
 		collectionName, _ := entities.NewCollectionName("Test Collection")
 		testCollection := entities.ReconstructCollection(
 			collectionID,
@@ -292,14 +258,13 @@ func TestCollectionController_DeleteCollection(t *testing.T) {
 			collectionName,
 			nil,
 			entities.ObjectTypeGeneral,
-			[]entities.Container{}, // Empty containers
+			[]entities.Container{},
 			[]string{},
 			"",
 			time.Now(),
 			time.Now(),
 		)
 
-		// Set up mock expectations
 		mockCollectionRepo.EXPECT().
 			GetByID(gomock.Any(), collectionID).
 			Return(testCollection, nil).
@@ -316,7 +281,6 @@ func TestCollectionController_DeleteCollection(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.DeleteCollection(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -335,7 +299,6 @@ func TestCollectionController_DeleteCollection(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.DeleteCollection(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -345,7 +308,6 @@ func TestCollectionController_DeleteCollection(t *testing.T) {
 		testUser := randomUser()
 		collectionID := entities.NewCollectionID()
 
-		// Set up mock expectations for not found
 		mockCollectionRepo.EXPECT().
 			GetByID(gomock.Any(), collectionID).
 			Return(nil, errors.New("collection not found")).
@@ -357,7 +319,6 @@ func TestCollectionController_DeleteCollection(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.DeleteCollection(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)

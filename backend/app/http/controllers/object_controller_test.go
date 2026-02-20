@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,12 +28,10 @@ func TestObjectController_CreateObject(t *testing.T) {
 	defer mockCtrl.Finish()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	// Mock repositories and services
 	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
 	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
-	// Create use cases with mocked dependencies
 	createObjectUC := usecases.NewCreateObjectUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
 	updateObjectUC := usecases.NewUpdateObjectUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
 	deleteObjectUC := usecases.NewDeleteObjectUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
@@ -51,8 +50,8 @@ func TestObjectController_CreateObject(t *testing.T) {
 	}
 
 	t.Run("success - create object", func(t *testing.T) {
-		// Create test data
 		testUser := randomUser()
+		collectionID := entities.NewCollectionID()
 		containerID := entities.NewContainerID()
 
 		requestBody := request.CreateObjectRequest{
@@ -63,62 +62,59 @@ func TestObjectController_CreateObject(t *testing.T) {
 			Tags:        []string{"test", "example"},
 		}
 
-		objectName, _ := entities.NewObjectName("Test Object")
-		testObject, _ := entities.NewObject(entities.ObjectProps{
-			Name:       objectName,
-			ObjectType: entities.ObjectTypeGeneral,
-			Properties: requestBody.Properties,
-			Tags:       requestBody.Tags,
-		})
-
-		// Create test container for mocking
 		containerName, _ := entities.NewContainerName("Test Container")
 		testContainer, _ := entities.NewContainer(entities.ContainerProps{
-			CollectionID: entities.NewCollectionID(),
+			CollectionID: collectionID,
 			Name:         containerName,
 		})
 
-		// Mock expectations
-		mockAuthService.EXPECT().ValidateToken(gomock.Any(), "test-token").Return(nil, nil)
+		collectionName, _ := entities.NewCollectionName("Test Collection")
+		testCollection := entities.ReconstructCollection(
+			collectionID,
+			testUser.ID(),
+			nil,
+			collectionName,
+			nil,
+			entities.ObjectTypeGeneral,
+			[]entities.Container{},
+			[]string{},
+			"",
+			time.Now(),
+			time.Now(),
+		)
+
 		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
 		mockContainerRepo.EXPECT().Update(gomock.Any(), testContainer).Return(nil)
 
-		// Create request
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/objects", requestBody)
 		req.SetPathValue("id", testUser.ID().String())
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
-		// Call controller
 		controller.CreateObject(rr, req)
 
-		// Assert response
 		assert.Equal(t, http.StatusCreated, rr.Code)
 
 		var resp response.ObjectResponse
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
-		assert.Equal(t, testObject.ID().String(), resp.ID)
+		assert.NotEmpty(t, resp.ID)
 		assert.Equal(t, "Test Object", resp.Name)
 	})
 
 	t.Run("error - invalid request body", func(t *testing.T) {
 		testUser := randomUser()
-		containerID := entities.NewContainerID()
 
-		// Invalid request body (missing required fields)
 		requestBody := map[string]interface{}{
-			"name": "", // Empty name
+			"name": "",
 		}
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/objects", requestBody)
 		req.SetPathValue("id", testUser.ID().String())
 		req = setAuthContext(req, testUser, "test-token")
 
-		_ = containerID // suppress unused warning
-
 		rr := httptest.NewRecorder()
-
 		controller.CreateObject(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -126,6 +122,7 @@ func TestObjectController_CreateObject(t *testing.T) {
 
 	t.Run("error - access denied", func(t *testing.T) {
 		testUser := randomUser()
+		collectionID := entities.NewCollectionID()
 		containerID := entities.NewContainerID()
 
 		requestBody := request.CreateObjectRequest{
@@ -134,16 +131,38 @@ func TestObjectController_CreateObject(t *testing.T) {
 			ObjectType:  "general",
 		}
 
-		// Simulate access denied
-		mockAuthService.EXPECT().ValidateToken(gomock.Any(), "test-token").Return(nil, nil)
-		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(nil, errors.New("access denied"))
+		// Container found, but collection owned by different user
+		containerName, _ := entities.NewContainerName("Test Container")
+		testContainer, _ := entities.NewContainer(entities.ContainerProps{
+			CollectionID: collectionID,
+			Name:         containerName,
+		})
+
+		otherUser := randomUser()
+		collectionName, _ := entities.NewCollectionName("Test Collection")
+		testCollection := entities.ReconstructCollection(
+			collectionID,
+			otherUser.ID(),
+			nil,
+			collectionName,
+			nil,
+			entities.ObjectTypeGeneral,
+			[]entities.Container{},
+			[]string{},
+			"",
+			time.Now(),
+			time.Now(),
+		)
+
+		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/objects", requestBody)
 		req.SetPathValue("id", testUser.ID().String())
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.CreateObject(rr, req)
 
 		assert.Equal(t, http.StatusForbidden, rr.Code)
@@ -159,8 +178,6 @@ func TestObjectController_CreateObject(t *testing.T) {
 			ObjectType:  "general",
 		}
 
-		// Simulate container not found
-		mockAuthService.EXPECT().ValidateToken(gomock.Any(), "test-token").Return(nil, nil)
 		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(nil, errors.New("container not found"))
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/objects", requestBody)
@@ -168,7 +185,6 @@ func TestObjectController_CreateObject(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.CreateObject(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
@@ -182,12 +198,10 @@ func TestObjectController_DeleteObject(t *testing.T) {
 	defer mockCtrl.Finish()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	// Mock repositories and services
 	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
 	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
-	// Create use case with mocked dependencies
 	deleteObjectUC := usecases.NewDeleteObjectUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
 
 	controller := &ObjectController{
@@ -199,17 +213,45 @@ func TestObjectController_DeleteObject(t *testing.T) {
 		testUser := randomUser()
 		objectID := entities.NewObjectID()
 		containerID := entities.NewContainerID()
+		collectionID := entities.NewCollectionID()
 
-		// Create test container for mocking
+		// Create an object with the specific ID so RemoveObject succeeds
+		objectName, _ := entities.NewObjectName("Test Object")
+		objectDesc := entities.NewObjectDescription("")
+		testObject := entities.ReconstructObject(objectID, objectName, objectDesc, entities.ObjectTypeGeneral, nil, "", nil, nil, nil, time.Now(), time.Now())
+
+		// Create a container that already holds the object
 		containerName, _ := entities.NewContainerName("Test Container")
-		testContainer, _ := entities.NewContainer(entities.ContainerProps{
-			CollectionID: entities.NewCollectionID(),
-			Name:         containerName,
-		})
+		testContainer := entities.ReconstructContainer(
+			entities.NewContainerID(),
+			collectionID,
+			containerName,
+			entities.ContainerTypeGeneral,
+			nil, nil, nil,
+			[]entities.Object{*testObject},
+			"", nil, nil, nil, nil,
+			time.Now(), time.Now(),
+		)
 
-		// Mock expectations
-		mockAuthService.EXPECT().ValidateToken(gomock.Any(), "test-token").Return(nil, nil)
+		// Collection owned by testUser
+		collectionName, _ := entities.NewCollectionName("Test Collection")
+		testCollection := entities.ReconstructCollection(
+			collectionID,
+			testUser.ID(),
+			nil,
+			collectionName,
+			nil,
+			entities.ObjectTypeGeneral,
+			[]entities.Container{},
+			[]string{},
+			"",
+			time.Now(),
+			time.Now(),
+		)
+
 		mockContainerRepo.EXPECT().GetByID(gomock.Any(), gomock.Any()).Return(testContainer, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
 		mockContainerRepo.EXPECT().Update(gomock.Any(), testContainer).Return(nil)
 
 		req := newTestRequest(http.MethodDelete, "/accounts/"+testUser.ID().String()+"/objects/"+objectID.String()+"?container_id="+containerID.String(), nil)
@@ -218,7 +260,6 @@ func TestObjectController_DeleteObject(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.DeleteObject(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -238,7 +279,6 @@ func TestObjectController_DeleteObject(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.DeleteObject(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -249,9 +289,8 @@ func TestObjectController_DeleteObject(t *testing.T) {
 		objectID := entities.NewObjectID()
 		containerID := entities.NewContainerID()
 
-		// Simulate object not found
-		mockAuthService.EXPECT().ValidateToken(gomock.Any(), "test-token").Return(nil, nil)
-		mockContainerRepo.EXPECT().GetByID(gomock.Any(), gomock.Any()).Return(nil, errors.New("object not found"))
+		// Container not found causes early return
+		mockContainerRepo.EXPECT().GetByID(gomock.Any(), gomock.Any()).Return(nil, errors.New("container not found"))
 
 		req := newTestRequest(http.MethodDelete, "/accounts/"+testUser.ID().String()+"/objects/"+objectID.String()+"?container_id="+containerID.String(), nil)
 		req.SetPathValue("id", testUser.ID().String())
@@ -259,7 +298,6 @@ func TestObjectController_DeleteObject(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.DeleteObject(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
@@ -273,12 +311,10 @@ func TestObjectController_BulkImport(t *testing.T) {
 	defer mockCtrl.Finish()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	// Mock repositories and services
 	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
 	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
-	// Create use case with mocked dependencies
 	bulkImportUC := usecases.NewBulkImportObjectsUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
 
 	controller := &ObjectController{
@@ -288,6 +324,7 @@ func TestObjectController_BulkImport(t *testing.T) {
 
 	t.Run("success - bulk import objects", func(t *testing.T) {
 		testUser := randomUser()
+		collectionID := entities.NewCollectionID()
 		containerID := entities.NewContainerID()
 
 		requestBody := request.BulkImportRequest{
@@ -300,17 +337,31 @@ func TestObjectController_BulkImport(t *testing.T) {
 			DefaultTags: []string{"imported"},
 		}
 
-		// Create test container for mocking
 		containerName, _ := entities.NewContainerName("Test Container")
 		testContainer, _ := entities.NewContainer(entities.ContainerProps{
-			CollectionID: entities.NewCollectionID(),
+			CollectionID: collectionID,
 			Name:         containerName,
 		})
 
-		// Mock expectations
-		mockAuthService.EXPECT().ValidateToken(gomock.Any(), "test-token").Return(nil, nil)
+		collectionName, _ := entities.NewCollectionName("Test Collection")
+		testCollection := entities.ReconstructCollection(
+			collectionID,
+			testUser.ID(),
+			nil,
+			collectionName,
+			nil,
+			entities.ObjectTypeGeneral,
+			[]entities.Container{},
+			[]string{},
+			"",
+			time.Now(),
+			time.Now(),
+		)
+
 		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
-		mockContainerRepo.EXPECT().Update(gomock.Any(), testContainer).Return(nil).Times(2)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		mockContainerRepo.EXPECT().Update(gomock.Any(), testContainer).Return(nil).Times(1)
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/import", requestBody)
 		req.SetPathValue("id", testUser.ID().String())
@@ -318,7 +369,6 @@ func TestObjectController_BulkImport(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.BulkImport(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -334,11 +384,10 @@ func TestObjectController_BulkImport(t *testing.T) {
 		testUser := randomUser()
 		containerID := entities.NewContainerID()
 
-		// Invalid request (empty data)
 		requestBody := request.BulkImportRequest{
 			Format:     "json",
 			ObjectType: "general",
-			Data:       []map[string]interface{}{}, // Empty data
+			Data:       []map[string]interface{}{},
 		}
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/import", requestBody)
@@ -347,7 +396,6 @@ func TestObjectController_BulkImport(t *testing.T) {
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
-
 		controller.BulkImport(rr, req)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
