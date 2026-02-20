@@ -1,4 +1,3 @@
-backend
 frontend/verification/*
 *.wasm
 app.toml
