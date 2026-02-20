@@ -8,3 +8,4 @@ frontend/bin/*
 frontend/web/app.wasm
 frontend/logs/*
 .idea
+.serena
