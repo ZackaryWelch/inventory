@@ -459,15 +459,16 @@ func (ctrl *ObjectController) DeleteObject(w http.ResponseWriter, r *http.Reques
 	})
 }
 
+
 // BulkImport godoc
-// @Summary Bulk import objects
-// @Description Import multiple objects from JSON/CSV data
+// @Summary Bulk import objects to a container
+// @Description Import multiple objects into a specific container. container_id must be provided in the request body.
 // @Tags objects
 // @Accept json
 // @Produce json
 // @Param id path string true "User ID"
-// @Param import body request.BulkImportRequest true "Bulk import data"
-// @Success 200 {object} request.BulkImportResponse
+// @Param import body request.BulkImportRequest true "Bulk import data (must include container_id)"
+// @Success 200 {object} response.BulkImportResponse
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
 // @Failure 403 {object} map[string]string
@@ -496,13 +497,6 @@ func (ctrl *ObjectController) BulkImport(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	containerID, err := request.GetContainerIDFromPath(r)
-	if err != nil {
-		ctrl.logger.Warn("Invalid container ID in path", slog.Any("error", err))
-		httputil.Error(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
 	// Users can only import into their own containers
 	if !pathUserID.Equals(user.ID()) {
 		httputil.Error(w, http.StatusForbidden, "access denied")
@@ -522,17 +516,21 @@ func (ctrl *ObjectController) BulkImport(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Convert raw data to ObjectImportData
+	containerID, err := req.GetContainerID()
+	if err != nil {
+		ctrl.logger.Warn("Invalid container ID in body", slog.Any("error", err))
+		httputil.Error(w, http.StatusBadRequest, "invalid container_id")
+		return
+	}
+
 	objectType := req.GetObjectType()
 	objects := make([]usecases.ObjectImportData, len(req.Data))
 	for i, item := range req.Data {
-		// Extract name from the data
 		name, ok := item["name"].(string)
 		if !ok || name == "" {
-			continue // Skip items without valid names
+			continue
 		}
 
-		// Create properties from the remaining data
 		properties := make(map[string]interface{})
 		for key, value := range item {
 			if key != "name" {
@@ -540,7 +538,6 @@ func (ctrl *ObjectController) BulkImport(w http.ResponseWriter, r *http.Request)
 			}
 		}
 
-		// Combine default tags with any item-specific tags
 		tags := append([]string(nil), req.DefaultTags...)
 		if itemTags, ok := item["tags"].([]string); ok {
 			tags = append(tags, itemTags...)
@@ -570,6 +567,7 @@ func (ctrl *ObjectController) BulkImport(w http.ResponseWriter, r *http.Request)
 
 	ctrl.logger.Info("Bulk import completed",
 		slog.String("user_id", user.ID().String()),
+		slog.String("container_id", containerID.String()),
 		slog.Int("imported", resp.Imported),
 		slog.Int("failed", resp.Failed))
 

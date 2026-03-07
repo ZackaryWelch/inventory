@@ -7,6 +7,7 @@ import (
 )
 
 type BulkImportRequest struct {
+	ContainerID string                   `json:"container_id" binding:"required"`
 	Format      string                   `json:"format" binding:"required"` // "csv" or "json"
 	Data        []map[string]interface{} `json:"data" binding:"required"`
 	ObjectType  string                   `json:"object_type" binding:"required"`
@@ -23,6 +24,10 @@ type BulkImportCollectionRequest struct {
 }
 
 func (r *BulkImportRequest) Validate() error {
+	if r.ContainerID == "" {
+		return fmt.Errorf("container_id is required")
+	}
+
 	if r.Format != "csv" && r.Format != "json" {
 		return fmt.Errorf("format must be 'csv' or 'json'")
 	}
@@ -78,8 +83,7 @@ func (r *BulkImportRequest) GetObjectType() entities.ObjectType {
 }
 
 func (r *BulkImportRequest) GetContainerID() (entities.ContainerID, error) {
-	// This will be called after getting the container ID from the path
-	return entities.ContainerID{}, fmt.Errorf("container ID should be extracted from path, not request body")
+	return entities.ContainerIDFromString(r.ContainerID)
 }
 
 func (r *BulkImportCollectionRequest) GetCollectionID() (entities.CollectionID, error) {

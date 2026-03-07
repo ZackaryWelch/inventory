@@ -101,6 +101,9 @@ func Setup(appContainer *container.Container) http.Handler {
 	mux.HandleFunc("GET /accounts/{id}/collections/{collection_id}/objects", withAuth(objectController.GetCollectionObjects))
 	mux.HandleFunc("POST /accounts/{id}/collections/{collection_id}/import", withAuth(objectController.BulkImportToCollection))
 
+	// Bulk import to a container (container_id in request body)
+	mux.HandleFunc("POST /accounts/{id}/import", withAuth(objectController.BulkImport))
+
 	// Objects under accounts
 	mux.HandleFunc("POST /accounts/{id}/objects", withAuth(objectController.CreateObject))
 	mux.HandleFunc("PUT /accounts/{id}/objects/{object_id}", withAuth(objectController.UpdateObject))

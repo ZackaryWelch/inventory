@@ -328,8 +328,9 @@ func TestObjectController_BulkImport(t *testing.T) {
 		containerID := entities.NewContainerID()
 
 		requestBody := request.BulkImportRequest{
-			Format:     "json",
-			ObjectType: "general",
+			ContainerID: containerID.String(),
+			Format:      "json",
+			ObjectType:  "general",
 			Data: []map[string]interface{}{
 				{"name": "Object 1", "description": "First object"},
 				{"name": "Object 2", "description": "Second object"},
@@ -365,7 +366,6 @@ func TestObjectController_BulkImport(t *testing.T) {
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/import", requestBody)
 		req.SetPathValue("id", testUser.ID().String())
-		req.SetPathValue("container_id", containerID.String())
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
@@ -385,14 +385,14 @@ func TestObjectController_BulkImport(t *testing.T) {
 		containerID := entities.NewContainerID()
 
 		requestBody := request.BulkImportRequest{
-			Format:     "json",
-			ObjectType: "general",
-			Data:       []map[string]interface{}{},
+			ContainerID: containerID.String(),
+			Format:      "json",
+			ObjectType:  "general",
+			Data:        []map[string]interface{}{},
 		}
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/import", requestBody)
 		req.SetPathValue("id", testUser.ID().String())
-		req.SetPathValue("container_id", containerID.String())
 		req = setAuthContext(req, testUser, "test-token")
 
 		rr := httptest.NewRecorder()
