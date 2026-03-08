@@ -30,12 +30,15 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		Name:        "me",
 		Description: "Current authenticated user",
 		MIMEType:    "application/json",
-	}, func(_ context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		u := mctx.User
+	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		user, _, err := MCPUserFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
 		result := map[string]any{
-			"id":       u.ID().String(),
-			"username": u.Username().String(),
-			"email":    u.EmailAddress().String(),
+			"id":       user.ID().String(),
+			"username": user.Username().String(),
+			"email":    user.EmailAddress().String(),
 		}
 		return jsonResourceResult(req.Params.URI, result)
 	})
@@ -47,9 +50,13 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		Description: "Groups the current user belongs to",
 		MIMEType:    "application/json",
 	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
 		resp, err := mctx.getGroupsUC().Execute(ctx, usecases.GetGroupsRequest{
-			UserID:    mctx.userID(),
-			UserToken: mctx.Token,
+			UserID:    user.ID(),
+			UserToken: token,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("get groups: %w", err)
@@ -64,9 +71,13 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		Description: "All collections owned by or shared with the current user",
 		MIMEType:    "application/json",
 	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
 		resp, err := mctx.getCollectionsUC().Execute(ctx, usecases.GetCollectionsRequest{
-			UserID:    mctx.userID(),
-			UserToken: mctx.Token,
+			UserID:    user.ID(),
+			UserToken: token,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("get collections: %w", err)
@@ -81,9 +92,13 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		Description: "All containers across all groups the current user belongs to",
 		MIMEType:    "application/json",
 	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
 		resp, err := mctx.getAllContainersUC().Execute(ctx, usecases.GetAllContainersRequest{
-			UserID:    mctx.userID(),
-			UserToken: mctx.Token,
+			UserID:    user.ID(),
+			UserToken: token,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("get all containers: %w", err)
@@ -100,8 +115,12 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		Description: "A specific group by ID",
 		MIMEType:    "application/json",
 	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		_, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
 		id := extractID(req.Params.URI, "nishiki://groups/")
-		group, err := mctx.Container.AuthService.GetGroupByID(ctx, mctx.Token, id)
+		group, err := mctx.Container.AuthService.GetGroupByID(ctx, token, id)
 		if err != nil {
 			return nil, fmt.Errorf("get group: %w", err)
 		}
@@ -115,8 +134,12 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		Description: "Members of a specific group",
 		MIMEType:    "application/json",
 	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		_, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
 		id := extractID(req.Params.URI, "nishiki://groups/")
-		users, err := mctx.Container.AuthService.GetGroupUsers(ctx, mctx.Token, id)
+		users, err := mctx.Container.AuthService.GetGroupUsers(ctx, token, id)
 		if err != nil {
 			return nil, fmt.Errorf("get group users: %w", err)
 		}
@@ -143,6 +166,10 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		Description: "Containers belonging to a specific group",
 		MIMEType:    "application/json",
 	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
 		id := extractID(req.Params.URI, "nishiki://groups/")
 		groupID, err := entities.GroupIDFromString(id)
 		if err != nil {
@@ -150,8 +177,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		}
 		resp, err := mctx.getContainersUC().Execute(ctx, usecases.GetContainersRequest{
 			GroupID:   groupID,
-			UserID:    mctx.userID(),
-			UserToken: mctx.Token,
+			UserID:    user.ID(),
+			UserToken: token,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("get group containers: %w", err)
@@ -166,15 +193,19 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		Description: "A specific collection by ID",
 		MIMEType:    "application/json",
 	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
 		id := extractID(req.Params.URI, "nishiki://collections/")
 		collectionID, err := entities.CollectionIDFromString(id)
 		if err != nil {
 			return nil, fmt.Errorf("invalid collection ID: %w", err)
 		}
 		resp, err := mctx.getCollectionsUC().Execute(ctx, usecases.GetCollectionsRequest{
-			UserID:       mctx.userID(),
+			UserID:       user.ID(),
 			CollectionID: &collectionID,
-			UserToken:    mctx.Token,
+			UserToken:    token,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("get collection: %w", err)
@@ -192,6 +223,10 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		Description: "Containers within a specific collection",
 		MIMEType:    "application/json",
 	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
 		id := extractID(req.Params.URI, "nishiki://collections/")
 		collectionID, err := entities.CollectionIDFromString(id)
 		if err != nil {
@@ -199,8 +234,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		}
 		resp, err := mctx.getContainersByCollectionUC().Execute(ctx, usecases.GetContainersByCollectionRequest{
 			CollectionID: collectionID,
-			UserID:       mctx.userID(),
-			UserToken:    mctx.Token,
+			UserID:       user.ID(),
+			UserToken:    token,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("get collection containers: %w", err)
@@ -215,6 +250,10 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		Description: "Objects within a specific collection (across all containers)",
 		MIMEType:    "application/json",
 	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
 		id := extractID(req.Params.URI, "nishiki://collections/")
 		collectionID, err := entities.CollectionIDFromString(id)
 		if err != nil {
@@ -222,8 +261,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		}
 		resp, err := mctx.getCollectionObjectsUC().Execute(ctx, usecases.GetCollectionObjectsRequest{
 			CollectionID: collectionID,
-			UserID:       mctx.userID(),
-			UserToken:    mctx.Token,
+			UserID:       user.ID(),
+			UserToken:    token,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("get collection objects: %w", err)
@@ -238,6 +277,10 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		Description: "A specific container by ID",
 		MIMEType:    "application/json",
 	}, func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
 		id := extractID(req.Params.URI, "nishiki://containers/")
 		containerID, err := entities.ContainerIDFromString(id)
 		if err != nil {
@@ -245,8 +288,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		}
 		resp, err := mctx.getContainerByIDUC().Execute(ctx, usecases.GetContainerByIDRequest{
 			ContainerID: containerID,
-			UserID:      mctx.userID(),
-			UserToken:   mctx.Token,
+			UserID:      user.ID(),
+			UserToken:   token,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("get container: %w", err)

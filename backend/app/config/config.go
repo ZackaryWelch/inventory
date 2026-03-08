@@ -15,9 +15,11 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port  int       `toml:"port" mapstructure:"port"`
-	Debug bool      `toml:"debug" mapstructure:"debug"`
-	TLS   TLSConfig `toml:"tls" mapstructure:"tls"`
+	Port       int       `toml:"port" mapstructure:"port"`
+	MCPPort    int       `toml:"mcp_port" mapstructure:"mcp_port"`
+	MCPSSEPort int       `toml:"mcp_sse_port" mapstructure:"mcp_sse_port"`
+	Debug      bool      `toml:"debug" mapstructure:"debug"`
+	TLS        TLSConfig `toml:"tls" mapstructure:"tls"`
 }
 
 type TLSConfig struct {
@@ -134,6 +136,8 @@ func Load() (*Config, error) {
 func setDefaults(v *viper.Viper) {
 	// Server defaults
 	v.SetDefault("server.port", 3001)
+	v.SetDefault("server.mcp_port", 3002)
+	v.SetDefault("server.mcp_sse_port", 3003)
 	v.SetDefault("server.debug", false)
 	v.SetDefault("server.tls.enabled", true)
 	v.SetDefault("server.tls.cert_file", "./certs/server.crt")

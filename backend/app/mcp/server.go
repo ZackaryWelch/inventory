@@ -1,36 +1,24 @@
 package mcpserver
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// RunMCPServer creates and runs the MCP server on stdio transport.
-// The container logger must already be redirected to stderr before calling this.
-func RunMCPServer(mctx *MCPContext) {
-	notifier := mctx.Notifier
+// NewMCPServer creates a configured MCP server with all resources, tools, and prompts registered.
+func NewMCPServer(mctx *MCPContext) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "nishiki",
 		Version: "1.0.0",
-	}, &mcp.ServerOptions{
-		InitializedHandler: func(ctx context.Context, req *mcp.InitializedRequest) {
-			notifier.SetSession(req.Session)
-			notifier.StartConnectionMonitor(ctx, mctx)
-		},
-	})
+	}, nil)
 
 	registerResources(server, mctx)
 	registerTools(server, mctx)
 	registerPrompts(server)
 
-	log.Println("[nishiki] MCP server starting on stdio")
-	if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
-		log.Fatal("[nishiki] MCP server failed:", err)
-	}
+	return server
 }
 
 // jsonResult marshals a result to JSON and returns it as MCP text content.

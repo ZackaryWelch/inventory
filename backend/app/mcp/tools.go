@@ -23,16 +23,22 @@ func registerTools(s *mcp.Server, mctx *MCPContext) {
 
 func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 	type CreateCollectionInput struct {
-		Name       string  `json:"name" jsonschema:"Name of the collection"`
-		ObjectType string  `json:"object_type" jsonschema:"Object type: food, book, videogame, music, boardgame, general"`
-		Location   string  `json:"location,omitempty" jsonschema:"Physical location of the collection"`
-		GroupID    string  `json:"group_id,omitempty" jsonschema:"Group ID to share this collection with (optional)"`
+		Name       string   `json:"name" jsonschema:"Name of the collection"`
+		ObjectType string   `json:"object_type" jsonschema:"Object type: food, book, videogame, music, boardgame, general"`
+		Location   string   `json:"location,omitempty" jsonschema:"Physical location of the collection"`
+		GroupID    string   `json:"group_id,omitempty" jsonschema:"Group ID to share this collection with (optional)"`
 		Tags       []string `json:"tags,omitempty" jsonschema:"Tags for the collection"`
 	}
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "create_collection",
 		Description: "Create a new inventory collection for a specific object type (food, books, games, etc.)",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input CreateCollectionInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
 		var groupID *entities.GroupID
 		if input.GroupID != "" {
 			gid, err := entities.GroupIDFromString(input.GroupID)
@@ -44,13 +50,13 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 		}
 
 		ucReq := usecases.CreateCollectionRequest{
-			UserID:     mctx.userID(),
+			UserID:     user.ID(),
 			GroupID:    groupID,
 			Name:       input.Name,
 			ObjectType: entities.ObjectType(input.ObjectType),
 			Tags:       input.Tags,
 			Location:   input.Location,
-			UserToken:  mctx.Token,
+			UserToken:  token,
 		}
 		resp, err := mctx.createCollectionUC().Execute(ctx, ucReq)
 		if err != nil {
@@ -71,6 +77,12 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 		Name:        "update_collection",
 		Description: "Update a collection's name, location, or tags",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input UpdateCollectionInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
 			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
@@ -79,9 +91,9 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 
 		ucReq := usecases.UpdateCollectionRequest{
 			CollectionID: collectionID,
-			UserID:       mctx.userID(),
+			UserID:       user.ID(),
 			Tags:         input.Tags,
-			UserToken:    mctx.Token,
+			UserToken:    token,
 		}
 		if input.Name != "" {
 			ucReq.Name = &input.Name
@@ -106,6 +118,12 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 		Name:        "delete_collection",
 		Description: "Delete a collection (must have no containers)",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input DeleteCollectionInput) (*mcp.CallToolResult, any, error) {
+		user, _, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
 			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
@@ -114,7 +132,7 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 
 		_, err = mctx.deleteCollectionUC().Execute(ctx, usecases.DeleteCollectionRequest{
 			CollectionID: collectionID,
-			UserID:       mctx.userID(),
+			UserID:       user.ID(),
 		})
 		if err != nil {
 			r, _ := errorResult(err)
@@ -143,6 +161,12 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 		Name:        "create_container",
 		Description: "Create a container within a collection for organizing objects",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input CreateContainerInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
 			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
@@ -158,8 +182,8 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 			Width:         input.Width,
 			Depth:         input.Depth,
 			Rows:          input.Rows,
-			UserID:        mctx.userID(),
-			UserToken:     mctx.Token,
+			UserID:        user.ID(),
+			UserToken:     token,
 		}
 
 		if input.ParentContainerID != "" {
@@ -194,6 +218,12 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 		Name:        "update_container",
 		Description: "Update a container's name, type, location, or dimensions",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input UpdateContainerInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
 		containerID, err := entities.ContainerIDFromString(input.ContainerID)
 		if err != nil {
 			r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
@@ -202,8 +232,8 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 
 		ucReq := usecases.UpdateContainerRequest{
 			ContainerID: containerID,
-			UserID:      mctx.userID(),
-			UserToken:   mctx.Token,
+			UserID:      user.ID(),
+			UserToken:   token,
 		}
 		if input.Name != "" {
 			ucReq.Name = &input.Name
@@ -244,6 +274,12 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 		Name:        "delete_container",
 		Description: "Delete a container (must have no child containers)",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input DeleteContainerInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
 		containerID, err := entities.ContainerIDFromString(input.ContainerID)
 		if err != nil {
 			r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
@@ -252,8 +288,8 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 
 		_, err = mctx.deleteContainerUC().Execute(ctx, usecases.DeleteContainerRequest{
 			ContainerID: containerID,
-			UserID:      mctx.userID(),
-			UserToken:   mctx.Token,
+			UserID:      user.ID(),
+			UserToken:   token,
 		})
 		if err != nil {
 			r, _ := errorResult(err)
@@ -282,6 +318,12 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 		Name:        "create_object",
 		Description: "Add an object to a container in a collection",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input CreateObjectInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
 		containerID, err := entities.ContainerIDFromString(input.ContainerID)
 		if err != nil {
 			r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
@@ -297,8 +339,8 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 			Unit:        input.Unit,
 			Properties:  input.Properties,
 			Tags:        input.Tags,
-			UserID:      mctx.userID(),
-			UserToken:   mctx.Token,
+			UserID:      user.ID(),
+			UserToken:   token,
 		}
 
 		if input.ExpiresAt != "" {
@@ -327,6 +369,12 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 		Name:        "delete_object",
 		Description: "Remove an object from a container",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input DeleteObjectInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
 		containerID, err := entities.ContainerIDFromString(input.ContainerID)
 		if err != nil {
 			r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
@@ -341,8 +389,8 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 		_, err = mctx.deleteObjectUC().Execute(ctx, usecases.DeleteObjectRequest{
 			ContainerID: containerID,
 			ObjectID:    objectID,
-			UserID:      mctx.userID(),
-			UserToken:   mctx.Token,
+			UserID:      user.ID(),
+			UserToken:   token,
 		})
 		if err != nil {
 			r, _ := errorResult(err)
@@ -363,6 +411,12 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 		Name:        "update_object",
 		Description: "Update an object's name, properties, or tags",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input UpdateObjectInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
 		containerID, err := entities.ContainerIDFromString(input.ContainerID)
 		if err != nil {
 			r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
@@ -377,8 +431,8 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 		ucReq := usecases.UpdateObjectRequest{
 			ContainerID: containerID,
 			ObjectID:    objectID,
-			UserID:      mctx.userID(),
-			UserToken:   mctx.Token,
+			UserID:      user.ID(),
+			UserToken:   token,
 		}
 		if input.Name != "" {
 			ucReq.Name = &input.Name
@@ -410,10 +464,16 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 		Name:        "create_group",
 		Description: "Create a new group for collaborating on collections",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input CreateGroupInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
 		resp, err := mctx.createGroupUC().Execute(ctx, usecases.CreateGroupRequest{
 			Name:      input.Name,
-			CreatorID: mctx.userID(),
-			UserToken: mctx.Token,
+			CreatorID: user.ID(),
+			UserToken: token,
 		})
 		if err != nil {
 			r, _ := errorResult(err)
@@ -463,16 +523,22 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 
 func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 	type BulkImportInput struct {
-		CollectionID     string                   `json:"collection_id" jsonschema:"ID of the collection to import into"`
-		Data             []map[string]interface{} `json:"data" jsonschema:"Array of objects to import, each must have a 'name' field"`
-		DistributionMode string                   `json:"distribution_mode,omitempty" jsonschema:"How to distribute objects: automatic, target, or manual (default)"`
-		TargetContainerID string                  `json:"target_container_id,omitempty" jsonschema:"Container ID for target distribution mode (optional)"`
-		DefaultTags      []string                 `json:"default_tags,omitempty" jsonschema:"Tags to apply to all imported objects (optional)"`
+		CollectionID      string                   `json:"collection_id" jsonschema:"ID of the collection to import into"`
+		Data              []map[string]interface{} `json:"data" jsonschema:"Array of objects to import, each must have a 'name' field"`
+		DistributionMode  string                   `json:"distribution_mode,omitempty" jsonschema:"How to distribute objects: automatic, target, or manual (default)"`
+		TargetContainerID string                   `json:"target_container_id,omitempty" jsonschema:"Container ID for target distribution mode (optional)"`
+		DefaultTags       []string                 `json:"default_tags,omitempty" jsonschema:"Tags to apply to all imported objects (optional)"`
 	}
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "bulk_import",
 		Description: "Bulk import objects into a collection. Each item must have a 'name' field; other fields become properties.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input BulkImportInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
 			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
@@ -480,12 +546,12 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 		}
 
 		ucReq := usecases.BulkImportCollectionRequest{
-			UserID:           mctx.userID(),
+			UserID:           user.ID(),
 			CollectionID:     collectionID,
 			DistributionMode: input.DistributionMode,
 			Data:             input.Data,
 			DefaultTags:      input.DefaultTags,
-			UserToken:        mctx.Token,
+			UserToken:        token,
 		}
 
 		if input.TargetContainerID != "" {

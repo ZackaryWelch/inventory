@@ -24,38 +24,17 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3001"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-      - "authentik.local:192.168.0.125"
-    environment:
-      - NISHIKI_AUTH_AUTHENTIK_URL=https://authentik.local:30141
-    networks:
-      - nishiki-network
-    volumes:
-      - ./certs:/app/certs:ro
-
-  nishiki-mcp:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: mcp
-    container_name: nishiki-mcp
-    restart: unless-stopped
-    ports:
       - "3002:3002"
+      - "3003:3003"
     extra_hosts:
       - "host.docker.internal:host-gateway"
       - "authentik.local:192.168.0.125"
     environment:
-      - NISHIKI_TOKEN=${NISHIKI_TOKEN}
-      - NISHIKI_API_URL=http://nishiki-backend:3001
       - NISHIKI_AUTH_AUTHENTIK_URL=https://authentik.local:30141
     networks:
       - nishiki-network
     volumes:
       - ./certs:/app/certs:ro
-    depends_on:
-      - nishiki-backend
 
 #volumes:
   #mongodb_data:

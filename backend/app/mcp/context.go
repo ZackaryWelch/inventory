@@ -1,21 +1,40 @@
 package mcpserver
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/nishiki/backend-go/app/container"
 	"github.com/nishiki/backend-go/domain/entities"
 	"github.com/nishiki/backend-go/domain/usecases"
 )
 
-// MCPContext holds all shared state for the MCP server.
+// MCPContext holds shared state for the MCP server (no per-request auth).
 type MCPContext struct {
 	Container *container.Container
-	User      *entities.User
-	Token     string
 	Notifier  *MCPNotifier
 }
 
-func (c *MCPContext) userID() entities.UserID {
-	return c.User.ID()
+// mcpAuthKey is the context key for per-request auth data.
+type mcpAuthKey struct{}
+
+type mcpAuth struct {
+	User  *entities.User
+	Token string
+}
+
+// WithMCPUser stores the authenticated user and token in the context.
+func WithMCPUser(ctx context.Context, user *entities.User, token string) context.Context {
+	return context.WithValue(ctx, mcpAuthKey{}, &mcpAuth{User: user, Token: token})
+}
+
+// MCPUserFromContext extracts the authenticated user and token from the context.
+func MCPUserFromContext(ctx context.Context) (*entities.User, string, error) {
+	auth, ok := ctx.Value(mcpAuthKey{}).(*mcpAuth)
+	if !ok || auth == nil {
+		return nil, "", fmt.Errorf("unauthorized: no MCP auth in context")
+	}
+	return auth.User, auth.Token, nil
 }
 
 // Use case factories — constructed on demand so no state is shared across calls.
