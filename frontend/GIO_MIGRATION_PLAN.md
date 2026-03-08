@@ -124,6 +124,52 @@ Migrate the Nishiki inventory management frontend from Cogent Core v0.3.12 to Gi
     - Verify all API endpoints work with new frontend
     - Create rollback plan
 
+## Features to Build (Not Just Migrate)
+
+The migration covers porting existing Cogent Core views to Gio. The following features were planned but not yet built in the Cogent Core version and need to be implemented as new Gio views.
+
+### Organization
+
+- **Bulk operations** — multi-select objects for move, delete, or tag operations
+- **Container capacity visualization** — progress bar per container (used / capacity)
+- **Auto-organize trigger** — UI to invoke `POST /accounts/{id}/organize` and show the result (suggested moves, confirmation step)
+- **Space planning view** — overview of containers with fill levels, flag over/under-utilized
+
+### Categories
+
+- **Category management** — create, rename, delete categories (`GET/POST/PUT/DELETE /categories`)
+- **Category assignment** — assign categories to objects and filter by category
+- **Backend note**: category entity, repo, and DTOs exist; controller and routes are not yet implemented
+
+### Import (field mapping)
+
+The existing import UI handles file upload. The wizard steps below are not yet built:
+- **Field mapping interface** — map CSV/JSON columns to object fields for non-standard formats
+- **Import preview** — show parsed rows with validation errors before committing
+- **Libib CSV import** — map Libib's export format to Nishiki object types (see object type fields below)
+
+### Libib-replacement metadata
+
+Type-specific fields that should be surfaced/editable per object type:
+
+| Type | Key fields |
+|---|---|
+| `book` | author, ISBN, publisher, series, edition, condition |
+| `videogame` | platform, publisher, region, condition |
+| `music` | artist, format (CD/vinyl/cassette), label, condition |
+| `boardgame` | publisher, player count, complexity, condition |
+| `food` | brand, unit, quantity, expiry date |
+
+These are stored in `properties` (flexible map) but the UI should present them as typed fields, not a raw key-value editor.
+
+### Tag management
+
+- Tag input on object create/edit (add/remove tags inline)
+- Filter objects by tag across a collection
+- Bulk tag operations (apply/remove tag from selected items)
+
+---
+
 ## Key Differences: Cogent Core vs Gio
 
 ### Paradigm Shift
