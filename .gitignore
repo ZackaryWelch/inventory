@@ -10,3 +10,4 @@ frontend/web/app.wasm
 frontend/logs/*
 .idea
 .serena
+data
