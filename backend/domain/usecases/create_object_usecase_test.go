@@ -67,6 +67,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -167,6 +168,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -332,6 +334,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -406,6 +409,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -533,6 +537,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)

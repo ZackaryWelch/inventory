@@ -42,6 +42,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 				[]entities.Container{},
 				[]string{},
 				"",
+				nil,
 				time.Now(),
 				time.Now(),
 			)
@@ -83,6 +84,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -136,6 +138,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -227,6 +230,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -268,6 +272,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -315,6 +320,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)

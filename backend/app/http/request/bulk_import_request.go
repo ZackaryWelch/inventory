@@ -17,10 +17,13 @@ type BulkImportRequest struct {
 type BulkImportCollectionRequest struct {
 	CollectionID      string                   `json:"collection_id,omitempty"` // Optional - collection_id comes from URL path
 	TargetContainerID *string                  `json:"target_container_id,omitempty"`
-	DistributionMode  string                   `json:"distribution_mode,omitempty"` // "automatic", "manual", "target"
+	DistributionMode  string                   `json:"distribution_mode,omitempty"` // "automatic", "manual", "target", "location"
 	Format            string                   `json:"format" binding:"required"`   // "csv" or "json"
 	Data              []map[string]interface{} `json:"data" binding:"required"`
 	DefaultTags       []string                 `json:"default_tags,omitempty"`
+	LocationColumn    string                   `json:"location_column,omitempty"` // column name for container mapping (default: "location")
+	NameColumn        string                   `json:"name_column,omitempty"`     // column name override for object name
+	InferSchema       bool                     `json:"infer_schema,omitempty"`    // run type inference and save schema
 }
 
 func (r *BulkImportRequest) Validate() error {
@@ -63,10 +66,10 @@ func (r *BulkImportCollectionRequest) Validate() error {
 	// Validate distribution mode if provided
 	if r.DistributionMode != "" {
 		switch r.DistributionMode {
-		case "automatic", "manual", "target":
+		case "automatic", "manual", "target", "location":
 			// Valid modes
 		default:
-			return fmt.Errorf("distribution_mode must be 'automatic', 'manual', or 'target'")
+			return fmt.Errorf("distribution_mode must be 'automatic', 'manual', 'target', or 'location'")
 		}
 	}
 

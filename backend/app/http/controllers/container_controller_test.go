@@ -65,6 +65,7 @@ func TestContainerController_CreateContainer(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -145,6 +146,7 @@ func TestContainerController_CreateContainer(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -223,6 +225,7 @@ func TestContainerController_GetContainer(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -299,6 +302,7 @@ func TestContainerController_GetContainer(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)

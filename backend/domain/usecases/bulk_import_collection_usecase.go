@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/nishiki/backend-go/domain/entities"
 	"github.com/nishiki/backend-go/domain/repositories"
@@ -14,19 +15,24 @@ type BulkImportCollectionRequest struct {
 	UserID            entities.UserID
 	CollectionID      entities.CollectionID
 	TargetContainerID *entities.ContainerID // Optional: specific container to import to
-	DistributionMode  string                // "automatic", "manual", "target"
+	DistributionMode  string                // "automatic", "manual", "target", "location"
 	Data              []map[string]interface{}
 	DefaultTags       []string
 	UserToken         string
+	LocationColumn    string // column name for container mapping (default: "location")
+	NameColumn        string // column name override for object name
+	InferSchema       bool   // run type inference and save schema to collection
 }
 
 type BulkImportCollectionResponse struct {
-	Imported         int               `json:"imported"`
-	Failed           int               `json:"failed"`
-	Total            int               `json:"total"`
-	Errors           []string          `json:"errors,omitempty"`
-	CapacityWarnings []CapacityWarning `json:"capacity_warnings,omitempty"`
-	Assignments      map[string]int    `json:"assignments,omitempty"` // containerID -> count
+	Imported         int                      `json:"imported"`
+	Failed           int                      `json:"failed"`
+	Total            int                      `json:"total"`
+	Errors           []string                 `json:"errors,omitempty"`
+	CapacityWarnings []CapacityWarning        `json:"capacity_warnings,omitempty"`
+	Assignments      map[string]int           `json:"assignments,omitempty"` // containerID -> count
+	ContainersCreated int                     `json:"containers_created,omitempty"`
+	InferredSchema   *entities.PropertySchema `json:"inferred_schema,omitempty"`
 }
 
 type CapacityWarning struct {
@@ -42,6 +48,7 @@ type BulkImportCollectionUseCase struct {
 	collectionRepo repositories.CollectionRepository
 	containerRepo  repositories.ContainerRepository
 	authService    services.AuthService
+	typeInference  *services.TypeInferenceService
 }
 
 func NewBulkImportCollectionUseCase(collectionRepo repositories.CollectionRepository, containerRepo repositories.ContainerRepository, authService services.AuthService) *BulkImportCollectionUseCase {
@@ -49,6 +56,7 @@ func NewBulkImportCollectionUseCase(collectionRepo repositories.CollectionReposi
 		collectionRepo: collectionRepo,
 		containerRepo:  containerRepo,
 		authService:    authService,
+		typeInference:  services.NewTypeInferenceService(),
 	}
 }
 
@@ -79,6 +87,33 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 
 	if !hasAccess {
 		return nil, fmt.Errorf("access denied")
+	}
+
+	// Run type inference if requested
+	var inferredSchema *entities.PropertySchema
+	if req.InferSchema && len(req.Data) > 0 {
+		// Collect headers from first row
+		headers := make([]string, 0, len(req.Data[0]))
+		for k := range req.Data[0] {
+			headers = append(headers, k)
+		}
+		inferredSchema = uc.typeInference.InferSchema(headers, req.Data)
+		if inferredSchema != nil {
+			// Coerce all row values according to inferred schema
+			for i, row := range req.Data {
+				req.Data[i] = uc.typeInference.CoerceRow(row, inferredSchema)
+			}
+			// Save schema to collection
+			collection.UpdatePropertySchema(inferredSchema)
+			if err := uc.collectionRepo.Update(ctx, collection); err != nil {
+				return nil, fmt.Errorf("failed to save inferred schema: %w", err)
+			}
+		}
+	}
+
+	// Handle location-based distribution mode before the standard switch
+	if req.DistributionMode == "location" {
+		return uc.executeLocationDistribution(ctx, req, collection, inferredSchema)
 	}
 
 	// Determine target container(s) based on distribution mode
@@ -134,7 +169,7 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		}
 
 		// Process objects with automatic distribution
-		return uc.executeAutomaticDistribution(ctx, req, collection, autoDistData)
+		return uc.executeAutomaticDistribution(ctx, req, collection, autoDistData, inferredSchema)
 
 	default:
 		// Use first available container or create default
@@ -266,10 +301,11 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		Errors:           errors,
 		CapacityWarnings: []CapacityWarning{}, // TODO: Calculate capacity warnings
 		Assignments:      assignments,
+		InferredSchema:   inferredSchema,
 	}, nil
 }
 
-func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.Context, req BulkImportCollectionRequest, collection *entities.Collection, autoDistData *automaticDistribution) (*BulkImportCollectionResponse, error) {
+func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.Context, req BulkImportCollectionRequest, collection *entities.Collection, autoDistData *automaticDistribution, inferredSchema *entities.PropertySchema) (*BulkImportCollectionResponse, error) {
 	plan := autoDistData.plan
 	containerMap := autoDistData.containerMap
 
@@ -401,10 +437,231 @@ func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.
 		Errors:           errors,
 		CapacityWarnings: capacityWarnings,
 		Assignments:      assignments,
+		InferredSchema:   inferredSchema,
 	}, nil
 }
 
 type automaticDistribution struct {
 	plan         *DistributionPlan
 	containerMap map[string]*entities.Container
+}
+
+// executeLocationDistribution creates containers from unique Location column values
+// and assigns each object to its matching container.
+func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
+	ctx context.Context,
+	req BulkImportCollectionRequest,
+	collection *entities.Collection,
+	inferredSchema *entities.PropertySchema,
+) (*BulkImportCollectionResponse, error) {
+	// Determine the location column name (default: "location")
+	locationCol := req.LocationColumn
+	if locationCol == "" {
+		locationCol = "location"
+	}
+
+	// Determine the name column (default: auto-detect)
+	nameCol := req.NameColumn
+
+	// Collect unique location values from the data
+	uniqueLocations := make(map[string]struct{})
+	for _, row := range req.Data {
+		if v, ok := row[locationCol]; ok {
+			if loc := strings.TrimSpace(fmt.Sprintf("%v", v)); loc != "" {
+				uniqueLocations[loc] = struct{}{}
+			}
+		}
+	}
+
+	// Fetch existing containers for this collection
+	existingContainers, err := uc.containerRepo.GetByCollectionID(ctx, req.CollectionID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get existing containers: %w", err)
+	}
+
+	// Build a case-insensitive name → container map from existing containers
+	locationToContainer := make(map[string]*entities.Container)
+	for _, c := range existingContainers {
+		locationToContainer[strings.ToLower(c.Name().String())] = c
+	}
+
+	// Create containers for new location values
+	containersCreated := 0
+	for loc := range uniqueLocations {
+		lowerLoc := strings.ToLower(loc)
+		if _, exists := locationToContainer[lowerLoc]; exists {
+			continue
+		}
+		containerName, err := entities.NewContainerName(loc)
+		if err != nil {
+			continue // skip invalid names
+		}
+		newContainer, err := entities.NewContainer(entities.ContainerProps{
+			CollectionID:  req.CollectionID,
+			Name:          containerName,
+			ContainerType: entities.ContainerTypeGeneral,
+		})
+		if err != nil {
+			continue
+		}
+		if err := uc.containerRepo.Create(ctx, newContainer); err != nil {
+			return nil, fmt.Errorf("failed to create container '%s': %w", loc, err)
+		}
+		if err := collection.AddContainer(*newContainer); err != nil {
+			return nil, fmt.Errorf("failed to register container '%s' on collection: %w", loc, err)
+		}
+		locationToContainer[lowerLoc] = newContainer
+		containersCreated++
+	}
+
+	// Update collection if new containers were added
+	if containersCreated > 0 {
+		if err := uc.collectionRepo.Update(ctx, collection); err != nil {
+			return nil, fmt.Errorf("failed to update collection with new containers: %w", err)
+		}
+	}
+
+	// Ensure a default container exists for objects with no location
+	const defaultContainerName = "Default"
+	defaultKey := strings.ToLower(defaultContainerName)
+	if _, exists := locationToContainer[defaultKey]; !exists {
+		containerName, _ := entities.NewContainerName(defaultContainerName)
+		defaultContainer, err := entities.NewContainer(entities.ContainerProps{
+			CollectionID:  req.CollectionID,
+			Name:          containerName,
+			ContainerType: entities.ContainerTypeGeneral,
+		})
+		if err == nil {
+			if createErr := uc.containerRepo.Create(ctx, defaultContainer); createErr == nil {
+				_ = collection.AddContainer(*defaultContainer)
+				locationToContainer[defaultKey] = defaultContainer
+				containersCreated++
+				_ = uc.collectionRepo.Update(ctx, collection)
+			}
+		}
+	}
+
+	// Import objects into their containers
+	imported := 0
+	failed := 0
+	var errors []string
+	assignments := make(map[string]int)
+	// Track which containers were modified for bulk save
+	dirtyContainers := make(map[string]*entities.Container)
+
+	objectType := collection.ObjectType()
+
+	for _, item := range req.Data {
+		// Resolve name
+		name, ok := resolveNameField(item, nameCol)
+		if !ok {
+			errors = append(errors, "missing required field: name")
+			failed++
+			continue
+		}
+
+		// Resolve target container from location column
+		locValue := ""
+		if v, ok := item[locationCol]; ok {
+			locValue = strings.TrimSpace(fmt.Sprintf("%v", v))
+		}
+		containerKey := strings.ToLower(locValue)
+		if containerKey == "" {
+			containerKey = defaultKey
+		}
+		container, exists := locationToContainer[containerKey]
+		if !exists {
+			container = locationToContainer[defaultKey]
+		}
+
+		// Build properties (exclude name, tags, location column)
+		properties := make(map[string]interface{})
+		for key, value := range item {
+			lk := strings.ToLower(key)
+			if lk == strings.ToLower(nameCol) || lk == "name" || lk == "title" || lk == "item" || lk == "tags" || strings.ToLower(key) == strings.ToLower(locationCol) {
+				continue
+			}
+			properties[key] = value
+		}
+
+		// Combine default tags with item-specific tags
+		tags := append([]string(nil), req.DefaultTags...)
+		if itemTags, ok := item["tags"].([]interface{}); ok {
+			for _, tag := range itemTags {
+				if tagStr, ok := tag.(string); ok {
+					tags = append(tags, tagStr)
+				}
+			}
+		}
+
+		objectName, err := entities.NewObjectName(name)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("invalid object name '%s': %v", name, err))
+			failed++
+			continue
+		}
+
+		newObject, err := entities.NewObject(entities.ObjectProps{
+			Name:       objectName,
+			ObjectType: objectType,
+			Properties: properties,
+			Tags:       tags,
+		})
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("failed to create object '%s': %v", name, err))
+			failed++
+			continue
+		}
+
+		if err := container.AddObject(*newObject); err != nil {
+			errors = append(errors, fmt.Sprintf("failed to add object '%s' to container: %v", name, err))
+			failed++
+			continue
+		}
+
+		dirtyContainers[container.ID().String()] = container
+		assignments[container.ID().String()]++
+		imported++
+	}
+
+	// Persist all modified containers
+	for _, c := range dirtyContainers {
+		if err := uc.containerRepo.Update(ctx, c); err != nil {
+			return nil, fmt.Errorf("failed to save container %s: %w", c.ID().String(), err)
+		}
+	}
+
+	total := imported + failed
+	return &BulkImportCollectionResponse{
+		Imported:          imported,
+		Failed:            failed,
+		Total:             total,
+		Errors:            errors,
+		CapacityWarnings:  []CapacityWarning{},
+		Assignments:       assignments,
+		ContainersCreated: containersCreated,
+		InferredSchema:    inferredSchema,
+	}, nil
+}
+
+// resolveNameField finds the object name from a data row using explicit nameCol or auto-detection.
+func resolveNameField(item map[string]interface{}, nameCol string) (string, bool) {
+	if nameCol != "" {
+		if v, ok := item[nameCol]; ok {
+			name := strings.TrimSpace(fmt.Sprintf("%v", v))
+			if name != "" {
+				return name, true
+			}
+		}
+	}
+	// Auto-detect common name columns
+	for _, candidate := range []string{"name", "Name", "title", "Title", "item", "Item"} {
+		if v, ok := item[candidate]; ok {
+			name := strings.TrimSpace(fmt.Sprintf("%v", v))
+			if name != "" {
+				return name, true
+			}
+		}
+	}
+	return "", false
 }

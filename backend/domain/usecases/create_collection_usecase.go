@@ -10,13 +10,14 @@ import (
 )
 
 type CreateCollectionRequest struct {
-	UserID     entities.UserID
-	GroupID    *entities.GroupID
-	Name       string
-	ObjectType entities.ObjectType
-	Tags       []string
-	Location   string
-	UserToken  string
+	UserID         entities.UserID
+	GroupID        *entities.GroupID
+	Name           string
+	ObjectType     entities.ObjectType
+	Tags           []string
+	Location       string
+	PropertySchema *entities.PropertySchema
+	UserToken      string
 }
 
 type CreateCollectionResponse struct {
@@ -64,12 +65,13 @@ func (uc *CreateCollectionUseCase) Execute(ctx context.Context, req CreateCollec
 
 	// Create new collection
 	collection, err := entities.NewCollection(entities.CollectionProps{
-		UserID:     req.UserID,
-		GroupID:    req.GroupID,
-		Name:       collectionName,
-		ObjectType: req.ObjectType,
-		Tags:       req.Tags,
-		Location:   req.Location,
+		UserID:         req.UserID,
+		GroupID:        req.GroupID,
+		Name:           collectionName,
+		ObjectType:     req.ObjectType,
+		Tags:           req.Tags,
+		Location:       req.Location,
+		PropertySchema: req.PropertySchema,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create collection entity: %w", err)

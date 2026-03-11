@@ -40,6 +40,7 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 			[]entities.Container{}, // Empty
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -106,6 +107,7 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -151,6 +153,7 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 			[]entities.Container{*container}, // Has container
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -189,6 +192,7 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)

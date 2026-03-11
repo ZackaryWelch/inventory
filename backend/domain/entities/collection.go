@@ -59,61 +59,65 @@ func (c CollectionName) Equals(other CollectionName) bool {
 }
 
 type Collection struct {
-	id         CollectionID
-	userID     UserID   // Owner of the collection
-	groupID    *GroupID // Optional group for sharing this collection
-	name       CollectionName
-	categoryID *CategoryID // Optional category for this collection
-	objectType ObjectType  // Type of objects this collection holds
-	containers []Container // Containers within this collection
-	tags       []string
-	location   string
-	createdAt  time.Time
-	updatedAt  time.Time
+	id             CollectionID
+	userID         UserID   // Owner of the collection
+	groupID        *GroupID // Optional group for sharing this collection
+	name           CollectionName
+	categoryID     *CategoryID     // Optional category for this collection
+	objectType     ObjectType      // Type of objects this collection holds
+	containers     []Container     // Containers within this collection
+	tags           []string
+	location       string
+	propertySchema *PropertySchema // Optional typed schema for object properties
+	createdAt      time.Time
+	updatedAt      time.Time
 }
 
 type CollectionProps struct {
-	UserID     UserID
-	GroupID    *GroupID
-	Name       CollectionName
-	CategoryID *CategoryID
-	ObjectType ObjectType
-	Tags       []string
-	Location   string
+	UserID         UserID
+	GroupID        *GroupID
+	Name           CollectionName
+	CategoryID     *CategoryID
+	ObjectType     ObjectType
+	Tags           []string
+	Location       string
+	PropertySchema *PropertySchema
 }
 
 func NewCollection(props CollectionProps) (*Collection, error) {
 	now := time.Now()
 	return &Collection{
-		id:         NewCollectionID(),
-		userID:     props.UserID,
-		groupID:    props.GroupID,
-		name:       props.Name,
-		categoryID: props.CategoryID,
-		objectType: props.ObjectType,
-		containers: make([]Container, 0),
-		tags:       props.Tags,
-		location:   props.Location,
-		createdAt:  now,
-		updatedAt:  now,
+		id:             NewCollectionID(),
+		userID:         props.UserID,
+		groupID:        props.GroupID,
+		name:           props.Name,
+		categoryID:     props.CategoryID,
+		objectType:     props.ObjectType,
+		containers:     make([]Container, 0),
+		tags:           props.Tags,
+		location:       props.Location,
+		propertySchema: props.PropertySchema,
+		createdAt:      now,
+		updatedAt:      now,
 	}, nil
 }
 
 func ReconstructCollection(id CollectionID, userID UserID, groupID *GroupID, name CollectionName,
 	categoryID *CategoryID, objectType ObjectType, containers []Container, tags []string, location string,
-	createdAt, updatedAt time.Time) *Collection {
+	propertySchema *PropertySchema, createdAt, updatedAt time.Time) *Collection {
 	return &Collection{
-		id:         id,
-		userID:     userID,
-		groupID:    groupID,
-		name:       name,
-		categoryID: categoryID,
-		objectType: objectType,
-		containers: containers,
-		tags:       tags,
-		location:   location,
-		createdAt:  createdAt,
-		updatedAt:  updatedAt,
+		id:             id,
+		userID:         userID,
+		groupID:        groupID,
+		name:           name,
+		categoryID:     categoryID,
+		objectType:     objectType,
+		containers:     containers,
+		tags:           tags,
+		location:       location,
+		propertySchema: propertySchema,
+		createdAt:      createdAt,
+		updatedAt:      updatedAt,
 	}
 }
 
@@ -220,6 +224,15 @@ func (c *Collection) GetContainer(containerID ContainerID) (*Container, error) {
 
 func (c *Collection) ContainerCount() int {
 	return len(c.containers)
+}
+
+func (c *Collection) PropertySchema() *PropertySchema {
+	return c.propertySchema
+}
+
+func (c *Collection) UpdatePropertySchema(schema *PropertySchema) {
+	c.propertySchema = schema
+	c.updatedAt = time.Now()
 }
 
 func (c *Collection) UpdateCategory(categoryID *CategoryID) error {

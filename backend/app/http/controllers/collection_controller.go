@@ -14,11 +14,12 @@ import (
 )
 
 type CollectionController struct {
-	createCollectionUC *usecases.CreateCollectionUseCase
-	getCollectionsUC   *usecases.GetCollectionsUseCase
-	updateCollectionUC *usecases.UpdateCollectionUseCase
-	deleteCollectionUC *usecases.DeleteCollectionUseCase
-	logger             *slog.Logger
+	createCollectionUC       *usecases.CreateCollectionUseCase
+	getCollectionsUC         *usecases.GetCollectionsUseCase
+	updateCollectionUC       *usecases.UpdateCollectionUseCase
+	deleteCollectionUC       *usecases.DeleteCollectionUseCase
+	updatePropertySchemaUC   *usecases.UpdatePropertySchemaUseCase
+	logger                   *slog.Logger
 }
 
 func NewCollectionController(
@@ -26,11 +27,12 @@ func NewCollectionController(
 	logger *slog.Logger,
 ) *CollectionController {
 	return &CollectionController{
-		createCollectionUC: usecases.NewCreateCollectionUseCase(c.CollectionRepo, c.AuthService),
-		getCollectionsUC:   usecases.NewGetCollectionsUseCase(c.CollectionRepo, c.AuthService),
-		updateCollectionUC: usecases.NewUpdateCollectionUseCase(c.CollectionRepo, c.AuthService),
-		deleteCollectionUC: usecases.NewDeleteCollectionUseCase(c.CollectionRepo),
-		logger:             logger,
+		createCollectionUC:     usecases.NewCreateCollectionUseCase(c.CollectionRepo, c.AuthService),
+		getCollectionsUC:       usecases.NewGetCollectionsUseCase(c.CollectionRepo, c.AuthService),
+		updateCollectionUC:     usecases.NewUpdateCollectionUseCase(c.CollectionRepo, c.AuthService),
+		deleteCollectionUC:     usecases.NewDeleteCollectionUseCase(c.CollectionRepo),
+		updatePropertySchemaUC: usecases.NewUpdatePropertySchemaUseCase(c.CollectionRepo),
+		logger:                 logger,
 	}
 }
 
@@ -91,13 +93,14 @@ func (ctrl *CollectionController) CreateCollection(w http.ResponseWriter, r *htt
 	}
 
 	ucReq := usecases.CreateCollectionRequest{
-		UserID:     user.ID(),
-		GroupID:    groupID,
-		Name:       req.Name,
-		ObjectType: req.GetObjectType(),
-		Tags:       req.Tags,
-		Location:   req.Location,
-		UserToken:  userToken,
+		UserID:         user.ID(),
+		GroupID:        groupID,
+		Name:           req.Name,
+		ObjectType:     req.GetObjectType(),
+		Tags:           req.Tags,
+		Location:       req.Location,
+		PropertySchema: req.PropertySchema.ToEntity(),
+		UserToken:      userToken,
 	}
 
 	resp, err := ctrl.createCollectionUC.Execute(r.Context(), ucReq)
@@ -429,4 +432,68 @@ func (ctrl *CollectionController) DeleteCollection(w http.ResponseWriter, r *htt
 		slog.String("user_id", user.ID().String()))
 
 	httputil.JSON(w, http.StatusOK, map[string]bool{"success": resp.Success})
+}
+
+// UpdatePropertySchema godoc
+// @Summary Update collection property schema
+// @Description Set or replace the typed property schema for a collection
+// @Tags collections
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Param collection_id path string true "Collection ID"
+// @Param schema body request.UpdatePropertySchemaRequest true "Property schema"
+// @Success 200 {object} response.CollectionResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /accounts/{id}/collections/{collection_id}/schema [put]
+// @Security BearerAuth
+func (ctrl *CollectionController) UpdatePropertySchema(w http.ResponseWriter, r *http.Request) {
+	user, exists := middleware.GetCurrentUser(r)
+	if !exists {
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	pathUserID, err := request.GetUserIDFromPath(r)
+	if err != nil || !pathUserID.Equals(user.ID()) {
+		httputil.Error(w, http.StatusForbidden, "access denied")
+		return
+	}
+
+	collectionID, err := request.GetCollectionIDFromPath(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var req request.UpdatePropertySchemaRequest
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp, err := ctrl.updatePropertySchemaUC.Execute(r.Context(), usecases.UpdatePropertySchemaRequest{
+		CollectionID:   collectionID,
+		UserID:         user.ID(),
+		PropertySchema: req.PropertySchema.ToEntity(),
+	})
+	if err != nil {
+		ctrl.logger.Error("Failed to update property schema", slog.Any("error", err))
+		if strings.Contains(err.Error(), "not found") {
+			httputil.Error(w, http.StatusNotFound, "collection not found")
+			return
+		}
+		if strings.Contains(err.Error(), "access denied") {
+			httputil.Error(w, http.StatusForbidden, "access denied")
+			return
+		}
+		httputil.Error(w, http.StatusInternalServerError, "failed to update schema")
+		return
+	}
+
+	httputil.JSON(w, http.StatusOK, response.NewCollectionResponse(resp.Collection))
 }

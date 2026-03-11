@@ -81,6 +81,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -193,6 +194,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -369,6 +371,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -441,6 +444,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -581,6 +585,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)

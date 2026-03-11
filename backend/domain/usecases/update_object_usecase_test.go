@@ -81,6 +81,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -185,6 +186,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -293,6 +295,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -387,6 +390,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -480,6 +484,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)

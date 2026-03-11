@@ -41,6 +41,7 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -92,6 +93,7 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{"old-tag"},
 			"Old Location",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -143,6 +145,7 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{"old-tag"},
 			"Location",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -217,6 +220,7 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -260,6 +264,7 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
@@ -303,6 +308,7 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)

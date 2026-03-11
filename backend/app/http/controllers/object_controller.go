@@ -664,6 +664,9 @@ func (ctrl *ObjectController) BulkImportToCollection(w http.ResponseWriter, r *h
 		Data:              req.Data,
 		DefaultTags:       req.DefaultTags,
 		UserToken:         userToken,
+		LocationColumn:    req.LocationColumn,
+		NameColumn:        req.NameColumn,
+		InferSchema:       req.InferSchema,
 	}
 
 	resp, err := ctrl.bulkImportCollectionUC.Execute(r.Context(), ucReq)

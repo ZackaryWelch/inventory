@@ -14,18 +14,31 @@ import (
 	"github.com/nishiki/backend-go/external/adapters"
 )
 
+type propertyDefinitionDoc struct {
+	Key          string `bson:"key"`
+	DisplayName  string `bson:"display_name"`
+	Type         string `bson:"type"`
+	Required     bool   `bson:"required"`
+	CurrencyCode string `bson:"currency_code,omitempty"`
+}
+
+type propertySchemaDoc struct {
+	Definitions []propertyDefinitionDoc `bson:"definitions"`
+}
+
 type collectionDocument struct {
-	ID         string    `bson:"_id"`
-	UserID     string    `bson:"user_id"`
-	GroupID    *string   `bson:"group_id,omitempty"`
-	Name       string    `bson:"name"`
-	CategoryID *string   `bson:"category_id,omitempty"`
-	ObjectType string    `bson:"object_type"`
-	Containers []string  `bson:"containers"` // Store container IDs, containers are stored separately
-	Tags       []string  `bson:"tags"`
-	Location   string    `bson:"location"`
-	CreatedAt  time.Time `bson:"created_at"`
-	UpdatedAt  time.Time `bson:"updated_at"`
+	ID             string             `bson:"_id"`
+	UserID         string             `bson:"user_id"`
+	GroupID        *string            `bson:"group_id,omitempty"`
+	Name           string             `bson:"name"`
+	CategoryID     *string            `bson:"category_id,omitempty"`
+	ObjectType     string             `bson:"object_type"`
+	Containers     []string           `bson:"containers"` // Store container IDs, containers are stored separately
+	Tags           []string           `bson:"tags"`
+	Location       string             `bson:"location"`
+	PropertySchema *propertySchemaDoc `bson:"property_schema,omitempty"`
+	CreatedAt      time.Time          `bson:"created_at"`
+	UpdatedAt      time.Time          `bson:"updated_at"`
 }
 
 type MongoCollectionRepository struct {
@@ -240,6 +253,22 @@ func collectionToDocument(collection *entities.Collection) *collectionDocument {
 		doc.GroupID = &groupIDStr
 	}
 
+	if schema := collection.PropertySchema(); schema != nil {
+		schemaDoc := &propertySchemaDoc{
+			Definitions: make([]propertyDefinitionDoc, len(schema.Definitions)),
+		}
+		for i, def := range schema.Definitions {
+			schemaDoc.Definitions[i] = propertyDefinitionDoc{
+				Key:          def.Key,
+				DisplayName:  def.DisplayName,
+				Type:         string(def.Type),
+				Required:     def.Required,
+				CurrencyCode: def.CurrencyCode,
+			}
+		}
+		doc.PropertySchema = schemaDoc
+	}
+
 	return doc
 }
 
@@ -322,6 +351,24 @@ func (r *MongoCollectionRepository) documentToCollection(ctx context.Context, do
 		}
 	}
 
+	// Convert property schema if present
+	var propertySchema *entities.PropertySchema
+	if doc.PropertySchema != nil {
+		schema := &entities.PropertySchema{
+			Definitions: make([]entities.PropertyDefinition, len(doc.PropertySchema.Definitions)),
+		}
+		for i, def := range doc.PropertySchema.Definitions {
+			schema.Definitions[i] = entities.PropertyDefinition{
+				Key:          def.Key,
+				DisplayName:  def.DisplayName,
+				Type:         entities.PropertyType(def.Type),
+				Required:     def.Required,
+				CurrencyCode: def.CurrencyCode,
+			}
+		}
+		propertySchema = schema
+	}
+
 	return entities.ReconstructCollection(
 		id,
 		userID,
@@ -332,6 +379,7 @@ func (r *MongoCollectionRepository) documentToCollection(ctx context.Context, do
 		containers,
 		doc.Tags,
 		doc.Location,
+		propertySchema,
 		doc.CreatedAt,
 		doc.UpdatedAt,
 	), nil

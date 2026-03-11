@@ -110,3 +110,7 @@ func (c *MCPContext) createGroupUC() *usecases.CreateGroupUseCase {
 func (c *MCPContext) bulkImportCollectionUC() *usecases.BulkImportCollectionUseCase {
 	return usecases.NewBulkImportCollectionUseCase(c.Container.CollectionRepo, c.Container.ContainerRepo, c.Container.AuthService)
 }
+
+func (c *MCPContext) updatePropertySchemaUC() *usecases.UpdatePropertySchemaUseCase {
+	return usecases.NewUpdatePropertySchemaUseCase(c.Container.CollectionRepo)
+}

@@ -70,6 +70,7 @@ func (uc *UpdateCollectionUseCase) Execute(ctx context.Context, req UpdateCollec
 			collection.Containers(),
 			req.Tags,      // Use new tags
 			*req.Location, // Use new location
+			collection.PropertySchema(),
 			collection.CreatedAt(),
 			collection.UpdatedAt(),
 		)
@@ -85,6 +86,7 @@ func (uc *UpdateCollectionUseCase) Execute(ctx context.Context, req UpdateCollec
 			collection.Containers(),
 			req.Tags,
 			collection.Location(),
+			collection.PropertySchema(),
 			collection.CreatedAt(),
 			collection.UpdatedAt(),
 		)

@@ -2,7 +2,9 @@ package mcpserver
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -17,6 +19,7 @@ func registerTools(s *mcp.Server, mctx *MCPContext) {
 	registerObjectTools(s, mctx)
 	registerGroupTools(s, mctx)
 	registerImportTools(s, mctx)
+	registerSchemaTools(s, mctx)
 }
 
 // --- Collection tools ---
@@ -525,13 +528,16 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 	type BulkImportInput struct {
 		CollectionID      string                   `json:"collection_id" jsonschema:"ID of the collection to import into"`
 		Data              []map[string]interface{} `json:"data" jsonschema:"Array of objects to import, each must have a 'name' field"`
-		DistributionMode  string                   `json:"distribution_mode,omitempty" jsonschema:"How to distribute objects: automatic, target, or manual (default)"`
+		DistributionMode  string                   `json:"distribution_mode,omitempty" jsonschema:"How to distribute objects: automatic, location, target, or manual (default)"`
 		TargetContainerID string                   `json:"target_container_id,omitempty" jsonschema:"Container ID for target distribution mode (optional)"`
 		DefaultTags       []string                 `json:"default_tags,omitempty" jsonschema:"Tags to apply to all imported objects (optional)"`
+		LocationColumn    string                   `json:"location_column,omitempty" jsonschema:"Column name used for container mapping in 'location' mode (default: 'location')"`
+		NameColumn        string                   `json:"name_column,omitempty" jsonschema:"Column name override for object name (optional, auto-detected by default)"`
+		InferSchema       bool                     `json:"infer_schema,omitempty" jsonschema:"Run type inference and save schema to collection (optional)"`
 	}
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "bulk_import",
-		Description: "Bulk import objects into a collection. Each item must have a 'name' field; other fields become properties.",
+		Description: "Bulk import objects into a collection. Each item must have a 'name' field; other fields become properties. Use distribution_mode='location' to auto-create containers from a Location column.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input BulkImportInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -552,6 +558,9 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 			Data:             input.Data,
 			DefaultTags:      input.DefaultTags,
 			UserToken:        token,
+			LocationColumn:   input.LocationColumn,
+			NameColumn:       input.NameColumn,
+			InferSchema:      input.InferSchema,
 		}
 
 		if input.TargetContainerID != "" {
@@ -569,6 +578,198 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 			return r, nil, nil
 		}
 		r, err := jsonResult(resp)
+		return r, nil, err
+	})
+
+	// smart_import: CSV string → parse → type inference → location distribution
+	type SmartImportInput struct {
+		CollectionID   string   `json:"collection_id" jsonschema:"ID of the collection to import into"`
+		CSVData        string   `json:"csv_data" jsonschema:"Raw CSV string content including header row"`
+		LocationColumn string   `json:"location_column,omitempty" jsonschema:"Column name for container mapping (default: 'location')"`
+		NameColumn     string   `json:"name_column,omitempty" jsonschema:"Column name for object name (optional, auto-detected)"`
+		ObjectType     string   `json:"object_type,omitempty" jsonschema:"Object type override (optional, defaults to collection type)"`
+		DefaultTags    []string `json:"default_tags,omitempty" jsonschema:"Tags to apply to all imported objects (optional)"`
+	}
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "smart_import",
+		Description: "Parse a raw CSV string, infer property types, sanitize values, auto-create containers from Location column, and import into a collection. Returns the import summary and inferred schema.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, input SmartImportInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
+		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
+		if err != nil {
+			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
+			return r, nil, nil
+		}
+
+		// Parse CSV
+		data, headers, parseErr := parseCSVString(input.CSVData)
+		if parseErr != nil {
+			r, _ := errorResult(fmt.Errorf("CSV parse error: %w", parseErr))
+			return r, nil, nil
+		}
+		if len(data) == 0 {
+			r, _ := errorResult(fmt.Errorf("CSV contains no data rows"))
+			return r, nil, nil
+		}
+
+		// Auto-detect location column if not specified
+		locationCol := input.LocationColumn
+		if locationCol == "" {
+			for _, h := range headers {
+				if strings.EqualFold(h, "location") {
+					locationCol = h
+					break
+				}
+			}
+		}
+
+		distMode := "location"
+		if locationCol == "" {
+			distMode = "" // fall back to default distribution
+		}
+
+		ucReq := usecases.BulkImportCollectionRequest{
+			UserID:           user.ID(),
+			CollectionID:     collectionID,
+			DistributionMode: distMode,
+			Data:             data,
+			DefaultTags:      input.DefaultTags,
+			UserToken:        token,
+			LocationColumn:   locationCol,
+			NameColumn:       input.NameColumn,
+			InferSchema:      true,
+		}
+
+		resp, err := mctx.bulkImportCollectionUC().Execute(ctx, ucReq)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+		r, err := jsonResult(resp)
+		return r, nil, err
+	})
+}
+
+// parseCSVString parses a raw CSV string into rows and returns (data, headers, error).
+func parseCSVString(csvData string) ([]map[string]interface{}, []string, error) {
+	reader := csv.NewReader(strings.NewReader(csvData))
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(records) < 2 {
+		return nil, nil, fmt.Errorf("CSV must have at least a header row and one data row")
+	}
+	headers := records[0]
+	for i, h := range headers {
+		headers[i] = strings.TrimSpace(h)
+	}
+	data := make([]map[string]interface{}, 0, len(records)-1)
+	for _, record := range records[1:] {
+		row := make(map[string]interface{}, len(headers))
+		for i, h := range headers {
+			if i < len(record) {
+				v := strings.TrimSpace(record[i])
+				if v != "" {
+					row[h] = v
+				}
+			}
+		}
+		data = append(data, row)
+	}
+	return data, headers, nil
+}
+
+// --- Schema tools ---
+
+func registerSchemaTools(s *mcp.Server, mctx *MCPContext) {
+	type GetCollectionSchemaInput struct {
+		CollectionID string `json:"collection_id" jsonschema:"ID of the collection"`
+	}
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "get_collection_schema",
+		Description: "Get the property schema for a collection, which defines the typed fields for its objects.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, input GetCollectionSchemaInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
+		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
+		if err != nil {
+			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
+			return r, nil, nil
+		}
+
+		resp, err := mctx.getCollectionsUC().Execute(ctx, usecases.GetCollectionsRequest{
+			UserID:       user.ID(),
+			CollectionID: &collectionID,
+			UserToken:    token,
+		})
+		if err != nil || len(resp.Collections) == 0 {
+			r, _ := errorResult(fmt.Errorf("collection not found"))
+			return r, nil, nil
+		}
+		collection := resp.Collections[0]
+		r, err := jsonResult(response.NewPropertySchemaResponse(collection.PropertySchema()))
+		return r, nil, err
+	})
+
+	type PropertyDefinitionInput struct {
+		Key          string `json:"key" jsonschema:"Snake_case storage key for the property"`
+		DisplayName  string `json:"display_name" jsonschema:"Human-readable display name"`
+		Type         string `json:"type" jsonschema:"Property type: text, currency, date, bool, url, numeric, grouped_text"`
+		Required     bool   `json:"required,omitempty" jsonschema:"Whether this property is required"`
+		CurrencyCode string `json:"currency_code,omitempty" jsonschema:"Currency code e.g. USD (only for currency type)"`
+	}
+	type UpdateCollectionSchemaInput struct {
+		CollectionID string                    `json:"collection_id" jsonschema:"ID of the collection to update"`
+		Definitions  []PropertyDefinitionInput `json:"definitions" jsonschema:"Property definitions for the schema"`
+	}
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "update_collection_schema",
+		Description: "Set or replace the property schema on a collection. This defines typed fields for object properties.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, input UpdateCollectionSchemaInput) (*mcp.CallToolResult, any, error) {
+		user, _, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
+		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
+		if err != nil {
+			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
+			return r, nil, nil
+		}
+
+		defs := make([]entities.PropertyDefinition, len(input.Definitions))
+		for i, d := range input.Definitions {
+			defs[i] = entities.PropertyDefinition{
+				Key:          d.Key,
+				DisplayName:  d.DisplayName,
+				Type:         entities.PropertyType(d.Type),
+				Required:     d.Required,
+				CurrencyCode: d.CurrencyCode,
+			}
+		}
+		schema := &entities.PropertySchema{Definitions: defs}
+
+		resp, err := mctx.updatePropertySchemaUC().Execute(ctx, usecases.UpdatePropertySchemaRequest{
+			CollectionID:   collectionID,
+			UserID:         user.ID(),
+			PropertySchema: schema,
+		})
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+		r, err := jsonResult(response.NewCollectionResponse(resp.Collection))
 		return r, nil, err
 	})
 }

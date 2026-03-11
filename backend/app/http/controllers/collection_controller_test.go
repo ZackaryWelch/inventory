@@ -170,6 +170,7 @@ func TestCollectionController_GetCollections(t *testing.T) {
 				[]entities.Container{},
 				[]string{},
 				"",
+				nil,
 				time.Now(),
 				time.Now(),
 			)
@@ -261,6 +262,7 @@ func TestCollectionController_DeleteCollection(t *testing.T) {
 			[]entities.Container{},
 			[]string{},
 			"",
+			nil,
 			time.Now(),
 			time.Now(),
 		)
