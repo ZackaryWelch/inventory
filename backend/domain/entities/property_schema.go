@@ -15,10 +15,10 @@ const (
 
 // PropertyDefinition describes a single property field in a collection's schema.
 type PropertyDefinition struct {
-	Key          string       `json:"key"`                    // normalized snake_case key for storage
-	DisplayName  string       `json:"display_name"`           // original column header name
-	Type         PropertyType `json:"type"`                   // semantic type for rendering/coercion
-	Required     bool         `json:"required"`               // whether this property must be present
+	Key          string       `json:"key"`                     // normalized snake_case key for storage
+	DisplayName  string       `json:"display_name"`            // original column header name
+	Type         PropertyType `json:"type"`                    // semantic type for rendering/coercion
+	Required     bool         `json:"required"`                // whether this property must be present
 	CurrencyCode string       `json:"currency_code,omitempty"` // e.g. "USD", only for currency type
 }
 

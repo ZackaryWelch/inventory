@@ -459,7 +459,6 @@ func (ctrl *ObjectController) DeleteObject(w http.ResponseWriter, r *http.Reques
 	})
 }
 
-
 // BulkImport godoc
 // @Summary Bulk import objects to a container
 // @Description Import multiple objects into a specific container. container_id must be provided in the request body.

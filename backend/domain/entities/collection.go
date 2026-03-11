@@ -63,9 +63,9 @@ type Collection struct {
 	userID         UserID   // Owner of the collection
 	groupID        *GroupID // Optional group for sharing this collection
 	name           CollectionName
-	categoryID     *CategoryID     // Optional category for this collection
-	objectType     ObjectType      // Type of objects this collection holds
-	containers     []Container     // Containers within this collection
+	categoryID     *CategoryID // Optional category for this collection
+	objectType     ObjectType  // Type of objects this collection holds
+	containers     []Container // Containers within this collection
 	tags           []string
 	location       string
 	propertySchema *PropertySchema // Optional typed schema for object properties

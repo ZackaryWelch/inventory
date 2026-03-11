@@ -147,7 +147,6 @@ func TestAuthentikAuthService_GetGroupByID(t *testing.T) {
 	}
 }
 
-
 func TestAuthentikAuthService_GetOIDCConfig(t *testing.T) {
 	tests := []struct {
 		name           string

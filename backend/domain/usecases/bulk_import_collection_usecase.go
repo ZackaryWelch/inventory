@@ -25,14 +25,14 @@ type BulkImportCollectionRequest struct {
 }
 
 type BulkImportCollectionResponse struct {
-	Imported         int                      `json:"imported"`
-	Failed           int                      `json:"failed"`
-	Total            int                      `json:"total"`
-	Errors           []string                 `json:"errors,omitempty"`
-	CapacityWarnings []CapacityWarning        `json:"capacity_warnings,omitempty"`
-	Assignments      map[string]int           `json:"assignments,omitempty"` // containerID -> count
-	ContainersCreated int                     `json:"containers_created,omitempty"`
-	InferredSchema   *entities.PropertySchema `json:"inferred_schema,omitempty"`
+	Imported          int                      `json:"imported"`
+	Failed            int                      `json:"failed"`
+	Total             int                      `json:"total"`
+	Errors            []string                 `json:"errors,omitempty"`
+	CapacityWarnings  []CapacityWarning        `json:"capacity_warnings,omitempty"`
+	Assignments       map[string]int           `json:"assignments,omitempty"` // containerID -> count
+	ContainersCreated int                      `json:"containers_created,omitempty"`
+	InferredSchema    *entities.PropertySchema `json:"inferred_schema,omitempty"`
 }
 
 type CapacityWarning struct {

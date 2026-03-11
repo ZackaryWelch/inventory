@@ -14,12 +14,12 @@ import (
 )
 
 type CollectionController struct {
-	createCollectionUC       *usecases.CreateCollectionUseCase
-	getCollectionsUC         *usecases.GetCollectionsUseCase
-	updateCollectionUC       *usecases.UpdateCollectionUseCase
-	deleteCollectionUC       *usecases.DeleteCollectionUseCase
-	updatePropertySchemaUC   *usecases.UpdatePropertySchemaUseCase
-	logger                   *slog.Logger
+	createCollectionUC     *usecases.CreateCollectionUseCase
+	getCollectionsUC       *usecases.GetCollectionsUseCase
+	updateCollectionUC     *usecases.UpdateCollectionUseCase
+	deleteCollectionUC     *usecases.DeleteCollectionUseCase
+	updatePropertySchemaUC *usecases.UpdatePropertySchemaUseCase
+	logger                 *slog.Logger
 }
 
 func NewCollectionController(
