@@ -4,15 +4,11 @@ package app
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/url"
 	"syscall/js"
-	"time"
 
 	"golang.org/x/oauth2"
 )
@@ -274,25 +270,3 @@ func (as *AuthService) redirectTo(url string) error {
 	return nil
 }
 
-// Utility functions
-
-func generateRandomString(length int) string {
-	// Generate cryptographically secure random string
-	bytes := make([]byte, length)
-	if _, err := rand.Read(bytes); err != nil {
-		// Log the error and fallback to timestamp-based if crypto/rand fails in WebAssembly
-		// Note: We use fmt here since this is a utility function without access to logger
-		fmt.Printf("Warning: crypto/rand failed in WebAssembly, using fallback: %v\n", err)
-		return fmt.Sprintf("%d_%d", time.Now().UnixNano(), length)
-	}
-
-	// Encode as base64url (RFC 4648 Section 5)
-	return base64.RawURLEncoding.EncodeToString(bytes)
-}
-
-func generateCodeChallenge(verifier string) string {
-	// Generate SHA256 hash of the code verifier
-	hash := sha256.Sum256([]byte(verifier))
-	// Encode as base64url without padding
-	return base64.RawURLEncoding.EncodeToString(hash[:])
-}

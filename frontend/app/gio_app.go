@@ -1,5 +1,3 @@
-//go:build js && wasm
-
 package app
 
 import (
@@ -479,14 +477,6 @@ func (ga *GioApp) isCallbackURL() bool {
 	ga.logger.Debug("Checking callback URL", "path", path)
 	// Check if path contains /auth/callback
 	return strings.Contains(path, "/auth/callback")
-}
-
-// handleLogin initiates OAuth login flow
-func (ga *GioApp) handleLogin() {
-	ga.logger.Info("Initiating login")
-	if err := ga.authService.InitiateLogin(); err != nil {
-		ga.logger.Error("Failed to initiate login", "error", err)
-	}
 }
 
 // handleAuthCallback processes the OAuth callback
