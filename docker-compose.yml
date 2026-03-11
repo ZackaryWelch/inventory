@@ -24,8 +24,8 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3001"
-      - "3002:3002"
-      - "3003:3003"
+      - "7073:3002"
+      - "7072:3003"
     extra_hosts:
       - "host.docker.internal:host-gateway"
       - "authentik.local:192.168.0.125"

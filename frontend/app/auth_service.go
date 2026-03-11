@@ -269,4 +269,3 @@ func (as *AuthService) redirectTo(url string) error {
 	js.Global().Get("window").Get("location").Set("href", url)
 	return nil
 }
-

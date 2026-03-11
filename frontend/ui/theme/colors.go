@@ -45,9 +45,9 @@ var (
 	ColorTextSecondary = ColorGray     // Secondary/muted text color
 
 	// Blue colors (for Authentik login button)
-	ColorBlue600 = color.NRGBA{R: 37, G: 99, B: 235, A: 255}  // #2563eb - blue-600
-	ColorBlue700 = color.NRGBA{R: 29, G: 78, B: 216, A: 255}  // #1d4ed8 - blue-700
-	ColorGray600 = color.NRGBA{R: 75, G: 85, B: 99, A: 255}   // #4b5563 - gray-600
+	ColorBlue600 = color.NRGBA{R: 37, G: 99, B: 235, A: 255} // #2563eb - blue-600
+	ColorBlue700 = color.NRGBA{R: 29, G: 78, B: 216, A: 255} // #1d4ed8 - blue-700
+	ColorGray600 = color.NRGBA{R: 75, G: 85, B: 99, A: 255}  // #4b5563 - gray-600
 )
 
 // ====================================================================================

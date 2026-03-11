@@ -71,22 +71,22 @@ type GioApp struct {
 	logger             *slog.Logger
 
 	// Dialog state
-	showGroupDialog      bool
-	groupDialogMode      string // "create" or "edit"
-	showDeleteConfirm    bool
-	deleteGroupID        string
-	showCollectionDialog bool
-	collectionDialogMode string // "create" or "edit"
-	showDeleteCollection bool
-	deleteCollectionID   string
-	showContainerDialog  bool
-	containerDialogMode  string // "create" or "edit"
-	showDeleteContainer  bool
-	deleteContainerID    string
-	showObjectDialog     bool
-	objectDialogMode     string // "create" or "edit"
-	showDeleteObject     bool
-	deleteObjectID       string
+	showGroupDialog       bool
+	groupDialogMode       string // "create" or "edit"
+	showDeleteConfirm     bool
+	deleteGroupID         string
+	showCollectionDialog  bool
+	collectionDialogMode  string // "create" or "edit"
+	showDeleteCollection  bool
+	deleteCollectionID    string
+	showContainerDialog   bool
+	containerDialogMode   string // "create" or "edit"
+	showDeleteContainer   bool
+	deleteContainerID     string
+	showObjectDialog      bool
+	objectDialogMode      string // "create" or "edit"
+	showDeleteObject      bool
+	deleteObjectID        string
 	selectedObjectType    string
 	selectedContainerType string
 	selectedGroupID       *string
@@ -129,10 +129,10 @@ type WidgetState struct {
 	logoutButton widget.Clickable
 
 	// Bottom menu buttons
-	menuDashboard    widget.Clickable
-	menuGroups       widget.Clickable
-	menuCollections  widget.Clickable
-	menuProfile      widget.Clickable
+	menuDashboard   widget.Clickable
+	menuGroups      widget.Clickable
+	menuCollections widget.Clickable
+	menuProfile     widget.Clickable
 
 	// Groups view
 	groupsCreateButton widget.Clickable
@@ -254,7 +254,7 @@ func NewGioApp() *GioApp {
 
 	// Create logger (console output for WebAssembly)
 	logger := slog.New(slog.NewJSONHandler(consoleWriter{}, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+		Level: slog.LevelInfo,
 	}))
 
 	// Create authentication service

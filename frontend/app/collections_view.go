@@ -240,7 +240,7 @@ func (ga *GioApp) renderCollectionCard(gtx layout.Context, collection Collection
 							badge := widgets.Card{
 								BackgroundColor: theme.ColorAccent,
 								CornerRadius:    unit.Dp(theme.RadiusFull),
-								Inset:           layout.Inset{
+								Inset: layout.Inset{
 									Top:    unit.Dp(theme.Spacing1),
 									Bottom: unit.Dp(theme.Spacing1),
 									Left:   unit.Dp(theme.Spacing2),

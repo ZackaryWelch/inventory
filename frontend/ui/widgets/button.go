@@ -121,7 +121,7 @@ func LoginButton(th *material.Theme, btn *widget.Clickable, text string) layout.
 			BackgroundColor: theme.ColorBlue600,
 			TextColor:       theme.ColorWhite,
 			CornerRadius:    unit.Dp(theme.RadiusMD),
-			Inset:           layout.Inset{
+			Inset: layout.Inset{
 				Top:    unit.Dp(12),
 				Bottom: unit.Dp(12),
 				Left:   unit.Dp(16),

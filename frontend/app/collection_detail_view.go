@@ -104,33 +104,33 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 
 				// Content area with containers and objects
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{
-				Top:    unit.Dp(theme.Spacing4),
-				Bottom: unit.Dp(theme.Spacing20), // Space for bottom menu
-				Left:   unit.Dp(theme.Spacing4),
-				Right:  unit.Dp(theme.Spacing4),
-			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				// Split view: Containers on left, Objects on right
-				return layout.Flex{
-					Axis:    layout.Horizontal,
-					Spacing: layout.SpaceBetween,
-				}.Layout(gtx,
-					// Containers column
-					layout.Flexed(0.4, func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return ga.renderContainersColumn(gtx)
-						})
-					}),
+					return layout.Inset{
+						Top:    unit.Dp(theme.Spacing4),
+						Bottom: unit.Dp(theme.Spacing20), // Space for bottom menu
+						Left:   unit.Dp(theme.Spacing4),
+						Right:  unit.Dp(theme.Spacing4),
+					}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						// Split view: Containers on left, Objects on right
+						return layout.Flex{
+							Axis:    layout.Horizontal,
+							Spacing: layout.SpaceBetween,
+						}.Layout(gtx,
+							// Containers column
+							layout.Flexed(0.4, func(gtx layout.Context) layout.Dimensions {
+								return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return ga.renderContainersColumn(gtx)
+								})
+							}),
 
-					// Objects column
-					layout.Flexed(0.6, func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Left: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return ga.renderObjectsColumn(gtx)
-						})
-					}),
-				)
-			})
-		}),
+							// Objects column
+							layout.Flexed(0.6, func(gtx layout.Context) layout.Dimensions {
+								return layout.Inset{Left: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return ga.renderObjectsColumn(gtx)
+								})
+							}),
+						)
+					})
+				}),
 
 				// Bottom navigation menu
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {

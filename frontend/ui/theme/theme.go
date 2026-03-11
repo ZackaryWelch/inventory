@@ -15,23 +15,23 @@ type NishikiTheme struct {
 	*material.Theme
 
 	// Custom semantic colors
-	Primary       color.NRGBA
-	PrimaryDark   color.NRGBA
-	Accent        color.NRGBA
-	Danger        color.NRGBA
-	DangerDark    color.NRGBA
+	Primary     color.NRGBA
+	PrimaryDark color.NRGBA
+	Accent      color.NRGBA
+	Danger      color.NRGBA
+	DangerDark  color.NRGBA
 
 	// Background colors
-	Background    color.NRGBA
-	Surface       color.NRGBA
+	Background color.NRGBA
+	Surface    color.NRGBA
 
 	// Text colors
 	TextPrimary   color.NRGBA
 	TextSecondary color.NRGBA
 
 	// UI element colors
-	Border        color.NRGBA
-	Overlay       color.NRGBA
+	Border  color.NRGBA
+	Overlay color.NRGBA
 }
 
 // NewTheme creates a customized Nishiki theme based on material design
@@ -43,10 +43,10 @@ func NewTheme() *NishikiTheme {
 	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
 
 	// Customize the base theme
-	th.Fg = ColorTextPrimary        // Default text color
-	th.Bg = ColorWhite              // Default background
-	th.ContrastBg = ColorPrimary    // Primary color for important elements
-	th.ContrastFg = ColorWhite      // Text on primary color
+	th.Fg = ColorTextPrimary     // Default text color
+	th.Bg = ColorWhite           // Default background
+	th.ContrastBg = ColorPrimary // Primary color for important elements
+	th.ContrastFg = ColorWhite   // Text on primary color
 
 	// Create our extended theme
 	nishikiTheme := &NishikiTheme{
