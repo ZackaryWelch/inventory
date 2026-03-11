@@ -11,6 +11,8 @@ import (
 	"syscall/js"
 )
 
+
+
 // ImportData represents parsed import data
 type ImportData struct {
 	Data   []map[string]interface{}
@@ -186,6 +188,32 @@ func (ga *GioApp) parseJSON(content string) (*ImportData, error) {
 	return data, nil
 }
 
+// detectLocationColumn returns the location column name if found in the data headers, or empty string.
+func detectLocationColumn(data []map[string]interface{}) string {
+	if len(data) == 0 {
+		return ""
+	}
+	for key := range data[0] {
+		if strings.EqualFold(key, "location") {
+			return key
+		}
+	}
+	return ""
+}
+
+// detectNameColumn returns the explicit name column if "name", "title", or "item" is present.
+func detectNameColumn(data []map[string]interface{}) string {
+	if len(data) == 0 {
+		return ""
+	}
+	for _, candidate := range []string{"Name", "name", "Title", "title", "Item", "item"} {
+		if _, ok := data[0][candidate]; ok {
+			return candidate
+		}
+	}
+	return ""
+}
+
 // executeImport sends the import request to the backend
 func (ga *GioApp) executeImport() {
 	if ga.selectedCollection == nil || ga.importData == nil {
@@ -196,12 +224,28 @@ func (ga *GioApp) executeImport() {
 	ga.logger.Info("Executing import", "collection_id", ga.selectedCollection.ID, "items", len(ga.importData.Data))
 
 	go func() {
+		// Auto-detect location and name columns
+		locationCol := detectLocationColumn(ga.importData.Data)
+		nameCol := detectNameColumn(ga.importData.Data)
+
+		// Use location distribution if a Location column is detected, otherwise automatic
+		distMode := "automatic"
+		if locationCol != "" {
+			distMode = "location"
+		}
+
 		// Prepare import request
 		req := map[string]interface{}{
-			"format":             ga.importData.Format,
-			"data":               ga.importData.Data,
-			"distribution_mode":  "automatic",
-			"target_container_id": nil,
+			"format":            ga.importData.Format,
+			"data":              ga.importData.Data,
+			"distribution_mode": distMode,
+			"infer_schema":      true,
+		}
+		if locationCol != "" {
+			req["location_column"] = locationCol
+		}
+		if nameCol != "" {
+			req["name_column"] = nameCol
 		}
 
 		// Call import API
@@ -214,10 +258,11 @@ func (ga *GioApp) executeImport() {
 
 		// Parse response
 		var result struct {
-			Imported int      `json:"imported"`
-			Failed   int      `json:"failed"`
-			Total    int      `json:"total"`
-			Errors   []string `json:"errors,omitempty"`
+			Imported          int      `json:"imported"`
+			Failed            int      `json:"failed"`
+			Total             int      `json:"total"`
+			ContainersCreated int      `json:"containers_created"`
+			Errors            []string `json:"errors,omitempty"`
 		}
 
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -225,7 +270,11 @@ func (ga *GioApp) executeImport() {
 			return
 		}
 
-		ga.logger.Info("Import completed", "imported", result.Imported, "failed", result.Failed, "total", result.Total)
+		ga.logger.Info("Import completed",
+			"imported", result.Imported,
+			"failed", result.Failed,
+			"total", result.Total,
+			"containers_created", result.ContainersCreated)
 
 		// Close preview and refresh data
 		ga.showImportPreview = false
