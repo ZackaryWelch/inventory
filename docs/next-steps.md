@@ -89,24 +89,30 @@ Helpers: `findPropertyDef`, `toFloat`.
 
 `renderObjectCard` now renders a **Properties** section between Tags and action buttons. `renderObjectProperties` orders keys schema-first then remaining keys. `propertyDisplayName` uses schema `DisplayName` or falls back to snake_case → Title Case.
 
-### 9d. Grouped-text filter chips
+### ~~9d. Grouped-text filter chips~~ ✅ Done
 
-For every `grouped_text` property in the schema, collect unique values across all loaded objects. Render a horizontal filter bar above the object list with clickable chips (one per unique value). Active filter chips narrow the displayed objects.
+`collectGroupedTextValues()` scans loaded objects for unique values per `grouped_text` property in the schema. `renderGroupedTextFilters()` renders a row of chips per property above the search field in the objects column (label + "All" chip + one chip per unique value). `matchesGroupedTextFilters()` applies active filters in `renderObjectsList`. `activeGroupedTextFilters map[string]string` on `GioApp` resets to `nil` on collection change or back navigation. Chips are lazily allocated via `getGroupedTextChipButton(key string)`.
 
-State: `activeGroupedTextFilters map[string]string` on `GioApp` (property key → selected value, empty = all).
+### ~~9e. Import dialog improvements — `frontend/app/import_dialog.go`~~ ✅ Done
 
-### 9e. Import dialog improvements — `frontend/app/import_dialog.go`
+A **Column Mapping** section is now rendered after the data preview:
 
-Add a **Column Mapping** section to the preview dialog (rendered after the data preview):
+- **Name column** chips: auto-selected on load via `detectNameColumn`; user can override
+- **Location column** chips: auto-selected if a `location` column exists; `(none)` chip sets `importLocationColumn = nil` (no sentinel string — `nil` means automatic distribution)
+- **Infer property types** checkbox: on by default (`widget.Bool`, initialised to `true` on file load)
 
-- **Name column** dropdown: auto-selected to `Name`/`Title`/`Item` if found; otherwise user picks
-- **Location column** dropdown: auto-selected to `Location` if found; shows "(none — use automatic)" option
-- **Infer types** checkbox: on by default
-- **Type preview table**: one row per column with header name, inferred type (shown after a quick client-side inference pass), and an editable dropdown to override
+`executeImport` reads `ga.importNameColumn`, `ga.importLocationColumn` (`*string`), and `importInferSchemaCheck.Value` instead of re-detecting. Note: the **Type preview table** (per-column type override) was deferred — name/location/infer coverage handles the primary self-service use case.
 
-After column mapping, the Execute button sends the correct `name_column`, `location_column`, and `infer_schema` fields.
+### ~~9f. Object delete fix + dual delete endpoints~~ ✅ Done
 
-### 9f. Schema editor dialog
+`ObjectResponse` now includes `container_id` (populated from the embedded container context). Two delete endpoints exist:
+
+- `DELETE /accounts/{id}/collections/{collection_id}/containers/{container_id}/objects/{object_id}` — explicit container in path (`RemoveObjectFromContainer`)
+- `DELETE /accounts/{id}/objects/{object_id}` — container_id optional query param; if omitted, use case calls new `ContainerRepository.FindByObjectID` to look it up
+
+`GetCollectionObjectsUseCase` now returns `[]ObjectWithContainerID` (Object + ContainerID) so objects always carry their container context through the pipeline. All `NewObjectResponse` call sites updated. Frontend `handleObjectDelete` now reads `obj.ContainerID` from the response.
+
+### 9g. Schema editor dialog
 
 A new dialog accessible from the Collection detail view (gear icon or "Edit Schema" button):
 
@@ -127,9 +133,10 @@ A new dialog accessible from the Collection detail view (gear icon or "Edit Sche
 ~~7a (search filter)~~             ✅ done  (11 unit tests)
 ~~8a (search_objects tool)~~       ✅ done
 ~~9a–9c (typed rendering)~~        ✅ done
-9d (grouped-text filters)          ← enhances browsing
-9e (import dialog)                 ← makes import self-service
+~~9d (grouped-text filters)~~      ✅ done
+~~9e (import dialog)~~             ✅ done  (type preview table deferred)
+~~9f (object delete + container_id in response)~~ ✅ done
 7c + 8e (group ops)                ← removes stubs
-9f (schema editor)                 ← power-user feature
+9g (schema editor)                 ← power-user feature
 8c–8d (new prompts)                ← quality of life for MCP users
 ```

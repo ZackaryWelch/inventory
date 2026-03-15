@@ -731,8 +731,7 @@ func (ga *GioApp) handleObjectDelete() {
 	var containerID string
 	for _, obj := range ga.objects {
 		if obj.ID == ga.deleteObjectID {
-			// Objects might not have a container ID if they're unassigned
-			containerID = "" // Will need to check object structure
+			containerID = obj.ContainerID
 			break
 		}
 	}

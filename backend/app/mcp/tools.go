@@ -362,7 +362,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
-		r, err := jsonResult(response.NewObjectResponse(*resp.Object))
+		r, err := jsonResult(response.NewObjectResponse(*resp.Object, input.ContainerID))
 		return r, nil, err
 	})
 
@@ -392,7 +392,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 		}
 
 		_, err = mctx.deleteObjectUC().Execute(ctx, usecases.DeleteObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			UserID:      user.ID(),
 			UserToken:   token,
@@ -454,7 +454,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
-		r, err := jsonResult(response.NewObjectResponse(*resp.Object))
+		r, err := jsonResult(response.NewObjectResponse(*resp.Object, input.ContainerID))
 		return r, nil, err
 	})
 }
@@ -708,8 +708,8 @@ func registerSearchTools(s *mcp.Server, mctx *MCPContext) {
 		}
 
 		objects := make([]any, len(resp.Objects))
-		for i, obj := range resp.Objects {
-			objects[i] = response.NewObjectResponse(obj)
+		for i, item := range resp.Objects {
+			objects[i] = response.NewObjectResponse(item.Object, item.ContainerID.String())
 		}
 		r, err := jsonResult(map[string]any{
 			"count":   len(objects),
@@ -762,8 +762,8 @@ func registerExportTools(s *mcp.Server, mctx *MCPContext) {
 				return r, nil, nil
 			}
 			objects := make([]any, len(resp.Objects))
-			for i, obj := range resp.Objects {
-				objects[i] = response.NewObjectResponse(obj)
+			for i, item := range resp.Objects {
+				objects[i] = response.NewObjectResponse(item.Object, item.ContainerID.String())
 			}
 			r, err := jsonResult(objects)
 			return r, nil, err

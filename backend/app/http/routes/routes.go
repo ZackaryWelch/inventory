@@ -98,6 +98,7 @@ func Setup(appContainer *container.Container) http.Handler {
 
 	// Container objects
 	mux.HandleFunc("GET /accounts/{id}/collections/{collection_id}/containers/{container_id}/objects", withAuth(objectController.GetCollectionObjects))
+	mux.HandleFunc("DELETE /accounts/{id}/collections/{collection_id}/containers/{container_id}/objects/{object_id}", withAuth(objectController.RemoveObjectFromContainer))
 
 	// Collection objects
 	mux.HandleFunc("GET /accounts/{id}/collections/{collection_id}/objects", withAuth(objectController.GetCollectionObjects))

@@ -84,6 +84,21 @@ func (mr *MockContainerRepositoryMockRecorder) Exists(ctx, id any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockContainerRepository)(nil).Exists), ctx, id)
 }
 
+// FindByObjectID mocks base method.
+func (m *MockContainerRepository) FindByObjectID(ctx context.Context, objectID entities.ObjectID) (*entities.Container, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindByObjectID", ctx, objectID)
+	ret0, _ := ret[0].(*entities.Container)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindByObjectID indicates an expected call of FindByObjectID.
+func (mr *MockContainerRepositoryMockRecorder) FindByObjectID(ctx, objectID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByObjectID", reflect.TypeOf((*MockContainerRepository)(nil).FindByObjectID), ctx, objectID)
+}
+
 // GetByCollectionID mocks base method.
 func (m *MockContainerRepository) GetByCollectionID(ctx context.Context, collectionID entities.CollectionID) ([]*entities.Container, error) {
 	m.ctrl.T.Helper()

@@ -31,7 +31,7 @@ type ContainerListResponse []ContainerResponse
 func NewContainerResponse(container *entities.Container) ContainerResponse {
 	objects := make([]ObjectResponse, len(container.Objects()))
 	for i, object := range container.Objects() {
-		objects[i] = NewObjectResponse(object)
+		objects[i] = NewObjectResponse(object, container.ID().String())
 	}
 
 	var categoryID *string

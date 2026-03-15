@@ -8,6 +8,7 @@ import (
 
 type ObjectResponse struct {
 	ID          string                 `json:"id"`
+	ContainerID string                 `json:"container_id,omitempty"`
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
 	ObjectType  string                 `json:"object_type"`
@@ -25,9 +26,10 @@ type ObjectListResponse struct {
 	Total   int              `json:"total"`
 }
 
-func NewObjectResponse(object entities.Object) ObjectResponse {
+func NewObjectResponse(object entities.Object, containerID string) ObjectResponse {
 	return ObjectResponse{
 		ID:          object.ID().String(),
+		ContainerID: containerID,
 		Name:        object.Name().String(),
 		Description: object.Description().String(),
 		ObjectType:  object.ObjectType().String(),
@@ -38,18 +40,6 @@ func NewObjectResponse(object entities.Object) ObjectResponse {
 		ExpiresAt:   object.ExpiresAt(),
 		CreatedAt:   object.CreatedAt(),
 		UpdatedAt:   object.UpdatedAt(),
-	}
-}
-
-func NewObjectListResponse(objects []entities.Object) ObjectListResponse {
-	objectResponses := make([]ObjectResponse, len(objects))
-	for i, object := range objects {
-		objectResponses[i] = NewObjectResponse(object)
-	}
-
-	return ObjectListResponse{
-		Objects: objectResponses,
-		Total:   len(objects),
 	}
 }
 

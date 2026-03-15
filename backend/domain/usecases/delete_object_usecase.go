@@ -10,7 +10,7 @@ import (
 )
 
 type DeleteObjectRequest struct {
-	ContainerID entities.ContainerID
+	ContainerID *entities.ContainerID // optional; looked up automatically if nil
 	ObjectID    entities.ObjectID
 	UserID      entities.UserID
 	UserToken   string
@@ -35,8 +35,14 @@ func NewDeleteObjectUseCase(containerRepo repositories.ContainerRepository, coll
 }
 
 func (uc *DeleteObjectUseCase) Execute(ctx context.Context, req DeleteObjectRequest) (*DeleteObjectResponse, error) {
-	// Get container
-	container, err := uc.containerRepo.GetByID(ctx, req.ContainerID)
+	// Get container — look it up by object ID if not provided
+	var container *entities.Container
+	var err error
+	if req.ContainerID != nil {
+		container, err = uc.containerRepo.GetByID(ctx, *req.ContainerID)
+	} else {
+		container, err = uc.containerRepo.FindByObjectID(ctx, req.ObjectID)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("container not found: %w", err)
 	}

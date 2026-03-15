@@ -107,7 +107,7 @@ func TestGetCollectionObjectsUseCase_Filters(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Len(t, resp.Objects, 1)
-		assert.Equal(t, "Apple Juice", resp.Objects[0].Name().String())
+		assert.Equal(t, "Apple Juice", resp.Objects[0].Object.Name().String())
 	})
 
 	t.Run("query filter returns empty when no match", func(t *testing.T) {
@@ -132,7 +132,7 @@ func TestGetCollectionObjectsUseCase_Filters(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Len(t, resp.Objects, 1)
-		assert.Equal(t, "Apple Juice", resp.Objects[0].Name().String())
+		assert.Equal(t, "Apple Juice", resp.Objects[0].Object.Name().String())
 	})
 
 	t.Run("tag filter requires all tags", func(t *testing.T) {
@@ -145,7 +145,7 @@ func TestGetCollectionObjectsUseCase_Filters(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Len(t, resp.Objects, 1)
-		assert.Equal(t, "Apple Juice", resp.Objects[0].Name().String())
+		assert.Equal(t, "Apple Juice", resp.Objects[0].Object.Name().String())
 	})
 
 	t.Run("container_id filter restricts to that container", func(t *testing.T) {
@@ -158,7 +158,7 @@ func TestGetCollectionObjectsUseCase_Filters(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.Len(t, resp.Objects, 2)
-		names := []string{resp.Objects[0].Name().String(), resp.Objects[1].Name().String()}
+		names := []string{resp.Objects[0].Object.Name().String(), resp.Objects[1].Object.Name().String()}
 		assert.Contains(t, names, "Apple Juice")
 		assert.Contains(t, names, "Banana Smoothie")
 	})
@@ -173,7 +173,7 @@ func TestGetCollectionObjectsUseCase_Filters(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Len(t, resp.Objects, 1)
-		assert.Equal(t, "Apple Juice", resp.Objects[0].Name().String())
+		assert.Equal(t, "Apple Juice", resp.Objects[0].Object.Name().String())
 	})
 
 	t.Run("property filter returns empty when key absent", func(t *testing.T) {
@@ -199,7 +199,7 @@ func TestGetCollectionObjectsUseCase_Filters(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.Len(t, resp.Objects, 1)
-		assert.Equal(t, "Banana Smoothie", resp.Objects[0].Name().String())
+		assert.Equal(t, "Banana Smoothie", resp.Objects[0].Object.Name().String())
 	})
 }
 

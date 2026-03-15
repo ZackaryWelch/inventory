@@ -136,7 +136,7 @@ func (ctrl *ObjectController) CreateObject(w http.ResponseWriter, r *http.Reques
 		slog.String("container_id", containerID.String()),
 		slog.String("user_id", user.ID().String()))
 
-	httputil.JSON(w, http.StatusCreated, response.NewObjectResponse(*resp.Object))
+	httputil.JSON(w, http.StatusCreated, response.NewObjectResponse(*resp.Object, containerID.String()))
 }
 
 // GetCollectionObjects godoc
@@ -235,14 +235,16 @@ func (ctrl *ObjectController) GetCollectionObjects(w http.ResponseWriter, r *htt
 		httputil.Error(w, http.StatusInternalServerError, "failed to get objects")
 		return
 	}
-	objects := resp.Objects
-
 	ctrl.logger.Debug("Objects retrieved successfully",
 		slog.String("collection_id", collectionID.String()),
 		slog.String("user_id", user.ID().String()),
-		slog.Int("object_count", len(objects)))
+		slog.Int("object_count", len(resp.Objects)))
 
-	httputil.JSON(w, http.StatusOK, response.NewObjectListResponse(objects))
+	objectResponses := make([]response.ObjectResponse, len(resp.Objects))
+	for i, item := range resp.Objects {
+		objectResponses[i] = response.NewObjectResponse(item.Object, item.ContainerID.String())
+	}
+	httputil.JSON(w, http.StatusOK, response.ObjectListResponse{Objects: objectResponses, Total: len(objectResponses)})
 }
 
 // UpdateObject godoc
@@ -346,7 +348,7 @@ func (ctrl *ObjectController) UpdateObject(w http.ResponseWriter, r *http.Reques
 		slog.String("object_id", objectID.String()),
 		slog.String("user_id", user.ID().String()))
 
-	httputil.JSON(w, http.StatusOK, response.NewObjectResponse(*resp.Object))
+	httputil.JSON(w, http.StatusOK, response.NewObjectResponse(*resp.Object, containerID.String()))
 }
 
 // DeleteObject godoc
@@ -393,25 +395,22 @@ func (ctrl *ObjectController) DeleteObject(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Get container ID from query parameter
-	containerIDStr := r.URL.Query().Get("container_id")
-	if containerIDStr == "" {
-		ctrl.logger.Warn("Missing container_id query parameter")
-		httputil.Error(w, http.StatusBadRequest, "container_id query parameter is required")
-		return
-	}
-
-	containerID, err := entities.ContainerIDFromString(containerIDStr)
-	if err != nil {
-		ctrl.logger.Warn("Invalid container ID", slog.Any("error", err))
-		httputil.Error(w, http.StatusBadRequest, "invalid container_id")
-		return
-	}
-
 	// Users can only delete their own objects
 	if !pathUserID.Equals(user.ID()) {
 		httputil.Error(w, http.StatusForbidden, "access denied")
 		return
+	}
+
+	// container_id is optional — use case looks it up automatically if omitted
+	var containerID *entities.ContainerID
+	if cidStr := r.URL.Query().Get("container_id"); cidStr != "" {
+		cid, err := entities.ContainerIDFromString(cidStr)
+		if err != nil {
+			ctrl.logger.Warn("Invalid container ID", slog.Any("error", err))
+			httputil.Error(w, http.StatusBadRequest, "invalid container_id")
+			return
+		}
+		containerID = &cid
 	}
 
 	ucReq := usecases.DeleteObjectRequest{
@@ -438,6 +437,96 @@ func (ctrl *ObjectController) DeleteObject(w http.ResponseWriter, r *http.Reques
 
 	ctrl.logger.Info("Object deleted successfully",
 		slog.String("object_id", objectID.String()),
+		slog.String("user_id", user.ID().String()))
+
+	httputil.JSON(w, http.StatusOK, response.DeleteObjectResponse{
+		Success: resp.Success,
+	})
+}
+
+// RemoveObjectFromContainer godoc
+// @Summary Remove object from a specific container
+// @Description Remove an object from a specific container (container ID required in path)
+// @Tags objects
+// @Produce json
+// @Param id path string true "User ID"
+// @Param collection_id path string true "Collection ID"
+// @Param container_id path string true "Container ID"
+// @Param object_id path string true "Object ID"
+// @Success 200 {object} response.DeleteObjectResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /accounts/{id}/collections/{collection_id}/containers/{container_id}/objects/{object_id} [delete]
+// @Security BearerAuth
+func (ctrl *ObjectController) RemoveObjectFromContainer(w http.ResponseWriter, r *http.Request) {
+	user, exists := middleware.GetCurrentUser(r)
+	if !exists {
+		ctrl.logger.Error("No authenticated user found in context")
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	userToken, tokenExists := middleware.GetCurrentToken(r)
+	if !tokenExists {
+		ctrl.logger.Error("No auth token found in context")
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	pathUserID, err := request.GetUserIDFromPath(r)
+	if err != nil {
+		ctrl.logger.Warn("Invalid user ID in path", slog.Any("error", err))
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	containerID, err := request.GetContainerIDFromPath(r)
+	if err != nil {
+		ctrl.logger.Warn("Invalid container ID in path", slog.Any("error", err))
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	objectID, err := request.GetObjectIDFromPath(r)
+	if err != nil {
+		ctrl.logger.Warn("Invalid object ID in path", slog.Any("error", err))
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if !pathUserID.Equals(user.ID()) {
+		httputil.Error(w, http.StatusForbidden, "access denied")
+		return
+	}
+
+	ucReq := usecases.DeleteObjectRequest{
+		ContainerID: &containerID,
+		ObjectID:    objectID,
+		UserID:      pathUserID,
+		UserToken:   userToken,
+	}
+
+	resp, err := ctrl.deleteObjectUC.Execute(r.Context(), ucReq)
+	if err != nil {
+		ctrl.logger.Error("Failed to remove object from container", slog.Any("error", err))
+		if strings.Contains(err.Error(), "access denied") {
+			httputil.Error(w, http.StatusForbidden, "access denied")
+			return
+		}
+		if strings.Contains(err.Error(), "not found") {
+			httputil.Error(w, http.StatusNotFound, "object or container not found")
+			return
+		}
+		httputil.Error(w, http.StatusInternalServerError, "failed to remove object")
+		return
+	}
+
+	ctrl.logger.Info("Object removed from container",
+		slog.String("object_id", objectID.String()),
+		slog.String("container_id", containerID.String()),
 		slog.String("user_id", user.ID().String()))
 
 	httputil.JSON(w, http.StatusOK, response.DeleteObjectResponse{

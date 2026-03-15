@@ -424,3 +424,17 @@ func documentToContainer(doc *containerDocument) (*entities.Container, error) {
 		doc.UpdatedAt,
 	), nil
 }
+
+func (r *MongoContainerRepository) FindByObjectID(ctx context.Context, objectID entities.ObjectID) (*entities.Container, error) {
+	var doc containerDocument
+
+	err := r.collection.FindOne(ctx, bson.M{"objects.id": objectID.String()}).Decode(&doc)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, fmt.Errorf("container not found")
+		}
+		return nil, fmt.Errorf("failed to find container by object ID: %w", err)
+	}
+
+	return documentToContainer(&doc)
+}

@@ -267,7 +267,11 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		if err != nil {
 			return nil, fmt.Errorf("get collection objects: %w", err)
 		}
-		return jsonResourceResult(req.Params.URI, response.NewObjectListResponse(resp.Objects))
+		objectResponses := make([]response.ObjectResponse, len(resp.Objects))
+		for i, item := range resp.Objects {
+			objectResponses[i] = response.NewObjectResponse(item.Object, item.ContainerID.String())
+		}
+		return jsonResourceResult(req.Params.URI, response.ObjectListResponse{Objects: objectResponses, Total: len(objectResponses)})
 	})
 
 	// nishiki://containers/{id}

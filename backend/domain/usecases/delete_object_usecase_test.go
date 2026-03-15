@@ -87,7 +87,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := DeleteObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			UserID:      userID,
 			UserToken:   "test-token",
@@ -200,7 +200,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := DeleteObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			UserID:      userID,
 			UserToken:   "test-token",
@@ -240,7 +240,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		objectID := entities.NewObjectID()
 
 		req := DeleteObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			UserID:      userID,
 			UserToken:   "test-token",
@@ -286,7 +286,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := DeleteObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			UserID:      userID,
 			UserToken:   "test-token",
@@ -377,7 +377,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := DeleteObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			UserID:      userID,
 			UserToken:   "test-token",
@@ -450,7 +450,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := DeleteObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			UserID:      userID,
 			UserToken:   "test-token",
@@ -506,7 +506,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := DeleteObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			UserID:      userID,
 			UserToken:   "test-token",
@@ -591,7 +591,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := DeleteObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			UserID:      userID,
 			UserToken:   "test-token",

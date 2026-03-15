@@ -20,8 +20,13 @@ type GetCollectionObjectsRequest struct {
 	PropertyFilters map[string]string     // property key → substring match (case-insensitive)
 }
 
+type ObjectWithContainerID struct {
+	Object      entities.Object
+	ContainerID entities.ContainerID
+}
+
 type GetCollectionObjectsResponse struct {
-	Objects []entities.Object
+	Objects []ObjectWithContainerID
 }
 
 type GetCollectionObjectsUseCase struct {
@@ -66,31 +71,37 @@ func (uc *GetCollectionObjectsUseCase) Execute(ctx context.Context, req GetColle
 	}
 
 	// Collect objects — optionally restricted to a single container.
-	var allObjects []entities.Object
+	var allObjects []ObjectWithContainerID
 	if req.ContainerID != nil {
 		c, err := collection.GetContainer(*req.ContainerID)
 		if err != nil {
 			return nil, fmt.Errorf("container not found: %w", err)
 		}
-		allObjects = c.Objects()
+		for _, obj := range c.Objects() {
+			allObjects = append(allObjects, ObjectWithContainerID{Object: obj, ContainerID: c.ID()})
+		}
 	} else {
-		allObjects = collection.GetAllObjects()
+		for _, c := range collection.Containers() {
+			for _, obj := range c.Objects() {
+				allObjects = append(allObjects, ObjectWithContainerID{Object: obj, ContainerID: c.ID()})
+			}
+		}
 	}
 
 	// Apply in-memory filters.
-	filtered := allObjects[:0:0]
+	var filtered []ObjectWithContainerID
 	query := strings.ToLower(req.Query)
-	for _, obj := range allObjects {
-		if query != "" && !strings.Contains(strings.ToLower(obj.Name().String()), query) {
+	for _, item := range allObjects {
+		if query != "" && !strings.Contains(strings.ToLower(item.Object.Name().String()), query) {
 			continue
 		}
-		if !hasAllTags(obj, req.Tags) {
+		if !hasAllTags(item.Object, req.Tags) {
 			continue
 		}
-		if !matchesPropertyFilters(obj, req.PropertyFilters) {
+		if !matchesPropertyFilters(item.Object, req.PropertyFilters) {
 			continue
 		}
-		filtered = append(filtered, obj)
+		filtered = append(filtered, item)
 	}
 
 	return &GetCollectionObjectsResponse{
