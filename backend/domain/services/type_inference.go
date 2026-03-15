@@ -11,11 +11,35 @@ import (
 )
 
 // TypeInferenceService infers property schemas from tabular data and coerces values.
-type TypeInferenceService struct{}
+type TypeInferenceService struct {
+	reservedCols map[string]struct{}
+}
+
+// defaultReservedColumns is the built-in list used when none is supplied.
+var defaultReservedColumns = []string{
+	"name", "title", "item",
+	"description", "quantity", "tags", "location",
+}
 
 // NewTypeInferenceService creates a new TypeInferenceService.
-func NewTypeInferenceService() *TypeInferenceService {
-	return &TypeInferenceService{}
+// reservedColumns is a list of snake_case column names that map to Object fields
+// and must not be stored as properties. Pass nil to use the built-in defaults.
+func NewTypeInferenceService(reservedColumns []string) *TypeInferenceService {
+	if len(reservedColumns) == 0 {
+		reservedColumns = defaultReservedColumns
+	}
+	cols := make(map[string]struct{}, len(reservedColumns))
+	for _, c := range reservedColumns {
+		cols[c] = struct{}{}
+	}
+	return &TypeInferenceService{reservedCols: cols}
+}
+
+// IsReserved reports whether the given snake_case key is a reserved Object field
+// that should not be stored as a property.
+func (s *TypeInferenceService) IsReserved(key string) bool {
+	_, ok := s.reservedCols[key]
+	return ok
 }
 
 var (
@@ -132,8 +156,8 @@ func uniqueStrings(vals []string) []string {
 	return out
 }
 
-// toSnakeCase converts a display header to a snake_case storage key.
-func toSnakeCase(s string) string {
+// ToSnakeCase converts a display header to a snake_case storage key.
+func ToSnakeCase(s string) string {
 	s = strings.TrimSpace(s)
 	s = strings.ToLower(s)
 	// Replace spaces and hyphens with underscores
@@ -149,17 +173,6 @@ func toSnakeCase(s string) string {
 	return b.String()
 }
 
-// reservedColumns maps known CSV column names to their Object field roles.
-// These are NOT stored as properties.
-var reservedColumns = map[string]string{
-	"name":        "name",
-	"title":       "name",
-	"item":        "name",
-	"description": "description",
-	"quantity":    "quantity",
-	"tags":        "tags",
-	"location":    "location",
-}
 
 // InferSchema infers a PropertySchema from CSV headers and sample data rows.
 func (s *TypeInferenceService) InferSchema(headers []string, data []map[string]interface{}) *entities.PropertySchema {
@@ -184,9 +197,9 @@ func (s *TypeInferenceService) InferSchema(headers []string, data []map[string]i
 
 	defs := make([]entities.PropertyDefinition, 0, len(headers))
 	for _, h := range headers {
-		normalizedKey := toSnakeCase(h)
+		normalizedKey := ToSnakeCase(h)
 		// Skip reserved columns (they map to Object fields, not properties)
-		if _, reserved := reservedColumns[strings.ToLower(normalizedKey)]; reserved {
+		if s.IsReserved(normalizedKey) {
 			continue
 		}
 
@@ -254,6 +267,16 @@ func (s *TypeInferenceService) CoerceValue(value interface{}, targetType entitie
 	default: // text, grouped_text
 		return str
 	}
+}
+
+// NormalizeRowKeys rewrites every key in a data row to its snake_case equivalent.
+// This ensures row keys match the snake_case keys stored in PropertySchema.Definitions.
+func (s *TypeInferenceService) NormalizeRowKeys(row map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{}, len(row))
+	for k, v := range row {
+		result[ToSnakeCase(k)] = v
+	}
+	return result
 }
 
 // CoerceRow applies CoerceValue to all properties in a row according to the schema.

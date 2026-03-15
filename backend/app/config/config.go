@@ -12,6 +12,7 @@ type Config struct {
 	Database DatabaseConfig `toml:"database" mapstructure:"database"`
 	Auth     AuthConfig     `toml:"auth" mapstructure:"auth"`
 	Logging  LoggingConfig  `toml:"logging" mapstructure:"logging"`
+	Import   ImportConfig   `toml:"import" mapstructure:"import"`
 }
 
 type ServerConfig struct {
@@ -95,6 +96,14 @@ type LoggingConfig struct {
 	SeqAPIKey   string `toml:"seq_api_key" mapstructure:"seq_api_key"`
 }
 
+// ImportConfig controls bulk-import behaviour.
+type ImportConfig struct {
+	// ReservedColumns lists snake_case column names that map to Object fields
+	// (name, description, quantity, etc.) and must NOT be stored as properties.
+	// Extend this list to protect additional columns in your CSV exports.
+	ReservedColumns []string `toml:"reserved_columns" mapstructure:"reserved_columns"`
+}
+
 func Load() (*Config, error) {
 	v := viper.New()
 
@@ -159,6 +168,12 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("auth.allow_self_signed", false)
 	v.SetDefault("auth.api_token", "")
 	v.SetDefault("auth.clients", []OAuthClient{})
+
+	// Import defaults
+	v.SetDefault("import.reserved_columns", []string{
+		"name", "title", "item",
+		"description", "quantity", "tags", "location",
+	})
 
 	// Logging defaults
 	v.SetDefault("logging.level", "info")

@@ -20,6 +20,8 @@ func registerTools(s *mcp.Server, mctx *MCPContext) {
 	registerGroupTools(s, mctx)
 	registerImportTools(s, mctx)
 	registerSchemaTools(s, mctx)
+	registerExportTools(s, mctx)
+	registerSearchTools(s, mctx)
 }
 
 // --- Collection tools ---
@@ -652,6 +654,132 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 		}
 		r, err := jsonResult(resp)
 		return r, nil, err
+	})
+}
+
+// --- Search tools ---
+
+func registerSearchTools(s *mcp.Server, mctx *MCPContext) {
+	type SearchObjectsInput struct {
+		CollectionID    string            `json:"collection_id" jsonschema:"ID of the collection to search"`
+		Query           string            `json:"query,omitempty" jsonschema:"Case-insensitive substring match on object name (optional)"`
+		Tags            []string          `json:"tags,omitempty" jsonschema:"All listed tags must be present on matching objects (optional)"`
+		ContainerID     string            `json:"container_id,omitempty" jsonschema:"Restrict search to this container ID (optional)"`
+		PropertyFilters map[string]string `json:"property_filters,omitempty" jsonschema:"Key/value pairs: object property must contain the value (case-insensitive, optional)"`
+	}
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "search_objects",
+		Description: "Search and filter objects in a collection by name, tags, container, or property values. All filters are ANDed together.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, input SearchObjectsInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
+		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
+		if err != nil {
+			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
+			return r, nil, nil
+		}
+
+		ucReq := usecases.GetCollectionObjectsRequest{
+			CollectionID:    collectionID,
+			UserID:          user.ID(),
+			UserToken:       token,
+			Query:           input.Query,
+			Tags:            input.Tags,
+			PropertyFilters: input.PropertyFilters,
+		}
+
+		if input.ContainerID != "" {
+			cid, err := entities.ContainerIDFromString(input.ContainerID)
+			if err != nil {
+				r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
+				return r, nil, nil
+			}
+			ucReq.ContainerID = &cid
+		}
+
+		resp, err := mctx.getCollectionObjectsUC().Execute(ctx, ucReq)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
+		objects := make([]any, len(resp.Objects))
+		for i, obj := range resp.Objects {
+			objects[i] = response.NewObjectResponse(obj)
+		}
+		r, err := jsonResult(map[string]any{
+			"count":   len(objects),
+			"objects": objects,
+		})
+		return r, nil, err
+	})
+}
+
+// --- Export tools ---
+
+func registerExportTools(s *mcp.Server, mctx *MCPContext) {
+	type ExportCollectionInput struct {
+		CollectionID string `json:"collection_id" jsonschema:"ID of the collection to export"`
+		Format       string `json:"format,omitempty" jsonschema:"Export format: csv or json (default: csv)"`
+	}
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "export_collection",
+		Description: "Export all objects in a collection as CSV or JSON. CSV columns follow the collection's property schema order. Useful for data pipelines and backups.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, input ExportCollectionInput) (*mcp.CallToolResult, any, error) {
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
+		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
+		if err != nil {
+			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
+			return r, nil, nil
+		}
+
+		format := strings.ToLower(strings.TrimSpace(input.Format))
+		if format == "" {
+			format = "csv"
+		}
+		if format != "csv" && format != "json" {
+			r, _ := errorResult(fmt.Errorf("unsupported format %q: must be csv or json", format))
+			return r, nil, nil
+		}
+
+		if format == "json" {
+			resp, err := mctx.getCollectionObjectsUC().Execute(ctx, usecases.GetCollectionObjectsRequest{
+				CollectionID: collectionID,
+				UserID:       user.ID(),
+				UserToken:    token,
+			})
+			if err != nil {
+				r, _ := errorResult(err)
+				return r, nil, nil
+			}
+			objects := make([]any, len(resp.Objects))
+			for i, obj := range resp.Objects {
+				objects[i] = response.NewObjectResponse(obj)
+			}
+			r, err := jsonResult(objects)
+			return r, nil, err
+		}
+
+		// CSV
+		resp, err := mctx.exportCollectionUC().Execute(ctx, usecases.ExportCollectionRequest{
+			CollectionID: collectionID,
+			UserID:       user.ID(),
+			UserToken:    token,
+		})
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+		return textResult(string(resp.CSV)), nil, nil
 	})
 }
 

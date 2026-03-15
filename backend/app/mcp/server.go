@@ -45,6 +45,15 @@ func errorResult(err error) (*mcp.CallToolResult, error) {
 	return r, nil
 }
 
+// textResult returns an MCP tool result with plain text content.
+func textResult(text string) *mcp.CallToolResult {
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: text},
+		},
+	}
+}
+
 // jsonResourceResult marshals a result and wraps it in an MCP ReadResourceResult.
 func jsonResourceResult(uri string, result any) (*mcp.ReadResourceResult, error) {
 	data, err := json.MarshalIndent(result, "", "  ")

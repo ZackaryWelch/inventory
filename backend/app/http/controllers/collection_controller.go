@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -19,6 +20,7 @@ type CollectionController struct {
 	updateCollectionUC     *usecases.UpdateCollectionUseCase
 	deleteCollectionUC     *usecases.DeleteCollectionUseCase
 	updatePropertySchemaUC *usecases.UpdatePropertySchemaUseCase
+	exportCollectionUC     *usecases.ExportCollectionUseCase
 	logger                 *slog.Logger
 }
 
@@ -32,6 +34,7 @@ func NewCollectionController(
 		updateCollectionUC:     usecases.NewUpdateCollectionUseCase(c.CollectionRepo, c.AuthService),
 		deleteCollectionUC:     usecases.NewDeleteCollectionUseCase(c.CollectionRepo),
 		updatePropertySchemaUC: usecases.NewUpdatePropertySchemaUseCase(c.CollectionRepo),
+		exportCollectionUC:     usecases.NewExportCollectionUseCase(c.CollectionRepo, c.AuthService),
 		logger:                 logger,
 	}
 }
@@ -358,6 +361,78 @@ func (ctrl *CollectionController) UpdateCollection(w http.ResponseWriter, r *htt
 		slog.String("user_id", user.ID().String()))
 
 	httputil.JSON(w, http.StatusOK, response.NewCollectionResponse(resp.Collection))
+}
+
+// ExportCollection godoc
+// @Summary Export collection as CSV
+// @Description Export all objects in a collection as a CSV file
+// @Tags collections
+// @Produce text/csv
+// @Param id path string true "User ID"
+// @Param collection_id path string true "Collection ID"
+// @Success 200 {string} string "CSV data"
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /accounts/{id}/collections/{collection_id}/export [get]
+// @Security BearerAuth
+func (ctrl *CollectionController) ExportCollection(w http.ResponseWriter, r *http.Request) {
+	user, exists := middleware.GetCurrentUser(r)
+	if !exists {
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	userToken, tokenExists := middleware.GetCurrentToken(r)
+	if !tokenExists {
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	pathUserID, err := request.GetUserIDFromPath(r)
+	if err != nil || !pathUserID.Equals(user.ID()) {
+		httputil.Error(w, http.StatusForbidden, "access denied")
+		return
+	}
+
+	collectionID, err := request.GetCollectionIDFromPath(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp, err := ctrl.exportCollectionUC.Execute(r.Context(), usecases.ExportCollectionRequest{
+		CollectionID: collectionID,
+		UserID:       pathUserID,
+		UserToken:    userToken,
+	})
+	if err != nil {
+		ctrl.logger.Error("Failed to export collection", slog.Any("error", err))
+		if strings.Contains(err.Error(), "access denied") {
+			httputil.Error(w, http.StatusForbidden, "access denied")
+			return
+		}
+		if strings.Contains(err.Error(), "not found") {
+			httputil.Error(w, http.StatusNotFound, "collection not found")
+			return
+		}
+		httputil.Error(w, http.StatusInternalServerError, "failed to export collection")
+		return
+	}
+
+	filename := sanitizeFilename(resp.CollectionName) + ".csv"
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(resp.CSV)
+}
+
+// sanitizeFilename replaces characters that are unsafe in Content-Disposition filenames.
+func sanitizeFilename(name string) string {
+	r := strings.NewReplacer(`"`, "", `\`, "", "/", "-", "\n", "", "\r", "")
+	return r.Replace(name)
 }
 
 // DeleteCollection godoc

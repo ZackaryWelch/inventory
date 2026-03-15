@@ -118,7 +118,7 @@ func TestUserController_GetUser(t *testing.T) {
 		assert.Equal(t, "user not found", response["error"])
 	})
 
-	t.Run("error - invalid user ID", func(t *testing.T) {
+	t.Run("error - missing user ID", func(t *testing.T) {
 		t.Parallel()
 
 		// Create test user for auth context
@@ -133,14 +133,14 @@ func TestUserController_GetUser(t *testing.T) {
 			time.Now(),
 		)
 
-		// Create request with invalid UUID
-		req := newTestRequest(http.MethodGet, "/users/invalid-uuid", nil)
-		req.SetPathValue("id", "invalid-uuid")
+		// Create request with empty path value (missing ID)
+		req := newTestRequest(http.MethodGet, "/users/", nil)
+		req.SetPathValue("id", "")
 		req = setAuthContext(req, authUser, "test-token")
 
 		rr := httptest.NewRecorder()
 
-		// Call controller method (no mock expectation needed as validation should fail first)
+		// No mock expectation needed — empty ID fails before reaching the auth service
 		controller.GetUser(rr, req)
 
 		// Assert response
@@ -148,7 +148,7 @@ func TestUserController_GetUser(t *testing.T) {
 
 		var response map[string]interface{}
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-		assert.Contains(t, response["error"], "invalid")
+		assert.Contains(t, response["error"], "missing")
 	})
 
 	t.Run("error - auth service error", func(t *testing.T) {

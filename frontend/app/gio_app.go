@@ -31,13 +31,15 @@ type Config = config.Config
 
 // Type aliases for backend response types
 type (
-	User             = response.UserResponse
-	AuthInfoResponse = response.AuthInfoResponse
-	ClaimsInfo       = response.ClaimsInfo
-	Group            = response.GroupResponse
-	Collection       = response.CollectionResponse
-	Container        = response.ContainerResponse
-	Object           = response.ObjectResponse
+	User               = response.UserResponse
+	AuthInfoResponse   = response.AuthInfoResponse
+	ClaimsInfo         = response.ClaimsInfo
+	Group              = response.GroupResponse
+	Collection         = response.CollectionResponse
+	Container          = response.ContainerResponse
+	Object             = response.ObjectResponse
+	PropertySchema     = response.PropertySchemaResponse
+	PropertyDefinition = response.PropertyDefinitionResponse
 )
 
 // consoleWriter writes logs to browser console
@@ -93,9 +95,14 @@ type GioApp struct {
 	selectedContainerID   *string
 
 	// Import state
-	showImportPreview bool
-	importData        *ImportData
-	importFilename    string
+	showImportPreview   bool
+	importData          *ImportData
+	importFilename      string
+	importNameColumn    string
+	importLocationColumn string
+
+	// Grouped-text filter state (property key → selected value; empty = "All")
+	activeGroupedTextFilters map[string]string
 
 	// Gio-specific fields
 	window *app.Window
@@ -174,6 +181,14 @@ type WidgetState struct {
 	importButton          widget.Clickable
 	importExecuteButton   widget.Clickable
 	importCancelButton    widget.Clickable
+
+	// Import column mapping
+	importNameColumnButtons     map[string]*widget.Clickable
+	importLocationColumnButtons map[string]*widget.Clickable
+	importInferSchemaCheck      widget.Bool
+
+	// Grouped-text filter chips (key = "propKey||value")
+	groupedTextFilterButtons map[string]*widget.Clickable
 
 	// Container dialog widgets
 	containerNameEditor     widget.Editor
@@ -277,14 +292,17 @@ func NewGioApp() *GioApp {
 
 	// Initialize widget state with button maps and dialogs
 	widgetState := &WidgetState{
-		collectionTypeButtons:  make(map[string]*widget.Clickable),
-		collectionGroupButtons: make(map[string]*widget.Clickable),
-		containerTypeButtons:   make(map[string]*widget.Clickable),
-		collectionDialog:       widgets.NewDialog(),
-		groupDialog:            widgets.NewDialog(),
-		deleteDialog:           widgets.NewDialog(),
-		containerDialog:        widgets.NewDialog(),
-		objectDialog:           widgets.NewDialog(),
+		collectionTypeButtons:       make(map[string]*widget.Clickable),
+		collectionGroupButtons:      make(map[string]*widget.Clickable),
+		containerTypeButtons:        make(map[string]*widget.Clickable),
+		importNameColumnButtons:     make(map[string]*widget.Clickable),
+		importLocationColumnButtons: make(map[string]*widget.Clickable),
+		groupedTextFilterButtons:    make(map[string]*widget.Clickable),
+		collectionDialog:            widgets.NewDialog(),
+		groupDialog:                 widgets.NewDialog(),
+		deleteDialog:                widgets.NewDialog(),
+		containerDialog:             widgets.NewDialog(),
+		objectDialog:                widgets.NewDialog(),
 	}
 
 	gioApp := &GioApp{

@@ -51,12 +51,20 @@ type BulkImportCollectionUseCase struct {
 	typeInference  *services.TypeInferenceService
 }
 
-func NewBulkImportCollectionUseCase(collectionRepo repositories.CollectionRepository, containerRepo repositories.ContainerRepository, authService services.AuthService) *BulkImportCollectionUseCase {
+// NewBulkImportCollectionUseCase creates the use case.
+// reservedColumns is the list of snake_case column names that map to Object fields
+// and must not be stored as properties. Pass nil to use the built-in defaults.
+func NewBulkImportCollectionUseCase(
+	collectionRepo repositories.CollectionRepository,
+	containerRepo repositories.ContainerRepository,
+	authService services.AuthService,
+	reservedColumns []string,
+) *BulkImportCollectionUseCase {
 	return &BulkImportCollectionUseCase{
 		collectionRepo: collectionRepo,
 		containerRepo:  containerRepo,
 		authService:    authService,
-		typeInference:  services.NewTypeInferenceService(),
+		typeInference:  services.NewTypeInferenceService(reservedColumns),
 	}
 }
 
@@ -92,12 +100,16 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 	// Run type inference if requested
 	var inferredSchema *entities.PropertySchema
 	if req.InferSchema && len(req.Data) > 0 {
-		// Collect headers from first row
+		// Collect headers from first row (original, for DisplayName preservation)
 		headers := make([]string, 0, len(req.Data[0]))
 		for k := range req.Data[0] {
 			headers = append(headers, k)
 		}
 		inferredSchema = uc.typeInference.InferSchema(headers, req.Data)
+		// Normalize row keys to snake_case so they match schema definition keys
+		for i, row := range req.Data {
+			req.Data[i] = uc.typeInference.NormalizeRowKeys(row)
+		}
 		if inferredSchema != nil {
 			// Coerce all row values according to inferred schema
 			for i, row := range req.Data {
@@ -211,16 +223,9 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 
 	for _, item := range req.Data {
 		// Extract name
-		nameValue, ok := item["name"]
+		name, ok := resolveNameField(item, req.NameColumn)
 		if !ok {
 			errors = append(errors, "missing required field: name")
-			failed++
-			continue
-		}
-
-		name, ok := nameValue.(string)
-		if !ok || name == "" {
-			errors = append(errors, "invalid name: must be a non-empty string")
 			failed++
 			continue
 		}
@@ -228,11 +233,12 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		// Use the collection's object type
 		objectType := collection.ObjectType()
 
-		// Extract properties (all fields except name and tags)
+		// Extract properties (all fields except reserved columns), with normalized keys
 		properties := make(map[string]interface{})
 		for key, value := range item {
-			if key != "name" && key != "tags" {
-				properties[key] = value
+			nk := services.ToSnakeCase(key)
+			if !uc.typeInference.IsReserved(nk) {
+				properties[nk] = value
 			}
 		}
 
@@ -326,16 +332,9 @@ func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.
 		item := req.Data[assignment.ObjectIndex]
 
 		// Extract name
-		nameValue, ok := item["name"]
+		name, ok := resolveNameField(item, req.NameColumn)
 		if !ok {
 			errors = append(errors, "missing required field: name")
-			failed++
-			continue
-		}
-
-		name, ok := nameValue.(string)
-		if !ok || name == "" {
-			errors = append(errors, "invalid name: must be a non-empty string")
 			failed++
 			continue
 		}
@@ -343,11 +342,12 @@ func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.
 		// Use the collection's object type
 		objectType := collection.ObjectType()
 
-		// Extract properties (all fields except name and tags)
+		// Extract properties (all fields except reserved columns), with normalized keys
 		properties := make(map[string]interface{})
 		for key, value := range item {
-			if key != "name" && key != "tags" {
-				properties[key] = value
+			nk := services.ToSnakeCase(key)
+			if !uc.typeInference.IsReserved(nk) {
+				properties[nk] = value
 			}
 		}
 
@@ -574,14 +574,17 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 			container = locationToContainer[defaultKey]
 		}
 
-		// Build properties (exclude name, tags, location column)
+		// Build properties (exclude reserved columns and location column), with normalized keys
 		properties := make(map[string]interface{})
 		for key, value := range item {
-			lk := strings.ToLower(key)
-			if lk == strings.ToLower(nameCol) || lk == "name" || lk == "title" || lk == "item" || lk == "tags" || strings.ToLower(key) == strings.ToLower(locationCol) {
+			nk := services.ToSnakeCase(key)
+			if uc.typeInference.IsReserved(nk) {
 				continue
 			}
-			properties[key] = value
+			if nk == services.ToSnakeCase(locationCol) {
+				continue
+			}
+			properties[nk] = value
 		}
 
 		// Combine default tags with item-specific tags

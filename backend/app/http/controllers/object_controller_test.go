@@ -37,7 +37,7 @@ func TestObjectController_CreateObject(t *testing.T) {
 	deleteObjectUC := usecases.NewDeleteObjectUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
 	getCollectionObjectsUC := usecases.NewGetCollectionObjectsUseCase(mockCollectionRepo, mockContainerRepo, mockAuthService)
 	bulkImportUC := usecases.NewBulkImportObjectsUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
-	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(mockCollectionRepo, mockContainerRepo, mockAuthService)
+	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(mockCollectionRepo, mockContainerRepo, mockAuthService, nil)
 
 	controller := &ObjectController{
 		createObjectUC:         createObjectUC,

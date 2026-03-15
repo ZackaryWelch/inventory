@@ -556,6 +556,20 @@ func (ga *GioApp) renderObjectCard(gtx layout.Context, object Object, index int)
 				return layout.Dimensions{}
 			}),
 
+			// Properties
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				if len(object.Properties) == 0 {
+					return layout.Dimensions{}
+				}
+				var defs []PropertyDefinition
+				if ga.selectedCollection != nil && ga.selectedCollection.PropertySchema != nil {
+					defs = ga.selectedCollection.PropertySchema.Definitions
+				}
+				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return ga.renderObjectProperties(gtx, object.Properties, defs)
+				})
+			}),
+
 			// Action buttons
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -603,4 +617,58 @@ func (ga *GioApp) fetchContainersAndObjects() {
 	ga.containers = containers
 	ga.objects = objects
 	ga.window.Invalidate()
+}
+
+// renderObjectProperties renders the key/value properties of an object using schema-aware formatting.
+func (ga *GioApp) renderObjectProperties(gtx layout.Context, props map[string]interface{}, defs []PropertyDefinition) layout.Dimensions {
+	// Build ordered keys: schema-defined first (in order), then remaining alpha-sorted
+	var keys []string
+	seen := map[string]bool{}
+	for _, def := range defs {
+		if _, ok := props[def.Key]; ok {
+			keys = append(keys, def.Key)
+			seen[def.Key] = true
+		}
+	}
+	for k := range props {
+		if !seen[k] {
+			keys = append(keys, k)
+		}
+	}
+
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		func() []layout.FlexChild {
+			children := make([]layout.FlexChild, 0, len(keys))
+			for _, k := range keys {
+				k := k
+				v := props[k]
+				displayKey := propertyDisplayName(k, defs)
+				displayVal := RenderPropertyValue(k, v, defs)
+				children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					label := material.Caption(ga.theme.Theme, displayKey+": "+displayVal)
+					label.Color = theme.ColorTextSecondary
+					return label.Layout(gtx)
+				}))
+			}
+			return children
+		}()...,
+	)
+}
+
+// propertyDisplayName returns the display name for a property key.
+// Uses the schema definition's DisplayName when available, otherwise converts snake_case to Title Case.
+func propertyDisplayName(key string, defs []PropertyDefinition) string {
+	for _, def := range defs {
+		if def.Key == key && def.DisplayName != "" {
+			return def.DisplayName
+		}
+	}
+	// snake_case → Title Case
+	parts := strings.Split(key, "_")
+	for i, p := range parts {
+		if len(p) > 0 {
+			parts[i] = strings.ToUpper(p[:1]) + p[1:]
+		}
+	}
+	return strings.Join(parts, " ")
 }

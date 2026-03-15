@@ -87,6 +87,7 @@ func Setup(appContainer *container.Container) http.Handler {
 	mux.HandleFunc("PUT /accounts/{id}/collections/{collection_id}", withAuth(collectionController.UpdateCollection))
 	mux.HandleFunc("DELETE /accounts/{id}/collections/{collection_id}", withAuth(collectionController.DeleteCollection))
 	mux.HandleFunc("PUT /accounts/{id}/collections/{collection_id}/schema", withAuth(collectionController.UpdatePropertySchema))
+	mux.HandleFunc("GET /accounts/{id}/collections/{collection_id}/export", withAuth(collectionController.ExportCollection))
 
 	// Containers under collections
 	mux.HandleFunc("GET /accounts/{id}/collections/{collection_id}/containers", withAuth(containerController.GetContainers))

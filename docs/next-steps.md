@@ -2,45 +2,29 @@
 
 ## Immediate Bug Fixes
 
-### B1. Key normalization in bulk import (critical)
+### ~~B1. Key normalization in bulk import~~ ✅ Done
 
-`InferSchema` stores property definitions with snake_case `Key` (e.g. `date_purchased`) but the data rows still use original CSV headers (`Date Purchased`). `CoerceRow` looks up `def.Key` in the row and finds nothing, so no coercion happens and no typed values are stored.
+`toSnakeCase` exported as `ToSnakeCase`. `NormalizeRowKeys()` added to `TypeInferenceService` and called in `Execute` before `CoerceRow`. All three distribution paths now store properties with normalized snake_case keys. Reserved columns list moved from hardcoded package vars into `TypeInferenceService` (configurable via `[import] reserved_columns` in `app.toml`).
 
-**Fix — `backend/domain/services/type_inference.go`:**
+### ~~B2. `resolveNameField` not used in default/automatic paths~~ ✅ Done
 
-Add a `NormalizeRowKeys(row map[string]interface{}) map[string]interface{}` method that rewrites every key to `toSnakeCase(key)`. Call it in `BulkImportCollectionUseCase.Execute` **before** `CoerceRow`, and also normalize keys when building `properties` maps in all three distribution paths.
-
-**Fix — `backend/domain/usecases/bulk_import_collection_usecase.go`:**
-
-In `executeLocationDistribution` (and the default/target paths), store properties with normalized keys:
-```go
-properties[services.ToSnakeCase(key)] = value
-```
-
-Export `toSnakeCase` as `ToSnakeCase` from the services package.
-
-### B2. `resolveNameField` not used in default/automatic paths
-
-The `default` and `automatic` distribution paths still hardcode `item["name"]` instead of calling `resolveNameField(item, req.NameColumn)`. The `Electronic_Supplies.csv` uses `Name` (capital N), which works by coincidence but `title` / `item` columns won't.
-
-**Fix — `bulk_import_collection_usecase.go`:** Replace the two hardcoded `item["name"]` lookups with `resolveNameField(item, req.NameColumn)`.
+Both the default and `executeAutomaticDistribution` paths now call `resolveNameField(item, req.NameColumn)`.
 
 ---
 
 ## Backend — Phase 7: Object Search & Export
 
-### 7a. Search/filter query params on `GET /accounts/{id}/collections/{id}/objects`
+### ~~7a. Search/filter query params on `GET /accounts/{id}/collections/{id}/objects`~~ ✅ Done
 
-Add optional query parameters: `?q=` (name contains), `?tag=`, `?container_id=`, `?property[key]=value`.
+Optional query params: `?q=` (name contains, case-insensitive), `?tag=` (repeatable, all must match), `?container_id=`, `?property[key]=value` (substring match).
 
-- `GetCollectionObjectsRequest` gains `Query`, `Tags []string`, `ContainerID *ContainerID`, `PropertyFilters map[string]string`
-- Repository-level filter (done in-memory on the loaded container objects for now; MongoDB filter later)
+`GetCollectionObjectsRequest` now has `Query`, `Tags []string`, `ContainerID *ContainerID`, `PropertyFilters map[string]string`. Filtering is in-memory after loading the collection. 11 unit tests in `get_collection_objects_usecase_test.go` cover all filter combinations and access control.
 
-### 7b. Export endpoint — `GET /accounts/{id}/collections/{id}/export`
+### ~~7b. Export endpoint — `GET /accounts/{id}/collections/{id}/export`~~ ✅ Done
 
-Returns objects as CSV. Columns: `name`, `description`, `quantity`, `unit`, `tags`, then one column per property definition (using `DisplayName` as header). If no schema, uses all unique property keys sorted alphabetically.
+Fixed fields (`name`, `description`, `quantity`, `unit`, `tags`, `expires_at`) always emitted in that order. Display names auto-derived from snake_case → Title Case; schema can override per key. Property columns follow: schema definitions whose keys aren't fixed fields, or all unique property keys sorted alpha if no schema.
 
-New use case: `ExportCollectionUseCase`. Controller method `ExportCollection`. Response: `Content-Type: text/csv`, `Content-Disposition: attachment; filename="{collection_name}.csv"`.
+`ExportCollectionUseCase` in `domain/usecases/`. `CollectionController.ExportCollection` responds with `Content-Type: text/csv`, `Content-Disposition: attachment; filename="{collection_name}.csv"`. Route: `GET /accounts/{id}/collections/{collection_id}/export`.
 
 ### 7c. Group operations backend
 
@@ -54,21 +38,13 @@ These unblock the three MCP stubs (`update_group`, `delete_group`, and eventuall
 
 ## MCP — Phase 8: Search, Export & Quality
 
-### 8a. New tool: `search_objects`
+### ~~8a. New tool: `search_objects`~~ ✅ Done
 
-```
-Input: collection_id, query? (name substring), tags? ([]string), container_id?, property_filters? (map[string]string)
-```
+Input: `collection_id`, `query?`, `tags?`, `container_id?`, `property_filters?`. Delegates to the updated `GetCollectionObjectsUseCase`. Returns `{ count, objects[] }`.
 
-Calls the new filtered `GetCollectionObjectsUseCase` and returns matching objects with container context.
+### ~~8b. New tool: `export_collection`~~ ✅ Done
 
-### 8b. New tool: `export_collection`
-
-```
-Input: collection_id, format? ("csv"|"json", default "csv")
-```
-
-Returns the export as a string in the result. For CSV, the column order follows the collection's `PropertySchema.Definitions` (display names as headers). Useful for MCP-driven data pipelines.
+Input: `collection_id`, `format?` (`"csv"` | `"json"`, default `"csv"`). CSV uses `ExportCollectionUseCase` (schema-ordered columns). JSON calls `GetCollectionObjectsUseCase` and returns objects array via `jsonResult`. A `textResult` helper was added to `server.go` for plain-text MCP responses.
 
 ### 8c. New prompt: `migrate_schema`
 
@@ -86,36 +62,32 @@ Once 7c group endpoints exist, replace the three `errorResult(fmt.Errorf("backen
 
 ## Frontend — Phase 9: Typed Rendering
 
-### 9a. Add `PropertySchema` to frontend `Collection` type
+### ~~9a. Add `PropertySchema` to frontend `Collection` type~~ ✅ Done
 
-`types/user.go` re-exports `response.CollectionResponse` which now includes `PropertySchema *PropertySchemaResponse`. Add corresponding type aliases:
+`PropertySchema = response.PropertySchemaResponse` and `PropertyDefinition = response.PropertyDefinitionResponse` added to the type alias block in `app/gio_app.go`.
 
-```go
-type PropertySchema = response.PropertySchemaResponse
-type PropertyDefinition = response.PropertyDefinitionResponse
-```
-
-### 9b. Property renderer — `frontend/app/property_renderers.go` (new file)
+### ~~9b. Property renderer — `frontend/app/property_renderers.go`~~ ✅ Done
 
 ```go
-func RenderPropertyValue(key string, value interface{}, schema *types.PropertySchema) string
+func RenderPropertyValue(key string, value interface{}, defs []PropertyDefinition) string
 ```
 
-Dispatch table by `PropertyType`:
+Takes `[]PropertyDefinition` (no pointer) — nil-safe via `range`. Dispatches by `def.Type`:
 
 | Type | Rendering |
 |------|-----------|
-| `currency` | `fmt.Sprintf("$%.2f", v)` — right-aligned |
-| `date` | `time.Parse(RFC3339, v)` → `Jan 2, 2006` |
-| `bool` | `"Yes"` / `"No"` (or checkbox widget) |
-| `url` | Display name = last path segment; open via `js.Global().Get("window").Call("open", url)` |
-| `numeric` | Right-aligned, no trailing zeros |
-| `grouped_text` | Styled chip label |
-| `text` (default) | Plain string |
+| `currency` | Symbol from `CurrencyCode` (USD→`$`, EUR→`€`, etc.) + `%.2f` |
+| `date` | Parses RFC3339 or `2006-01-02` → `Jan 2, 2006` |
+| `bool` | `"Yes"` / `"No"` (handles bool, string, numeric) |
+| `url` | Last path segment via `path.Base` |
+| `numeric` | `strconv.FormatFloat` with no trailing zeros |
+| `grouped_text` / `text` | Plain string |
 
-### 9c. Update object property rendering — `frontend/app/objects_ui.go`
+Helpers: `findPropertyDef`, `toFloat`.
 
-When rendering an object's properties, look up the collection's `PropertySchema` and call `RenderPropertyValue` for each key. Fall back to plain string rendering when schema is nil or key not found.
+### ~~9c. Update object property rendering — `frontend/app/collection_detail_view.go`~~ ✅ Done
+
+`renderObjectCard` now renders a **Properties** section between Tags and action buttons. `renderObjectProperties` orders keys schema-first then remaining keys. `propertyDisplayName` uses schema `DisplayName` or falls back to snake_case → Title Case.
 
 ### 9d. Grouped-text filter chips
 
@@ -148,16 +120,16 @@ A new dialog accessible from the Collection detail view (gear icon or "Edit Sche
 ## Priority Order
 
 ```
-B1 (key normalization)       ← breaks schema inference
-B2 (resolveNameField)        ← breaks Name-column imports
-7b (export endpoint)         ← enables MCP export tool
-8b (export_collection tool)  ← closes the read/write loop in MCP
-7a (search filter)           ← high MCP value
-8a (search_objects tool)     ← uses 7a
-9a–9c (typed rendering)      ← immediately visible frontend value
-9d (grouped-text filters)    ← enhances browsing
-9e (import dialog)           ← makes import self-service
-7c + 8e (group ops)          ← removes stubs
-9f (schema editor)           ← power-user feature
-8c–8d (new prompts)          ← quality of life for MCP users
+~~B1 (key normalization)~~         ✅ done
+~~B2 (resolveNameField)~~          ✅ done
+~~7b (export endpoint)~~           ✅ done
+~~8b (export_collection tool)~~    ✅ done
+~~7a (search filter)~~             ✅ done  (11 unit tests)
+~~8a (search_objects tool)~~       ✅ done
+~~9a–9c (typed rendering)~~        ✅ done
+9d (grouped-text filters)          ← enhances browsing
+9e (import dialog)                 ← makes import self-service
+7c + 8e (group ops)                ← removes stubs
+9f (schema editor)                 ← power-user feature
+8c–8d (new prompts)                ← quality of life for MCP users
 ```

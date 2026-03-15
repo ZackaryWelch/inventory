@@ -34,7 +34,7 @@ func NewObjectController(
 		deleteObjectUC:         usecases.NewDeleteObjectUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
 		getCollectionObjectsUC: usecases.NewGetCollectionObjectsUseCase(c.CollectionRepo, c.ContainerRepo, c.AuthService),
 		bulkImportUC:           usecases.NewBulkImportObjectsUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
-		bulkImportCollectionUC: usecases.NewBulkImportCollectionUseCase(c.CollectionRepo, c.ContainerRepo, c.AuthService),
+		bulkImportCollectionUC: usecases.NewBulkImportCollectionUseCase(c.CollectionRepo, c.ContainerRepo, c.AuthService, c.GetConfig().Import.ReservedColumns),
 		logger:                 logger,
 	}
 }
@@ -195,61 +195,47 @@ func (ctrl *ObjectController) GetCollectionObjects(w http.ResponseWriter, r *htt
 		UserToken:    userToken,
 	}
 
-	// Check if this is a container-specific request
-	containerIDStr := r.PathValue("container_id")
-	var objects []entities.Object
+	// Parse optional filter query parameters.
+	q := r.URL.Query()
+	ucReq.Query = q.Get("q")
+	ucReq.Tags = q["tag"]
 
-	if containerIDStr != "" {
-		// Get objects from specific container
-		containerID, err := request.GetContainerIDFromPath(r)
+	if cidStr := q.Get("container_id"); cidStr != "" {
+		cid, err := entities.ContainerIDFromString(cidStr)
 		if err != nil {
-			ctrl.logger.Warn("Invalid container ID in path", slog.Any("error", err))
-			httputil.Error(w, http.StatusBadRequest, err.Error())
+			ctrl.logger.Warn("Invalid container_id query param", slog.Any("error", err))
+			httputil.Error(w, http.StatusBadRequest, "invalid container_id")
 			return
 		}
-
-		// Get the container to access its objects
-		// We'll use the GetContainerByID use case for this
-		// For now, get collection objects and extract from collection
-		resp, err := ctrl.getCollectionObjectsUC.Execute(r.Context(), ucReq)
-		if err != nil {
-			ctrl.logger.Error("Failed to get objects", slog.Any("error", err))
-			if strings.Contains(err.Error(), "access denied") {
-				httputil.Error(w, http.StatusForbidden, "access denied")
-				return
-			}
-			if strings.Contains(err.Error(), "not found") {
-				httputil.Error(w, http.StatusNotFound, "collection not found")
-				return
-			}
-			httputil.Error(w, http.StatusInternalServerError, "failed to get objects")
-			return
-		}
-
-		// Get all containers from collection and find the specified one
-		// This is not optimal but works for now
-		// TODO: Create a GetContainerObjects use case
-		ctrl.logger.Warn("Container-specific object retrieval not fully implemented yet",
-			slog.String("container_id", containerID.String()))
-		objects = resp.Objects
-	} else {
-		// Get all objects from collection
-		resp, err := ctrl.getCollectionObjectsUC.Execute(r.Context(), ucReq)
-		if err != nil {
-			ctrl.logger.Error("Failed to get objects", slog.Any("error", err))
-			if strings.Contains(err.Error(), "access denied") {
-				httputil.Error(w, http.StatusForbidden, "access denied")
-				return
-			}
-			if strings.Contains(err.Error(), "not found") {
-				httputil.Error(w, http.StatusNotFound, "collection not found")
-				return
-			}
-			httputil.Error(w, http.StatusInternalServerError, "failed to get objects")
-			return
-		}
-		objects = resp.Objects
+		ucReq.ContainerID = &cid
 	}
+
+	// Parse property[key]=value filters.
+	for paramKey, values := range q {
+		if strings.HasPrefix(paramKey, "property[") && strings.HasSuffix(paramKey, "]") {
+			propKey := paramKey[len("property[") : len(paramKey)-1]
+			if ucReq.PropertyFilters == nil {
+				ucReq.PropertyFilters = make(map[string]string)
+			}
+			ucReq.PropertyFilters[propKey] = values[0]
+		}
+	}
+
+	resp, err := ctrl.getCollectionObjectsUC.Execute(r.Context(), ucReq)
+	if err != nil {
+		ctrl.logger.Error("Failed to get objects", slog.Any("error", err))
+		if strings.Contains(err.Error(), "access denied") {
+			httputil.Error(w, http.StatusForbidden, "access denied")
+			return
+		}
+		if strings.Contains(err.Error(), "not found") {
+			httputil.Error(w, http.StatusNotFound, "collection not found")
+			return
+		}
+		httputil.Error(w, http.StatusInternalServerError, "failed to get objects")
+		return
+	}
+	objects := resp.Objects
 
 	ctrl.logger.Debug("Objects retrieved successfully",
 		slog.String("collection_id", collectionID.String()),

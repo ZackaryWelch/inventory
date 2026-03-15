@@ -39,6 +39,12 @@ func (ga *GioApp) handleImportFileContent(content string, filename string) {
 	ga.importData = importData
 	ga.importFilename = filename
 	ga.showImportPreview = true
+
+	// Initialize column mapping with auto-detected values
+	ga.importNameColumn = detectNameColumn(importData.Data)
+	ga.importLocationColumn = detectLocationColumn(importData.Data)
+	ga.widgetState.importInferSchemaCheck.Value = true
+
 	ga.window.Invalidate()
 }
 
@@ -157,8 +163,9 @@ func (ga *GioApp) executeImport() {
 	ga.logger.Info("Executing import", "collection_id", ga.selectedCollection.ID, "items", len(ga.importData.Data))
 
 	go func() {
-		locationCol := detectLocationColumn(ga.importData.Data)
-		nameCol := detectNameColumn(ga.importData.Data)
+		locationCol := ga.importLocationColumn
+		nameCol := ga.importNameColumn
+		inferSchema := ga.widgetState.importInferSchemaCheck.Value
 
 		distMode := "automatic"
 		if locationCol != "" {
@@ -169,7 +176,7 @@ func (ga *GioApp) executeImport() {
 			"format":            ga.importData.Format,
 			"data":              ga.importData.Data,
 			"distribution_mode": distMode,
-			"infer_schema":      true,
+			"infer_schema":      inferSchema,
 		}
 		if locationCol != "" {
 			req["location_column"] = locationCol
