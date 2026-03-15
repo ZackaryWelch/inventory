@@ -95,9 +95,9 @@ type GioApp struct {
 	selectedContainerID   *string
 
 	// Import state
-	showImportPreview   bool
-	importData          *ImportData
-	importFilename      string
+	showImportPreview    bool
+	importData           *ImportData
+	importFilename       string
 	importNameColumn     string
 	importLocationColumn *string // nil = no location column (automatic distribution)
 
