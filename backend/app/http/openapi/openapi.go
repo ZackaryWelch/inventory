@@ -12,8 +12,9 @@ import (
 	"github.com/go-swagno/swagno/v3/components/parameter"
 	"github.com/go-swagno/swagno/v3/components/security"
 	"github.com/go-swagno/swagno/v3/components/tag"
-	"github.com/nishiki/backend-go/app/http/request"
-	httpresp "github.com/nishiki/backend-go/app/http/response"
+
+	"github.com/nishiki/backend/app/http/request"
+	httpresp "github.com/nishiki/backend/app/http/response"
 )
 
 var (

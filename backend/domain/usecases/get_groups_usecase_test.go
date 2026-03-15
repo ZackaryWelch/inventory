@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/mocks"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/mocks"
 )
 
 func TestGetGroupsUseCase_Execute(t *testing.T) {

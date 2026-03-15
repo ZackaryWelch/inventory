@@ -14,11 +14,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/nishiki/backend-go/app/http/request"
-	"github.com/nishiki/backend-go/app/http/response"
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/domain/usecases"
-	"github.com/nishiki/backend-go/mocks"
+	"github.com/nishiki/backend/app/http/request"
+	"github.com/nishiki/backend/app/http/response"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/domain/usecases"
+	"github.com/nishiki/backend/mocks"
 )
 
 func TestContainerController_CreateContainer(t *testing.T) {

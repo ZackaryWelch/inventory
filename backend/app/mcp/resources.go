@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/nishiki/backend-go/app/http/response"
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/domain/usecases"
+
+	"github.com/nishiki/backend/app/http/response"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/domain/usecases"
 )
 
 func registerResources(s *mcp.Server, mctx *MCPContext) {

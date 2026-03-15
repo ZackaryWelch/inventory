@@ -5,7 +5,7 @@ package repositories
 import (
 	"context"
 
-	"github.com/nishiki/backend-go/domain/entities"
+	"github.com/nishiki/backend/domain/entities"
 )
 
 type ObjectRepository interface {

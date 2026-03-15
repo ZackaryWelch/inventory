@@ -14,12 +14,13 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/nishiki/backend-go/app/config"
-	"github.com/nishiki/backend-go/app/container"
-	"github.com/nishiki/backend-go/app/http/routes"
-	mcpserver "github.com/nishiki/backend-go/app/mcp"
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/domain/services"
+
+	"github.com/nishiki/backend/app/config"
+	"github.com/nishiki/backend/app/container"
+	"github.com/nishiki/backend/app/http/routes"
+	mcpserver "github.com/nishiki/backend/app/mcp"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/domain/services"
 )
 
 func main() {

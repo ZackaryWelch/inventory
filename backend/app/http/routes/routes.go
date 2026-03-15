@@ -3,11 +3,11 @@ package routes
 import (
 	"net/http"
 
-	"github.com/nishiki/backend-go/app/container"
-	"github.com/nishiki/backend-go/app/http/controllers"
-	"github.com/nishiki/backend-go/app/http/httputil"
-	"github.com/nishiki/backend-go/app/http/middleware"
-	"github.com/nishiki/backend-go/app/http/openapi"
+	"github.com/nishiki/backend/app/container"
+	"github.com/nishiki/backend/app/http/controllers"
+	"github.com/nishiki/backend/app/http/httputil"
+	"github.com/nishiki/backend/app/http/middleware"
+	"github.com/nishiki/backend/app/http/openapi"
 )
 
 // Setup configures all routes and returns an http.Handler

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/domain/services"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/domain/services"
 )
 
 type CreateGroupRequest struct {

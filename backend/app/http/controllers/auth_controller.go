@@ -4,11 +4,11 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/nishiki/backend-go/app/container"
-	"github.com/nishiki/backend-go/app/http/httputil"
-	"github.com/nishiki/backend-go/app/http/middleware"
-	"github.com/nishiki/backend-go/app/http/response"
-	"github.com/nishiki/backend-go/domain/services"
+	"github.com/nishiki/backend/app/container"
+	"github.com/nishiki/backend/app/http/httputil"
+	"github.com/nishiki/backend/app/http/middleware"
+	"github.com/nishiki/backend/app/http/response"
+	"github.com/nishiki/backend/domain/services"
 )
 
 type AuthController struct {
@@ -66,7 +66,7 @@ func (ctrl *AuthController) GetCurrentUser(w http.ResponseWriter, r *http.Reques
 func (ctrl *AuthController) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	httputil.JSON(w, http.StatusOK, map[string]string{
 		"status":  "healthy",
-		"service": "nishiki-backend-go",
+		"service": "nishiki-backend",
 	})
 }
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nishiki/backend-go/domain/entities"
+	"github.com/nishiki/backend/domain/entities"
 )
 
 // TypeInferenceService infers property schemas from tabular data and coerces values.
@@ -172,7 +172,6 @@ func ToSnakeCase(s string) string {
 	}
 	return b.String()
 }
-
 
 // InferSchema infers a PropertySchema from CSV headers and sample data rows.
 func (s *TypeInferenceService) InferSchema(headers []string, data []map[string]interface{}) *entities.PropertySchema {

@@ -17,9 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/nishiki/backend-go/app/http/httputil"
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/mocks"
+	"github.com/nishiki/backend/app/http/httputil"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/mocks"
 )
 
 func TestUserController_GetUser(t *testing.T) {

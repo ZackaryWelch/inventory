@@ -14,7 +14,7 @@ import (
 
 	"goauthentik.io/api/v3"
 
-	"github.com/nishiki/backend-go/app/config"
+	"github.com/nishiki/backend/app/config"
 )
 
 // newTestService constructs an AuthentikAuthService wired to the given mock HTTP server.

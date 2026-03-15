@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/nishiki/backend-go/app/container"
-	"github.com/nishiki/backend-go/app/http/httputil"
-	"github.com/nishiki/backend-go/app/http/middleware"
-	"github.com/nishiki/backend-go/app/http/request"
-	"github.com/nishiki/backend-go/app/http/response"
-	"github.com/nishiki/backend-go/domain/usecases"
+	"github.com/nishiki/backend/app/container"
+	"github.com/nishiki/backend/app/http/httputil"
+	"github.com/nishiki/backend/app/http/middleware"
+	"github.com/nishiki/backend/app/http/request"
+	"github.com/nishiki/backend/app/http/response"
+	"github.com/nishiki/backend/domain/usecases"
 )
 
 type CollectionController struct {

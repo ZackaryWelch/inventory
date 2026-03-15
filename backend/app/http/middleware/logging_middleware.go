@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nishiki/backend-go/app/http/httputil"
+	"github.com/nishiki/backend/app/http/httputil"
 )
 
 func LoggingMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {

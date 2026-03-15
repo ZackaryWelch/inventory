@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/domain/repositories"
-	"github.com/nishiki/backend-go/domain/services"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/domain/repositories"
+	"github.com/nishiki/backend/domain/services"
 )
 
 // fixedFields are the standard Object fields always included in a CSV export, in order.

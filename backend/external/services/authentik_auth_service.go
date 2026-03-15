@@ -18,9 +18,9 @@ import (
 	"github.com/spf13/cast"
 	"goauthentik.io/api/v3"
 
-	"github.com/nishiki/backend-go/app/config"
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/domain/services"
+	"github.com/nishiki/backend/app/config"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/domain/services"
 )
 
 // Authentik API error response structures

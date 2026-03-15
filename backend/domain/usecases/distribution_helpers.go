@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/domain/repositories"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/domain/repositories"
 )
 
 // DistributionPlan represents the plan for distributing objects

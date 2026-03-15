@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nishiki/backend-go/domain/entities"
+	"github.com/nishiki/backend/domain/entities"
 )
 
 type CreateContainerRequest struct {

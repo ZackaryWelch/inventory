@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/nishiki/backend-go/app/http/httputil"
+	"github.com/nishiki/backend/app/http/httputil"
 )
 
 // RecoveryMiddleware returns a middleware that recovers from panics

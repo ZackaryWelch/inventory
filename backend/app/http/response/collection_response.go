@@ -3,7 +3,7 @@ package response
 import (
 	"time"
 
-	"github.com/nishiki/backend-go/domain/entities"
+	"github.com/nishiki/backend/domain/entities"
 )
 
 type PropertyDefinitionResponse struct {

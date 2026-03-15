@@ -10,9 +10,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/domain/repositories"
-	"github.com/nishiki/backend-go/external/adapters"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/domain/repositories"
+	"github.com/nishiki/backend/external/adapters"
 )
 
 type objectDocument struct {

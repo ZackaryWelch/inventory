@@ -6,16 +6,16 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/samber/slog-multi"
+	slogmulti "github.com/samber/slog-multi"
 	"github.com/swczk/go-seqlogger"
 
-	"github.com/nishiki/backend-go/app/config"
-	"github.com/nishiki/backend-go/app/http/middleware"
-	"github.com/nishiki/backend-go/domain/repositories"
-	"github.com/nishiki/backend-go/domain/services"
-	"github.com/nishiki/backend-go/external/adapters"
-	extRepos "github.com/nishiki/backend-go/external/repositories"
-	extServices "github.com/nishiki/backend-go/external/services"
+	"github.com/nishiki/backend/app/config"
+	"github.com/nishiki/backend/app/http/middleware"
+	"github.com/nishiki/backend/domain/repositories"
+	"github.com/nishiki/backend/domain/services"
+	"github.com/nishiki/backend/external/adapters"
+	extRepos "github.com/nishiki/backend/external/repositories"
+	extServices "github.com/nishiki/backend/external/services"
 )
 
 type Container struct {

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nishiki/backend-go/app/container"
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/domain/usecases"
+	"github.com/nishiki/backend/app/container"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/domain/usecases"
 )
 
 // MCPContext holds shared state for the MCP server (no per-request auth).

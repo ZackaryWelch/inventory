@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/domain/repositories"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/domain/repositories"
 )
 
 type DeleteCollectionRequest struct {

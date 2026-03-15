@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/nishiki/backend-go/domain/entities"
-	"github.com/nishiki/backend-go/mocks"
+	"github.com/nishiki/backend/domain/entities"
+	"github.com/nishiki/backend/mocks"
 )
 
 // parseCSV is a test helper that reads all rows from CSV bytes.
@@ -115,7 +115,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 		assert.Equal(t, "pcs", rows[1][3])
 		assert.Equal(t, "sale|new", rows[1][4])
 		assert.Equal(t, exp.Format(time.RFC3339), rows[1][5])
-		assert.Equal(t, "red", rows[1][6])  // color
+		assert.Equal(t, "red", rows[1][6])     // color
 		assert.Equal(t, "SKU-001", rows[1][7]) // sku
 	})
 
