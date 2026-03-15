@@ -488,6 +488,70 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 		return r, nil, err
 	})
 
+	type AddGroupMemberInput struct {
+		GroupID string `json:"group_id" jsonschema:"ID of the group"`
+		UserID  string `json:"user_id" jsonschema:"Numeric user ID to add"`
+	}
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "add_group_member",
+		Description: "Add a user to a group by their numeric user ID.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, input AddGroupMemberInput) (*mcp.CallToolResult, any, error) {
+		_, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
+		groupID, err := entities.GroupIDFromString(input.GroupID)
+		if err != nil {
+			r, _ := errorResult(fmt.Errorf("invalid group_id: %w", err))
+			return r, nil, nil
+		}
+
+		if err := mctx.groupUC().AddMember(ctx, usecases.GroupMemberRequest{
+			GroupID:   groupID,
+			UserID:    input.UserID,
+			UserToken: token,
+		}); err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+		r, err := jsonResult(map[string]string{"status": "added"})
+		return r, nil, err
+	})
+
+	type RemoveGroupMemberInput struct {
+		GroupID string `json:"group_id" jsonschema:"ID of the group"`
+		UserID  string `json:"user_id" jsonschema:"Numeric user ID to remove"`
+	}
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "remove_group_member",
+		Description: "Remove a user from a group by their numeric user ID.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, input RemoveGroupMemberInput) (*mcp.CallToolResult, any, error) {
+		_, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
+		groupID, err := entities.GroupIDFromString(input.GroupID)
+		if err != nil {
+			r, _ := errorResult(fmt.Errorf("invalid group_id: %w", err))
+			return r, nil, nil
+		}
+
+		if err := mctx.groupUC().RemoveMember(ctx, usecases.GroupMemberRequest{
+			GroupID:   groupID,
+			UserID:    input.UserID,
+			UserToken: token,
+		}); err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+		r, err := jsonResult(map[string]string{"status": "removed"})
+		return r, nil, err
+	})
+
 	// Stubs for unimplemented group operations.
 	type JoinGroupInput struct {
 		InviteCode string `json:"invite_code" jsonschema:"Invitation code for the group"`
@@ -506,10 +570,32 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 	}
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "update_group",
-		Description: "Update a group's name (currently unavailable — no backend endpoint exists)",
+		Description: "Rename a group.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input UpdateGroupInput) (*mcp.CallToolResult, any, error) {
-		r, _ := errorResult(fmt.Errorf("backend missing: no update endpoint for groups. Fix planned in Phase 2"))
-		return r, nil, nil
+		user, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
+		groupID, err := entities.GroupIDFromString(input.GroupID)
+		if err != nil {
+			r, _ := errorResult(fmt.Errorf("invalid group_id: %w", err))
+			return r, nil, nil
+		}
+
+		resp, err := mctx.groupUC().UpdateGroup(ctx, usecases.UpdateGroupRequest{
+			GroupID:   groupID,
+			Name:      input.Name,
+			UserToken: token,
+		})
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+		_ = user
+		r, err := jsonResult(response.NewGroupResponse(resp.Group))
+		return r, nil, err
 	})
 
 	type DeleteGroupInput struct {
@@ -517,10 +603,29 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 	}
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "delete_group",
-		Description: "Delete a group (currently unavailable — no backend endpoint exists)",
+		Description: "Delete a group by ID.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input DeleteGroupInput) (*mcp.CallToolResult, any, error) {
-		r, _ := errorResult(fmt.Errorf("backend missing: no delete endpoint for groups. Fix planned in Phase 2"))
-		return r, nil, nil
+		_, token, err := MCPUserFromContext(ctx)
+		if err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+
+		groupID, err := entities.GroupIDFromString(input.GroupID)
+		if err != nil {
+			r, _ := errorResult(fmt.Errorf("invalid group_id: %w", err))
+			return r, nil, nil
+		}
+
+		if err := mctx.groupUC().DeleteGroup(ctx, usecases.DeleteGroupRequest{
+			GroupID:   groupID,
+			UserToken: token,
+		}); err != nil {
+			r, _ := errorResult(err)
+			return r, nil, nil
+		}
+		r, err := jsonResult(map[string]string{"status": "deleted"})
+		return r, nil, err
 	})
 }
 

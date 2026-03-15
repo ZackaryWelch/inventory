@@ -42,6 +42,16 @@ func (r *JoinGroupRequest) Validate() error {
 	return nil
 }
 
+// GetGroupMemberIDFromPath reads the {user_id} segment from group member routes
+// (e.g. /groups/{id}/users/{user_id}).
+func GetGroupMemberIDFromPath(r *http.Request) (string, error) {
+	id := r.PathValue("user_id")
+	if id == "" {
+		return "", fmt.Errorf("missing user_id in path")
+	}
+	return id, nil
+}
+
 func GetGroupIDFromPath(r *http.Request) (entities.GroupID, error) {
 	idStr := r.PathValue("id")
 	if idStr == "" {

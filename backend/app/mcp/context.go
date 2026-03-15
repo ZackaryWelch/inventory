@@ -107,6 +107,10 @@ func (c *MCPContext) createGroupUC() *usecases.CreateGroupUseCase {
 	return usecases.NewCreateGroupUseCase(c.Container.AuthService)
 }
 
+func (c *MCPContext) groupUC() *usecases.GroupUseCase {
+	return usecases.NewGroupUseCase(c.Container.AuthService)
+}
+
 func (c *MCPContext) bulkImportCollectionUC() *usecases.BulkImportCollectionUseCase {
 	return usecases.NewBulkImportCollectionUseCase(c.Container.CollectionRepo, c.Container.ContainerRepo, c.Container.AuthService, c.Container.GetConfig().Import.ReservedColumns)
 }

@@ -69,6 +69,16 @@ func (c *Client) Delete(accountID, collectionID string) error {
 	return common.CheckResponse(resp)
 }
 
+// UpdateSchema updates the property schema for a collection
+func (c *Client) UpdateSchema(accountID, collectionID string, req types.UpdatePropertySchemaRequest) error {
+	resp, err := c.common.Put(fmt.Sprintf("/accounts/%s/collections/%s/schema", accountID, collectionID), req)
+	if err != nil {
+		return err
+	}
+
+	return common.CheckResponse(resp)
+}
+
 // ImportObjects imports objects to a collection in bulk
 func (c *Client) ImportObjects(accountID, collectionID string, req types.BulkImportCollectionRequest) error {
 	resp, err := c.common.Post(fmt.Sprintf("/accounts/%s/collections/%s/import", accountID, collectionID), req)

@@ -42,6 +42,20 @@ func (m *MockAuthService) EXPECT() *MockAuthServiceMockRecorder {
 	return m.recorder
 }
 
+// AddUserToGroup mocks base method.
+func (m *MockAuthService) AddUserToGroup(ctx context.Context, userToken, groupID, userID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddUserToGroup", ctx, userToken, groupID, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddUserToGroup indicates an expected call of AddUserToGroup.
+func (mr *MockAuthServiceMockRecorder) AddUserToGroup(ctx, userToken, groupID, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUserToGroup", reflect.TypeOf((*MockAuthService)(nil).AddUserToGroup), ctx, userToken, groupID, userID)
+}
+
 // CreateGroup mocks base method.
 func (m *MockAuthService) CreateGroup(ctx context.Context, userToken, name, creatorID string) (*entities.Group, error) {
 	m.ctrl.T.Helper()
@@ -70,6 +84,20 @@ func (m *MockAuthService) CreateUserFromClaims(ctx context.Context, claims *serv
 func (mr *MockAuthServiceMockRecorder) CreateUserFromClaims(ctx, claims any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserFromClaims", reflect.TypeOf((*MockAuthService)(nil).CreateUserFromClaims), ctx, claims)
+}
+
+// DeleteGroup mocks base method.
+func (m *MockAuthService) DeleteGroup(ctx context.Context, userToken, groupID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteGroup", ctx, userToken, groupID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteGroup indicates an expected call of DeleteGroup.
+func (mr *MockAuthServiceMockRecorder) DeleteGroup(ctx, userToken, groupID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteGroup", reflect.TypeOf((*MockAuthService)(nil).DeleteGroup), ctx, userToken, groupID)
 }
 
 // GetGroupByID mocks base method.
@@ -176,6 +204,35 @@ func (m *MockAuthService) ProxyTokenExchange(ctx context.Context, tokenRequest m
 func (mr *MockAuthServiceMockRecorder) ProxyTokenExchange(ctx, tokenRequest any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProxyTokenExchange", reflect.TypeOf((*MockAuthService)(nil).ProxyTokenExchange), ctx, tokenRequest)
+}
+
+// RemoveUserFromGroup mocks base method.
+func (m *MockAuthService) RemoveUserFromGroup(ctx context.Context, userToken, groupID, userID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveUserFromGroup", ctx, userToken, groupID, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveUserFromGroup indicates an expected call of RemoveUserFromGroup.
+func (mr *MockAuthServiceMockRecorder) RemoveUserFromGroup(ctx, userToken, groupID, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveUserFromGroup", reflect.TypeOf((*MockAuthService)(nil).RemoveUserFromGroup), ctx, userToken, groupID, userID)
+}
+
+// UpdateGroup mocks base method.
+func (m *MockAuthService) UpdateGroup(ctx context.Context, userToken, groupID, name string) (*entities.Group, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateGroup", ctx, userToken, groupID, name)
+	ret0, _ := ret[0].(*entities.Group)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateGroup indicates an expected call of UpdateGroup.
+func (mr *MockAuthServiceMockRecorder) UpdateGroup(ctx, userToken, groupID, name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateGroup", reflect.TypeOf((*MockAuthService)(nil).UpdateGroup), ctx, userToken, groupID, name)
 }
 
 // ValidateToken mocks base method.

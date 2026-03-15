@@ -28,3 +28,6 @@ type CreateCategoryRequest = request.CreateCategoryRequest
 type UpdateCategoryRequest = request.UpdateCategoryRequest
 type BulkImportRequest = request.BulkImportRequest
 type BulkImportCollectionRequest = request.BulkImportCollectionRequest
+type UpdatePropertySchemaRequest = request.UpdatePropertySchemaRequest
+type PropertySchemaRequest = request.PropertySchemaRequest
+type PropertyDefinitionRequest = request.PropertyDefinitionRequest

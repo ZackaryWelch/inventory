@@ -556,8 +556,13 @@ func (s *AuthentikAuthService) addUserToGroup(ctx context.Context, groupID, user
 	return nil
 }
 
-// addUserToGroupWithToken adds a user to a group in Authentik using API token
+// addUserToGroupWithToken adds a user to a group in Authentik using API token (internal use during group creation).
 func (s *AuthentikAuthService) addUserToGroupWithToken(ctx context.Context, groupID, userID string) error {
+	return s.AddUserToGroup(ctx, "", groupID, userID)
+}
+
+// AddUserToGroup adds a user to a group in Authentik using the configured API token.
+func (s *AuthentikAuthService) AddUserToGroup(ctx context.Context, userToken, groupID, userID string) error {
 	apiClient := api.NewAPIClient(s.apiConfig)
 	auth := context.WithValue(ctx, api.ContextAccessToken, s.config.APIToken)
 
@@ -565,18 +570,32 @@ func (s *AuthentikAuthService) addUserToGroupWithToken(ctx context.Context, grou
 		slog.String("group_id", groupID),
 		slog.String("user_id", userID))
 
-	// Add user to group
-	userPk := cast.ToInt32(userID)
-	userAddRequest := api.UserAccountRequest{
-		Pk: userPk,
-	}
-
-	_, err := apiClient.CoreApi.CoreGroupsAddUserCreate(auth, groupID).UserAccountRequest(userAddRequest).Execute()
+	_, err := apiClient.CoreApi.CoreGroupsAddUserCreate(auth, groupID).UserAccountRequest(api.UserAccountRequest{
+		Pk: cast.ToInt32(userID),
+	}).Execute()
 	if err != nil {
 		s.logger.Error("Failed to add user to group", slog.Any("error", err))
 		return fmt.Errorf("failed to add user to group: %w", err)
 	}
+	return nil
+}
 
+// RemoveUserFromGroup removes a user from a group in Authentik using the configured API token.
+func (s *AuthentikAuthService) RemoveUserFromGroup(ctx context.Context, userToken, groupID, userID string) error {
+	apiClient := api.NewAPIClient(s.apiConfig)
+	auth := context.WithValue(ctx, api.ContextAccessToken, s.config.APIToken)
+
+	s.logger.Debug("Removing user from group",
+		slog.String("group_id", groupID),
+		slog.String("user_id", userID))
+
+	_, err := apiClient.CoreApi.CoreGroupsRemoveUserCreate(auth, groupID).UserAccountRequest(api.UserAccountRequest{
+		Pk: cast.ToInt32(userID),
+	}).Execute()
+	if err != nil {
+		s.logger.Error("Failed to remove user from group", slog.Any("error", err))
+		return fmt.Errorf("failed to remove user from group: %w", err)
+	}
 	return nil
 }
 
@@ -691,6 +710,76 @@ func (s *AuthentikAuthService) GetGroupByID(ctx context.Context, userToken, grou
 	// Authentik doesn't provide description, so use empty string
 	description := entities.NewGroupDescription("")
 	return entities.ReconstructGroup(id, name, description, time.Now(), time.Now()), nil
+}
+
+// UpdateGroup renames a group in Authentik using the configured API token.
+func (s *AuthentikAuthService) UpdateGroup(ctx context.Context, userToken, groupID, name string) (*entities.Group, error) {
+	apiClient := api.NewAPIClient(s.apiConfig)
+	auth := context.WithValue(ctx, api.ContextAccessToken, s.config.APIToken)
+
+	s.logger.Debug("Updating group in Authentik",
+		slog.String("group_id", groupID),
+		slog.String("new_name", name))
+
+	patch := api.PatchedGroupRequest{
+		Name: &name,
+	}
+
+	group, httpResp, err := apiClient.CoreApi.CoreGroupsPartialUpdate(auth, groupID).PatchedGroupRequest(patch).Execute()
+	if err != nil {
+		status := 0
+		if httpResp != nil {
+			status = httpResp.StatusCode
+		}
+		s.logger.Error("Failed to update group in Authentik",
+			slog.Any("error", err),
+			slog.Int("status_code", status))
+		if httpResp != nil && httpResp.StatusCode == http.StatusForbidden {
+			return nil, fmt.Errorf("authentication failed: insufficient permissions to update group")
+		}
+		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("group not found")
+		}
+		return nil, fmt.Errorf("failed to update group: %w", err)
+	}
+
+	id, err := entities.GroupIDFromString(group.Pk)
+	if err != nil {
+		return nil, fmt.Errorf("invalid group ID from Authentik: %w", err)
+	}
+	groupName, err := entities.NewGroupName(group.Name)
+	if err != nil {
+		return nil, fmt.Errorf("invalid group name: %w", err)
+	}
+	description := entities.NewGroupDescription("")
+	return entities.ReconstructGroup(id, groupName, description, time.Now(), time.Now()), nil
+}
+
+// DeleteGroup removes a group from Authentik using the configured API token.
+func (s *AuthentikAuthService) DeleteGroup(ctx context.Context, userToken, groupID string) error {
+	apiClient := api.NewAPIClient(s.apiConfig)
+	auth := context.WithValue(ctx, api.ContextAccessToken, s.config.APIToken)
+
+	s.logger.Debug("Deleting group in Authentik", slog.String("group_id", groupID))
+
+	httpResp, err := apiClient.CoreApi.CoreGroupsDestroy(auth, groupID).Execute()
+	if err != nil {
+		status := 0
+		if httpResp != nil {
+			status = httpResp.StatusCode
+		}
+		s.logger.Error("Failed to delete group in Authentik",
+			slog.Any("error", err),
+			slog.Int("status_code", status))
+		if httpResp != nil && httpResp.StatusCode == http.StatusForbidden {
+			return fmt.Errorf("authentication failed: insufficient permissions to delete group")
+		}
+		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+			return fmt.Errorf("group not found")
+		}
+		return fmt.Errorf("failed to delete group: %w", err)
+	}
+	return nil
 }
 
 // GetOIDCConfig fetches OIDC discovery configuration from Authentik and modifies token endpoint

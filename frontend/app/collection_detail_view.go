@@ -89,6 +89,11 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 		go ga.SelectImportFile()
 	}
 
+	// Handle edit schema button
+	if ga.widgetState.editSchemaButton.Clicked(gtx) {
+		ga.openSchemaEditor()
+	}
+
 	// Ensure we have widget states
 	ga.ensureContainerItemStates()
 	ga.ensureObjectItemStates()
@@ -157,6 +162,9 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 		}),
 		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
 			return ga.renderImportPreviewDialog(gtx)
+		}),
+		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+			return ga.renderSchemaEditorDialog(gtx)
 		}),
 	)
 }

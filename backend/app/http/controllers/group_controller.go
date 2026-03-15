@@ -17,6 +17,7 @@ import (
 type GroupController struct {
 	createGroupUC   *usecases.CreateGroupUseCase
 	getGroupsUC     *usecases.GetGroupsUseCase
+	groupUC         *usecases.GroupUseCase
 	getContainersUC *usecases.GetContainersUseCase
 	authService     services.AuthService
 	logger          *slog.Logger
@@ -29,6 +30,7 @@ func NewGroupController(
 	return &GroupController{
 		createGroupUC:   usecases.NewCreateGroupUseCase(c.AuthService),
 		getGroupsUC:     usecases.NewGetGroupsUseCase(c.AuthService),
+		groupUC:         usecases.NewGroupUseCase(c.AuthService),
 		getContainersUC: usecases.NewGetContainersUseCase(c.ContainerRepo, c.AuthService),
 		authService:     c.AuthService,
 		logger:          logger,
@@ -362,4 +364,259 @@ func (ctrl *GroupController) JoinGroup(w http.ResponseWriter, r *http.Request) {
 
 	// Placeholder response
 	httputil.Error(w, http.StatusNotImplemented, "group join not implemented yet")
+}
+
+// UpdateGroup godoc
+// @Summary Update a group
+// @Description Rename a group
+// @Tags groups
+// @Accept json
+// @Produce json
+// @Param id path string true "Group ID"
+// @Param group body request.UpdateGroupRequest true "Updated group data"
+// @Success 200 {object} response.GroupResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /groups/{id} [put]
+// @Security BearerAuth
+func (ctrl *GroupController) UpdateGroup(w http.ResponseWriter, r *http.Request) {
+	user, exists := middleware.GetCurrentUser(r)
+	if !exists {
+		ctrl.logger.Error("No authenticated user found in context")
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	userToken, tokenExists := middleware.GetCurrentToken(r)
+	if !tokenExists {
+		ctrl.logger.Error("No auth token found in context")
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	groupID, err := request.GetGroupIDFromPath(r)
+	if err != nil {
+		ctrl.logger.Warn("Invalid group ID in path", slog.Any("error", err))
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var req request.UpdateGroupRequest
+	if err := httputil.DecodeJSON(r, &req); err != nil {
+		ctrl.logger.Warn("Invalid request body", slog.Any("error", err))
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		ctrl.logger.Warn("Request validation failed", slog.Any("error", err))
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	resp, err := ctrl.groupUC.UpdateGroup(r.Context(), usecases.UpdateGroupRequest{
+		GroupID:   groupID,
+		Name:      req.Name,
+		UserToken: userToken,
+	})
+	if err != nil {
+		ctrl.logger.Error("Failed to update group", slog.Any("error", err))
+		if strings.Contains(err.Error(), "authentication failed") || strings.Contains(err.Error(), "invalid token") {
+			httputil.Error(w, http.StatusUnauthorized, "authentication failed")
+			return
+		}
+		if strings.Contains(err.Error(), "group not found") {
+			httputil.Error(w, http.StatusNotFound, "group not found")
+			return
+		}
+		httputil.Error(w, http.StatusInternalServerError, "failed to update group")
+		return
+	}
+
+	ctrl.logger.Info("Group updated successfully",
+		slog.String("group_id", groupID.String()),
+		slog.String("user_id", user.ID().String()))
+
+	httputil.JSON(w, http.StatusOK, response.NewGroupResponse(resp.Group))
+}
+
+// DeleteGroup godoc
+// @Summary Delete a group
+// @Description Delete a group by ID
+// @Tags groups
+// @Produce json
+// @Param id path string true "Group ID"
+// @Success 204
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /groups/{id} [delete]
+// @Security BearerAuth
+func (ctrl *GroupController) DeleteGroup(w http.ResponseWriter, r *http.Request) {
+	user, exists := middleware.GetCurrentUser(r)
+	if !exists {
+		ctrl.logger.Error("No authenticated user found in context")
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	userToken, tokenExists := middleware.GetCurrentToken(r)
+	if !tokenExists {
+		ctrl.logger.Error("No auth token found in context")
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	groupID, err := request.GetGroupIDFromPath(r)
+	if err != nil {
+		ctrl.logger.Warn("Invalid group ID in path", slog.Any("error", err))
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := ctrl.groupUC.DeleteGroup(r.Context(), usecases.DeleteGroupRequest{
+		GroupID:   groupID,
+		UserToken: userToken,
+	}); err != nil {
+		ctrl.logger.Error("Failed to delete group", slog.Any("error", err))
+		if strings.Contains(err.Error(), "authentication failed") || strings.Contains(err.Error(), "invalid token") {
+			httputil.Error(w, http.StatusUnauthorized, "authentication failed")
+			return
+		}
+		if strings.Contains(err.Error(), "group not found") {
+			httputil.Error(w, http.StatusNotFound, "group not found")
+			return
+		}
+		httputil.Error(w, http.StatusInternalServerError, "failed to delete group")
+		return
+	}
+
+	ctrl.logger.Info("Group deleted successfully",
+		slog.String("group_id", groupID.String()),
+		slog.String("user_id", user.ID().String()))
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// AddGroupMember godoc
+// @Summary Add a member to a group
+// @Description Add a user to a group by user ID
+// @Tags groups
+// @Produce json
+// @Param id path string true "Group ID"
+// @Param user_id path string true "User ID to add"
+// @Success 204
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /groups/{id}/users/{user_id} [post]
+// @Security BearerAuth
+func (ctrl *GroupController) AddGroupMember(w http.ResponseWriter, r *http.Request) {
+	_, exists := middleware.GetCurrentUser(r)
+	if !exists {
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	userToken, tokenExists := middleware.GetCurrentToken(r)
+	if !tokenExists {
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	groupID, err := request.GetGroupIDFromPath(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	targetUserID, err := request.GetGroupMemberIDFromPath(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := ctrl.groupUC.AddMember(r.Context(), usecases.GroupMemberRequest{
+		GroupID:   groupID,
+		UserID:    targetUserID,
+		UserToken: userToken,
+	}); err != nil {
+		ctrl.logger.Error("Failed to add group member", slog.Any("error", err))
+		if strings.Contains(err.Error(), "authentication failed") {
+			httputil.Error(w, http.StatusUnauthorized, "authentication failed")
+			return
+		}
+		if strings.Contains(err.Error(), "not found") {
+			httputil.Error(w, http.StatusNotFound, err.Error())
+			return
+		}
+		httputil.Error(w, http.StatusInternalServerError, "failed to add member")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// RemoveGroupMember godoc
+// @Summary Remove a member from a group
+// @Description Remove a user from a group by user ID
+// @Tags groups
+// @Produce json
+// @Param id path string true "Group ID"
+// @Param user_id path string true "User ID to remove"
+// @Success 204
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /groups/{id}/users/{user_id} [delete]
+// @Security BearerAuth
+func (ctrl *GroupController) RemoveGroupMember(w http.ResponseWriter, r *http.Request) {
+	_, exists := middleware.GetCurrentUser(r)
+	if !exists {
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	userToken, tokenExists := middleware.GetCurrentToken(r)
+	if !tokenExists {
+		httputil.Error(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	groupID, err := request.GetGroupIDFromPath(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	targetUserID, err := request.GetGroupMemberIDFromPath(r)
+	if err != nil {
+		httputil.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := ctrl.groupUC.RemoveMember(r.Context(), usecases.GroupMemberRequest{
+		GroupID:   groupID,
+		UserID:    targetUserID,
+		UserToken: userToken,
+	}); err != nil {
+		ctrl.logger.Error("Failed to remove group member", slog.Any("error", err))
+		if strings.Contains(err.Error(), "authentication failed") {
+			httputil.Error(w, http.StatusUnauthorized, "authentication failed")
+			return
+		}
+		if strings.Contains(err.Error(), "not found") {
+			httputil.Error(w, http.StatusNotFound, err.Error())
+			return
+		}
+		httputil.Error(w, http.StatusInternalServerError, "failed to remove member")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

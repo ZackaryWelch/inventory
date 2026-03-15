@@ -121,6 +121,102 @@ Steps:
 	})
 
 	s.AddPrompt(&mcp.Prompt{
+		Name:        "migrate_schema",
+		Description: "Review and update a collection's property schema after an import — shows inferred types, lets you correct them, then applies the updated schema",
+		Arguments: []*mcp.PromptArgument{{
+			Name:        "collection_id",
+			Description: "ID of the collection whose schema to review",
+			Required:    true,
+		}},
+	}, func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		collectionID := req.Params.Arguments["collection_id"]
+		return &mcp.GetPromptResult{
+			Description: "Schema migration assistant",
+			Messages: []*mcp.PromptMessage{{
+				Role: "user",
+				Content: &mcp.TextContent{Text: fmt.Sprintf(`Help me review and fix the property schema for collection %s.
+
+Steps:
+1. Read the collection resource (nishiki://collections/%s) to see the current property schema (definitions array).
+2. Call search_objects with collection_id="%s" to sample the actual objects and their properties.
+3. For each property key found in the objects, check whether a schema definition exists and whether the inferred type looks correct.
+   - Common corrections needed after a CSV import:
+     * Prices / amounts → currency (specify CurrencyCode, e.g. "USD")
+     * Dates / timestamps → date
+     * True/false columns → bool
+     * URLs / links → url
+     * Plain numbers → numeric
+     * Fields with a small, repeating set of values → grouped_text
+     * Everything else → text
+4. Present a table like:
+
+   | Key | Current Type | Sample Values | Suggested Type | Display Name |
+   |-----|-------------|---------------|----------------|--------------|
+   ...
+
+5. Ask me to confirm or adjust the suggested types and display names.
+6. Once confirmed, call update_collection_schema with collection_id="%s" and the corrected definitions array.
+7. Report which definitions changed and confirm the schema was saved.`, collectionID, collectionID, collectionID, collectionID)},
+			}},
+		}, nil
+	})
+
+	s.AddPrompt(&mcp.Prompt{
+		Name:        "find_by_property",
+		Description: "Natural-language property search: describe what you're looking for and the assistant translates it to search_objects filters",
+		Arguments: []*mcp.PromptArgument{
+			{
+				Name:        "description",
+				Description: "Natural-language description of what to find, e.g. \"electronics for sale\" or \"red items under $20\"",
+				Required:    true,
+			},
+			{
+				Name:        "collection_id",
+				Description: "Limit search to this collection ID (leave empty to search all collections)",
+				Required:    false,
+			},
+		},
+	}, func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		description := req.Params.Arguments["description"]
+		collectionID := req.Params.Arguments["collection_id"]
+
+		var scopeInstructions string
+		if collectionID != "" {
+			scopeInstructions = fmt.Sprintf(`Search only in collection %s:
+1. Read nishiki://collections/%s to see the property schema (so you know the exact property keys).
+2. Translate the description into search_objects filters using those keys.
+3. Call search_objects with collection_id="%s" and the derived filters.`, collectionID, collectionID, collectionID)
+		} else {
+			scopeInstructions = `Search across all collections:
+1. Read nishiki://collections to list all collections and their schemas.
+2. Identify which collections are likely to contain matching objects based on the description.
+3. For each candidate collection, translate the description into search_objects filters using that collection's schema keys.
+4. Call search_objects once per candidate collection and merge the results.`
+		}
+
+		return &mcp.GetPromptResult{
+			Description: "Property-based search",
+			Messages: []*mcp.PromptMessage{{
+				Role: "user",
+				Content: &mcp.TextContent{Text: fmt.Sprintf(`Find inventory items matching: "%s"
+
+%s
+
+Translation rules:
+- Boolean concepts ("for sale", "in stock", "available") → property_filters: {"<key>": "true"}
+- Negations ("not for sale") → property_filters: {"<key>": "false"}
+- Value equality ("color red", "brand Nike") → property_filters: {"<key>": "<value>"}
+- Name/keyword search → use the "query" field on search_objects instead of property_filters
+- Tag-based ("tagged urgent") → use the "tags" field on search_objects
+
+After collecting results:
+- Show each matching item with its collection, container, and relevant properties
+- If no results, explain which filters were tried and suggest alternatives`, description, scopeInstructions)},
+			}},
+		}, nil
+	})
+
+	s.AddPrompt(&mcp.Prompt{
 		Name:        "reorganize",
 		Description: "Analyze inventory layout and suggest reorganization for better utilization",
 		Arguments: []*mcp.PromptArgument{{

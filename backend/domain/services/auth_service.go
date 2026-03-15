@@ -35,4 +35,8 @@ type AuthService interface {
 	GetGroupUsers(ctx context.Context, userToken, groupID string) ([]*entities.User, error)
 	GetUserByID(ctx context.Context, userToken, userID string) (*entities.User, error)
 	GetGroupByID(ctx context.Context, userToken, groupID string) (*entities.Group, error)
+	UpdateGroup(ctx context.Context, userToken, groupID, name string) (*entities.Group, error)
+	DeleteGroup(ctx context.Context, userToken, groupID string) error
+	AddUserToGroup(ctx context.Context, userToken, groupID, userID string) error
+	RemoveUserFromGroup(ctx context.Context, userToken, groupID, userID string) error
 }

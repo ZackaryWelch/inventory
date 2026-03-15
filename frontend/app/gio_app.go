@@ -94,6 +94,9 @@ type GioApp struct {
 	selectedGroupID       *string
 	selectedContainerID   *string
 
+	// Schema editor state
+	showSchemaDialog bool
+
 	// Import state
 	showImportPreview    bool
 	importData           *ImportData
@@ -205,6 +208,15 @@ type WidgetState struct {
 	objectDialogSubmit      widget.Clickable
 	objectDialogCancel      widget.Clickable
 
+	// Schema editor dialog
+	editSchemaButton   widget.Clickable
+	schemaDialog       *widgets.Dialog
+	schemaDialogSubmit widget.Clickable
+	schemaDialogCancel widget.Clickable
+	schemaAddRowButton widget.Clickable
+	schemaRows         []SchemaRowState
+	schemaList         widget.List
+
 	// Dialog instances
 	collectionDialog *widgets.Dialog
 	groupDialog      *widgets.Dialog
@@ -240,6 +252,16 @@ type ObjectItemState struct {
 	clickable    widget.Clickable
 	editButton   widget.Clickable
 	deleteButton widget.Clickable
+}
+
+// SchemaRowState holds widget state for a single schema definition row
+type SchemaRowState struct {
+	keyEditor         widget.Editor
+	displayNameEditor widget.Editor
+	requiredCheck     widget.Bool
+	deleteButton      widget.Clickable
+	typeButtons       map[string]*widget.Clickable
+	selectedType      string
 }
 
 // ViewID represents different views in the application
@@ -303,6 +325,7 @@ func NewGioApp() *GioApp {
 		deleteDialog:                widgets.NewDialog(),
 		containerDialog:             widgets.NewDialog(),
 		objectDialog:                widgets.NewDialog(),
+		schemaDialog:                widgets.NewDialog(),
 	}
 
 	gioApp := &GioApp{

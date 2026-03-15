@@ -64,8 +64,12 @@ func Setup(appContainer *container.Container) http.Handler {
 	mux.HandleFunc("GET /groups", withAuth(groupController.GetGroups))
 	mux.HandleFunc("POST /groups", withAuth(groupController.CreateGroup))
 	mux.HandleFunc("GET /groups/{id}", withAuth(groupController.GetGroup))
+	mux.HandleFunc("PUT /groups/{id}", withAuth(groupController.UpdateGroup))
+	mux.HandleFunc("DELETE /groups/{id}", withAuth(groupController.DeleteGroup))
 	mux.HandleFunc("GET /groups/{id}/containers", withAuth(groupController.GetGroupContainers))
 	mux.HandleFunc("GET /groups/{id}/users", withAuth(groupController.GetGroupUsers))
+	mux.HandleFunc("POST /groups/{id}/users/{user_id}", withAuth(groupController.AddGroupMember))
+	mux.HandleFunc("DELETE /groups/{id}/users/{user_id}", withAuth(groupController.RemoveGroupMember))
 	mux.HandleFunc("POST /groups/join", withAuth(groupController.JoinGroup))
 
 	// User routes (all require auth)
