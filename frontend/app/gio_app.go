@@ -98,8 +98,8 @@ type GioApp struct {
 	showImportPreview   bool
 	importData          *ImportData
 	importFilename      string
-	importNameColumn    string
-	importLocationColumn string
+	importNameColumn     string
+	importLocationColumn *string // nil = no location column (automatic distribution)
 
 	// Grouped-text filter state (property key → selected value; empty = "All")
 	activeGroupedTextFilters map[string]string
