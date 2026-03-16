@@ -14,7 +14,8 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 
-	"github.com/nishiki/backend-go/app/http/response"
+	"github.com/nishiki/backend/app/http/response"
+
 	"github.com/nishiki/frontend/config"
 	authAPI "github.com/nishiki/frontend/pkg/api/auth"
 	collectionsAPI "github.com/nishiki/frontend/pkg/api/collections"

@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/nishiki/backend-go/app/http/request"
-	"github.com/nishiki/backend-go/app/http/response"
+	"github.com/nishiki/backend/app/http/request"
+	"github.com/nishiki/backend/app/http/response"
 )
 
 // Re-export backend response types

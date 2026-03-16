@@ -1,5 +1,6 @@
 backend/backend
 backend/backend-go
+backend/mocks
 frontend/verification/*
 *.wasm
 app.toml

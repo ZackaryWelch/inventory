@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nishiki/frontend/config"
 	"github.com/spf13/viper"
+
+	"github.com/nishiki/frontend/config"
 )
 
 //go:embed config/config.toml
