@@ -219,15 +219,15 @@ type WidgetState struct {
 	objectDialogCancel      widget.Clickable
 
 	// Group members dialog
-	membersDialog        *widgets.Dialog
-	membersDialogClose   widget.Clickable
-	membersAddButton     widget.Clickable
-	memberUserIDEditor   widget.Editor
-	memberSearchEditor   widget.Editor
-	knownUserClickables  map[string]*widget.Clickable
-	memberItems          []MemberItemState
-	membersList          widget.List
-	knownUsersList       widget.List
+	membersDialog       *widgets.Dialog
+	membersDialogClose  widget.Clickable
+	membersAddButton    widget.Clickable
+	memberUserIDEditor  widget.Editor
+	memberSearchEditor  widget.Editor
+	knownUserClickables map[string]*widget.Clickable
+	memberItems         []MemberItemState
+	membersList         widget.List
+	knownUsersList      widget.List
 
 	// Join group dialog
 	joinGroupButton widget.Clickable

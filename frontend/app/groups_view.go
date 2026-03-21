@@ -66,7 +66,7 @@ func (ga *GioApp) renderGroupsView(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{
 					Axis: layout.Vertical,
 				}.Layout(gtx,
-					// Toolbar (search + create button)
+					// Toolbar (search + join + create button)
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return ga.renderGroupsToolbar(gtx)
 					}),
@@ -93,7 +93,18 @@ func (ga *GioApp) ensureGroupItemStates() {
 	}
 }
 
-// renderGroupsToolbar renders the toolbar with search and create button
+// collectionCountForGroup returns the number of collections associated with a group.
+func (ga *GioApp) collectionCountForGroup(groupID string) int {
+	count := 0
+	for _, c := range ga.collections {
+		if c.GroupID != nil && *c.GroupID == groupID {
+			count++
+		}
+	}
+	return count
+}
+
+// renderGroupsToolbar renders the toolbar with search, join, and create buttons
 func (ga *GioApp) renderGroupsToolbar(gtx layout.Context) layout.Dimensions {
 	return layout.Inset{Bottom: unit.Dp(theme.Spacing4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{
@@ -106,6 +117,13 @@ func (ga *GioApp) renderGroupsToolbar(gtx layout.Context) layout.Dimensions {
 					editor := material.Editor(ga.theme.Theme, &ga.widgetState.groupsSearchField, "Search groups...")
 					editor.Color = theme.ColorTextPrimary
 					return editor.Layout(gtx)
+				})
+			}),
+
+			// Join button
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return widgets.AccentButton(ga.theme.Theme, &ga.widgetState.joinGroupButton, "Join")(gtx)
 				})
 			}),
 
@@ -180,6 +198,8 @@ func (ga *GioApp) renderGroupCard(gtx layout.Context, group Group, index int) la
 		ga.openMembersDialog(&group)
 	}
 
+	collectionCount := ga.collectionCountForGroup(group.ID)
+
 	card := widgets.DefaultCard()
 	return card.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{
@@ -223,16 +243,29 @@ func (ga *GioApp) renderGroupCard(gtx layout.Context, group Group, index int) la
 				)
 			}),
 
-			// Description
+			// Description + collection count
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				if group.Description != "" {
-					return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Body2(ga.theme.Theme, group.Description)
-						label.Color = theme.ColorTextSecondary
-						return label.Layout(gtx)
-					})
-				}
-				return layout.Dimensions{}
+				return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceBetween, Alignment: layout.Middle}.Layout(gtx,
+						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+							if group.Description != "" {
+								label := material.Body2(ga.theme.Theme, group.Description)
+								label.Color = theme.ColorTextSecondary
+								return label.Layout(gtx)
+							}
+							return layout.Dimensions{}
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							countLabel := fmt.Sprintf("%d collection", collectionCount)
+							if collectionCount != 1 {
+								countLabel += "s"
+							}
+							label := material.Caption(ga.theme.Theme, countLabel)
+							label.Color = theme.ColorTextSecondary
+							return label.Layout(gtx)
+						}),
+					)
+				})
 			}),
 		)
 	})
