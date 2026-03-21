@@ -203,7 +203,7 @@ func (ga *GioApp) renderSchemaRow(gtx layout.Context, i int) layout.Dimensions {
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				typeChildren := []layout.FlexChild{
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						label := material.Caption(ga.theme.Theme, "Type:")
+						label := material.Body2(ga.theme.Theme, "Type:")
 						label.Color = theme.ColorTextSecondary
 						return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 							return label.Layout(gtx)

@@ -423,7 +423,7 @@ func (ga *GioApp) Run() error {
 // render renders the current view
 func (ga *GioApp) render(gtx layout.Context) layout.Dimensions {
 	// Paint background
-	ga.paintBackground(gtx, theme.ColorWhite)
+	ga.paintBackground(gtx, theme.ColorBackground)
 
 	// Use a stack to layer dialogs on top of views
 	return layout.Stack{}.Layout(gtx,

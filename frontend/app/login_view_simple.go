@@ -27,7 +27,7 @@ func (ga *GioApp) renderLoginViewSimple(gtx layout.Context) layout.Dimensions {
 	}
 
 	// Paint a colored background to ensure canvas is working
-	paintRect(gtx, gtx.Constraints.Max, theme.ColorGrayLightest)
+	paintRect(gtx, gtx.Constraints.Max, theme.ColorBackground)
 
 	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{
@@ -82,8 +82,8 @@ func (ga *GioApp) renderLoginViewSimple(gtx layout.Context) layout.Dimensions {
 
 			// Caption
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				l := material.Caption(ga.theme.Theme, "Secure authentication powered by Authentik")
-				l.Color = theme.ColorGray600
+				l := material.Body2(ga.theme.Theme, "Secure authentication powered by Authentik")
+				l.Color = theme.ColorTextSecondary
 				l.Alignment = text.Middle
 				return l.Layout(gtx)
 			}),

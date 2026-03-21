@@ -163,14 +163,14 @@ func (ga *GioApp) renderStats(gtx layout.Context) layout.Dimensions {
 				// Groups stat
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ga.renderStatCard(gtx, fmt.Sprintf("%d", len(ga.groups)), "Groups", theme.ColorPrimary)
+						return ga.renderStatCard(gtx, fmt.Sprintf("%d", len(ga.groups)), "Groups", theme.ColorPrimary, theme.ColorWhite)
 					})
 				}),
 
 				// Collections stat
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Left: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ga.renderStatCard(gtx, fmt.Sprintf("%d", len(ga.collections)), "Collections", theme.ColorAccent)
+						return ga.renderStatCard(gtx, fmt.Sprintf("%d", len(ga.collections)), "Collections", theme.ColorAccent, theme.ColorBlack)
 					})
 				}),
 			)
@@ -179,7 +179,7 @@ func (ga *GioApp) renderStats(gtx layout.Context) layout.Dimensions {
 }
 
 // renderStatCard renders a single stat card
-func (ga *GioApp) renderStatCard(gtx layout.Context, value, label string, bgColor color.NRGBA) layout.Dimensions {
+func (ga *GioApp) renderStatCard(gtx layout.Context, value, label string, bgColor color.NRGBA, textColor color.NRGBA) layout.Dimensions {
 	card := widgets.DefaultCard()
 	card.BackgroundColor = bgColor
 
@@ -191,7 +191,7 @@ func (ga *GioApp) renderStatCard(gtx layout.Context, value, label string, bgColo
 			// Value
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				valueLabel := material.H4(ga.theme.Theme, value)
-				valueLabel.Color = theme.ColorWhite
+				valueLabel.Color = textColor
 				valueLabel.Alignment = text.Middle
 				return valueLabel.Layout(gtx)
 			}),
@@ -199,7 +199,7 @@ func (ga *GioApp) renderStatCard(gtx layout.Context, value, label string, bgColo
 			// Label
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				labelWidget := material.Body2(ga.theme.Theme, label)
-				labelWidget.Color = theme.ColorWhite
+				labelWidget.Color = textColor
 				labelWidget.Alignment = text.Middle
 				return labelWidget.Layout(gtx)
 			}),
@@ -237,7 +237,7 @@ func (ga *GioApp) renderBottomMenu(gtx layout.Context, activeView ViewID) layout
 		Right:  unit.Dp(theme.Spacing2),
 	}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		card := widgets.Card{
-			BackgroundColor: theme.ColorWhite,
+			BackgroundColor: theme.ColorSurface,
 			CornerRadius:    unit.Dp(theme.RadiusDefault),
 			Inset:           layout.UniformInset(unit.Dp(theme.Spacing2)),
 		}

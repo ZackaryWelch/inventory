@@ -172,7 +172,7 @@ func (ga *GioApp) renderImportErrors(gtx layout.Context) layout.Dimensions {
 						for i := 0; i < maxErrors; i++ {
 							errMsg := ga.importData.Errors[i]
 							children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-								label := material.Caption(ga.theme.Theme, "• "+errMsg)
+								label := material.Body2(ga.theme.Theme, "• "+errMsg)
 								label.Color = theme.ColorWhite
 								return label.Layout(gtx)
 							})
@@ -183,7 +183,7 @@ func (ga *GioApp) renderImportErrors(gtx layout.Context) layout.Dimensions {
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					if len(ga.importData.Errors) > 5 {
 						remaining := len(ga.importData.Errors) - 5
-						label := material.Caption(ga.theme.Theme, fmt.Sprintf("...and %d more errors", remaining))
+						label := material.Body2(ga.theme.Theme, fmt.Sprintf("...and %d more errors", remaining))
 						label.Color = theme.ColorWhite
 						label.Font.Style = font.Italic
 						return label.Layout(gtx)
@@ -229,7 +229,7 @@ func (ga *GioApp) renderImportPreview(gtx layout.Context) layout.Dimensions {
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				if len(ga.importData.Data) > 5 {
 					remaining := len(ga.importData.Data) - 5
-					label := material.Caption(ga.theme.Theme, fmt.Sprintf("...and %d more items", remaining))
+					label := material.Body2(ga.theme.Theme, fmt.Sprintf("...and %d more items", remaining))
 					label.Color = theme.ColorTextSecondary
 					label.Font.Style = font.Italic
 					return label.Layout(gtx)
@@ -247,7 +247,7 @@ func (ga *GioApp) renderPreviewItem(gtx layout.Context, item map[string]interfac
 		Bottom: unit.Dp(theme.Spacing1),
 	}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		card := widgets.Card{
-			BackgroundColor: theme.ColorGrayLightest,
+			BackgroundColor: theme.ColorSurfaceAlt,
 			CornerRadius:    unit.Dp(theme.RadiusDefault),
 			Inset: layout.Inset{
 				Top:    unit.Dp(theme.Spacing2),
@@ -283,7 +283,7 @@ func (ga *GioApp) renderPreviewItem(gtx layout.Context, item map[string]interfac
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					if desc != "" {
-						label := material.Caption(ga.theme.Theme, desc)
+						label := material.Body2(ga.theme.Theme, desc)
 						label.Color = theme.ColorTextSecondary
 						label.MaxLines = 1
 						return label.Layout(gtx)
@@ -293,7 +293,7 @@ func (ga *GioApp) renderPreviewItem(gtx layout.Context, item map[string]interfac
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					// Show field count
 					fieldCount := len(item)
-					label := material.Caption(ga.theme.Theme, fmt.Sprintf("%d fields", fieldCount))
+					label := material.Body2(ga.theme.Theme, fmt.Sprintf("%d fields", fieldCount))
 					label.Color = theme.ColorTextSecondary
 					label.Alignment = text.End
 					return label.Layout(gtx)
@@ -354,7 +354,7 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 			return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						label := material.Caption(ga.theme.Theme, "Name column:")
+						label := material.Body2(ga.theme.Theme, "Name column:")
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
 					}),
@@ -386,7 +386,7 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 			return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						label := material.Caption(ga.theme.Theme, "Location column:")
+						label := material.Body2(ga.theme.Theme, "Location column:")
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
 					}),

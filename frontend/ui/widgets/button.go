@@ -90,8 +90,8 @@ func CancelButton(th *material.Theme, btn *widget.Clickable, text string) layout
 	return func(gtx layout.Context) layout.Dimensions {
 		b := Button{
 			Text:            text,
-			BackgroundColor: theme.ColorGrayLightest,
-			TextColor:       theme.ColorBlack,
+			BackgroundColor: theme.ColorSurfaceAlt,
+			TextColor:       theme.ColorTextPrimary,
 			CornerRadius:    unit.Dp(theme.RadiusDefault),
 			Inset:           layout.UniformInset(unit.Dp(theme.Spacing4)),
 		}

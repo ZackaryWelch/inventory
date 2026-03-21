@@ -24,6 +24,7 @@ type NishikiTheme struct {
 	// Background colors
 	Background color.NRGBA
 	Surface    color.NRGBA
+	SurfaceAlt color.NRGBA
 
 	// Text colors
 	TextPrimary   color.NRGBA
@@ -42,9 +43,9 @@ func NewTheme() *NishikiTheme {
 	// Register the embedded Go fonts (required for WASM)
 	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
 
-	// Customize the base theme
+	// Customize the base theme from active palette
 	th.Fg = ColorTextPrimary     // Default text color
-	th.Bg = ColorWhite           // Default background
+	th.Bg = ColorBackground      // Default background
 	th.ContrastBg = ColorPrimary // Primary color for important elements
 	th.ContrastFg = ColorWhite   // Text on primary color
 
@@ -56,11 +57,12 @@ func NewTheme() *NishikiTheme {
 		Accent:        ColorAccent,
 		Danger:        ColorDanger,
 		DangerDark:    ColorDangerDark,
-		Background:    ColorWhite,
-		Surface:       ColorGrayLightest,
+		Background:    ColorBackground,
+		Surface:       ColorSurface,
+		SurfaceAlt:    ColorSurfaceAlt,
 		TextPrimary:   ColorTextPrimary,
 		TextSecondary: ColorTextSecondary,
-		Border:        ColorGrayLight,
+		Border:        ColorBorder,
 		Overlay:       ColorOverlay,
 	}
 
@@ -108,8 +110,8 @@ func (t *NishikiTheme) AccentButton() ButtonStyle {
 // CancelButton returns styling for cancel buttons
 func (t *NishikiTheme) CancelButton() ButtonStyle {
 	return ButtonStyle{
-		BackgroundColor: ColorGrayLightest,
-		TextColor:       ColorBlack,
+		BackgroundColor: ColorSurfaceAlt,
+		TextColor:       ColorTextPrimary,
 		CornerRadius:    unit.Dp(RadiusDefault),
 		Inset:           unit.Dp(Spacing4),
 	}

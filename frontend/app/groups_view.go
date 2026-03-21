@@ -249,7 +249,7 @@ func (ga *GioApp) renderGroupCard(gtx layout.Context, group Group, index int) la
 							if collectionCount != 1 {
 								countLabel += "s"
 							}
-							label := material.Caption(ga.theme.Theme, countLabel)
+							label := material.Body2(ga.theme.Theme, countLabel)
 							label.Color = theme.ColorTextSecondary
 							return label.Layout(gtx)
 						}),
@@ -400,7 +400,7 @@ func (ga *GioApp) renderGroupDialog(gtx layout.Context) layout.Dimensions {
 	// Render modal overlay
 	return ga.renderModal(gtx, func(gtx layout.Context) layout.Dimensions {
 		card := widgets.Card{
-			BackgroundColor: theme.ColorWhite,
+			BackgroundColor: theme.ColorSurface,
 			CornerRadius:    unit.Dp(theme.RadiusLG),
 			Inset:           layout.UniformInset(unit.Dp(theme.Spacing6)),
 		}
@@ -512,7 +512,7 @@ func (ga *GioApp) renderDeleteConfirmDialog(gtx layout.Context) layout.Dimension
 	// Render modal overlay
 	return ga.renderModal(gtx, func(gtx layout.Context) layout.Dimensions {
 		card := widgets.Card{
-			BackgroundColor: theme.ColorWhite,
+			BackgroundColor: theme.ColorSurface,
 			CornerRadius:    unit.Dp(theme.RadiusLG),
 			Inset:           layout.UniformInset(unit.Dp(theme.Spacing6)),
 		}

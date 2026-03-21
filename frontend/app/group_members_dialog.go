@@ -169,7 +169,7 @@ func (ga *GioApp) renderMembersDialog(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							if len(ga.knownUsers) == 0 && searchText == "" {
-								label := material.Caption(ga.theme.Theme, "No other users found in your groups.")
+								label := material.Body2(ga.theme.Theme, "No other users found in your groups.")
 								label.Color = theme.ColorTextSecondary
 								return label.Layout(gtx)
 							}
@@ -258,7 +258,7 @@ func (ga *GioApp) renderMemberRow(gtx layout.Context, member User, index int) la
 						return label.Layout(gtx)
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						label := material.Caption(ga.theme.Theme, member.Email)
+						label := material.Body2(ga.theme.Theme, member.Email)
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
 					}),
@@ -288,7 +288,7 @@ func (ga *GioApp) renderKnownUserRow(gtx layout.Context, u User) layout.Dimensio
 						return label.Layout(gtx)
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						label := material.Caption(ga.theme.Theme, u.Email)
+						label := material.Body2(ga.theme.Theme, u.Email)
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
 					}),

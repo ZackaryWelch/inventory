@@ -250,7 +250,7 @@ func (ga *GioApp) renderCollectionCard(gtx layout.Context, collection Collection
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				if collection.Location != "" {
 					return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Body2(ga.theme.Theme, "📍 "+collection.Location)
+						label := material.Body2(ga.theme.Theme, collection.Location)
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
 					})
@@ -263,7 +263,7 @@ func (ga *GioApp) renderCollectionCard(gtx layout.Context, collection Collection
 				if len(collection.Tags) > 0 {
 					return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						tagsText := strings.Join(collection.Tags, ", ")
-						label := material.Body2(ga.theme.Theme, "🏷️  "+tagsText)
+						label := material.Body2(ga.theme.Theme, "Tags: "+tagsText)
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
 					})

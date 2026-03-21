@@ -24,7 +24,7 @@ type Card struct {
 func (c Card) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	// Default values if not specified
 	if c.BackgroundColor == (color.NRGBA{}) {
-		c.BackgroundColor = theme.ColorWhite
+		c.BackgroundColor = theme.ColorSurface
 	}
 	if c.CornerRadius == 0 {
 		c.CornerRadius = unit.Dp(theme.RadiusDefault)
@@ -50,19 +50,19 @@ func (c Card) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	return dims
 }
 
-// DefaultCard creates a card with default styling
+// DefaultCard creates a card with default styling using palette surface color
 func DefaultCard() Card {
 	return Card{
-		BackgroundColor: theme.ColorWhite,
+		BackgroundColor: theme.ColorSurface,
 		CornerRadius:    unit.Dp(theme.RadiusDefault),
 		Inset:           layout.UniformInset(unit.Dp(theme.Spacing4)),
 	}
 }
 
-// SurfaceCard creates a card with surface background (lighter)
+// SurfaceCard creates a card with alternate surface background
 func SurfaceCard() Card {
 	return Card{
-		BackgroundColor: theme.ColorGrayLightest,
+		BackgroundColor: theme.ColorSurfaceAlt,
 		CornerRadius:    unit.Dp(theme.RadiusDefault),
 		Inset:           layout.UniformInset(unit.Dp(theme.Spacing4)),
 	}

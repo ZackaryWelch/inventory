@@ -56,7 +56,7 @@ func DefaultDialogStyle(dialog *Dialog, title string) DialogStyle {
 		Dialog:          dialog,
 		Title:           title,
 		Width:           unit.Dp(500),
-		BackgroundColor: theme.ColorWhite,
+		BackgroundColor: theme.ColorSurface,
 		TitleBarColor:   theme.ColorPrimary,
 		CornerRadius:    unit.Dp(theme.RadiusLG),
 		CloseOnBackdrop: true,

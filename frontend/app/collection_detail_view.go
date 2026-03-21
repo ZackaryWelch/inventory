@@ -217,7 +217,7 @@ func (ga *GioApp) renderCollectionDetailHeader(gtx layout.Context) layout.Dimens
 			// Import button
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Left: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					btn := material.Button(ga.theme.Theme, &ga.widgetState.importButton, "📥 Import")
+					btn := material.Button(ga.theme.Theme, &ga.widgetState.importButton, "Import")
 					btn.Background = theme.ColorAccent
 					btn.Color = theme.ColorBlack
 					btn.CornerRadius = unit.Dp(theme.RadiusDefault)
@@ -463,7 +463,7 @@ func (ga *GioApp) renderContainerCard(gtx layout.Context, container Container, i
 							},
 						}
 						return badge.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							label := material.Caption(ga.theme.Theme, containerTypeLabels[container.Type])
+							label := material.Body2(ga.theme.Theme, containerTypeLabels[container.Type])
 							label.Color = theme.ColorBlack
 							return label.Layout(gtx)
 						})
@@ -475,7 +475,7 @@ func (ga *GioApp) renderContainerCard(gtx layout.Context, container Container, i
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				if container.Location != "" {
 					return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Caption(ga.theme.Theme, "📍 "+container.Location)
+						label := material.Body2(ga.theme.Theme, container.Location)
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
 					})
@@ -487,7 +487,7 @@ func (ga *GioApp) renderContainerCard(gtx layout.Context, container Container, i
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				objectCount := len(container.Objects)
 				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					label := material.Caption(ga.theme.Theme, fmt.Sprintf("📦 %d objects", objectCount))
+					label := material.Body2(ga.theme.Theme, fmt.Sprintf("%d objects", objectCount))
 					label.Color = theme.ColorTextSecondary
 					return label.Layout(gtx)
 				})
@@ -556,7 +556,7 @@ func (ga *GioApp) renderObjectCard(gtx layout.Context, object Object, index int)
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				if object.Description != "" {
 					return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Caption(ga.theme.Theme, object.Description)
+						label := material.Body2(ga.theme.Theme, object.Description)
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
 					})
@@ -568,7 +568,7 @@ func (ga *GioApp) renderObjectCard(gtx layout.Context, object Object, index int)
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				if object.Quantity != nil && object.Unit != "" {
 					return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Caption(ga.theme.Theme, fmt.Sprintf("Qty: %v %s", *object.Quantity, object.Unit))
+						label := material.Body2(ga.theme.Theme, fmt.Sprintf("Qty: %v %s", *object.Quantity, object.Unit))
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
 					})
@@ -581,7 +581,7 @@ func (ga *GioApp) renderObjectCard(gtx layout.Context, object Object, index int)
 				if len(object.Tags) > 0 {
 					return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						tagsText := strings.Join(object.Tags, ", ")
-						label := material.Caption(ga.theme.Theme, "🏷️  "+tagsText)
+						label := material.Body2(ga.theme.Theme, "Tags: "+tagsText)
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
 					})
@@ -664,11 +664,14 @@ func (ga *GioApp) renderObjectProperties(gtx layout.Context, props map[string]in
 			seen[def.Key] = true
 		}
 	}
+	var unseen []string
 	for k := range props {
 		if !seen[k] {
-			keys = append(keys, k)
+			unseen = append(unseen, k)
 		}
 	}
+	sort.Strings(unseen)
+	keys = append(keys, unseen...)
 
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		func() []layout.FlexChild {
@@ -679,7 +682,7 @@ func (ga *GioApp) renderObjectProperties(gtx layout.Context, props map[string]in
 				displayKey := propertyDisplayName(k, defs)
 				displayVal := RenderPropertyValue(k, v, defs)
 				children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					label := material.Caption(ga.theme.Theme, displayKey+": "+displayVal)
+					label := material.Body2(ga.theme.Theme, displayKey+": "+displayVal)
 					label.Color = theme.ColorTextSecondary
 					return label.Layout(gtx)
 				}))
@@ -770,7 +773,7 @@ func (ga *GioApp) getGroupedTextChipButton(key string) *widget.Clickable {
 
 // renderFilterChip renders a single filter chip button, highlighted when active.
 func (ga *GioApp) renderFilterChip(gtx layout.Context, btn *widget.Clickable, label string, active bool) layout.Dimensions {
-	bg := theme.ColorGrayLight
+	bg := theme.ColorSurfaceAlt
 	textColor := theme.ColorTextPrimary
 	if active {
 		bg = theme.ColorPrimary
@@ -829,7 +832,7 @@ func (ga *GioApp) renderGroupedTextFilters(gtx layout.Context) layout.Dimensions
 				var children []layout.FlexChild
 				children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Caption(ga.theme.Theme, displayName+":")
+						label := material.Body2(ga.theme.Theme, displayName+":")
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
 					})
