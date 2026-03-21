@@ -89,9 +89,19 @@ func (c *Client) GetMembers(id string) ([]types.User, error) {
 	return common.CheckResponse(resp)
 }*/
 
+// AddMember adds a user to a group
+func (c *Client) AddMember(groupID, userID string) error {
+	resp, err := c.common.Post(fmt.Sprintf("/groups/%s/users/%s", groupID, userID), nil)
+	if err != nil {
+		return err
+	}
+
+	return common.CheckResponse(resp)
+}
+
 // RemoveMember removes a member from a group
 func (c *Client) RemoveMember(groupID, userID string) error {
-	resp, err := c.common.Delete(fmt.Sprintf("/groups/%s/members/%s", groupID, userID))
+	resp, err := c.common.Delete(fmt.Sprintf("/groups/%s/users/%s", groupID, userID))
 	if err != nil {
 		return err
 	}

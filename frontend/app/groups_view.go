@@ -17,6 +17,11 @@ import (
 
 // renderGroupsView renders the groups management view with CRUD operations
 func (ga *GioApp) renderGroupsView(gtx layout.Context) layout.Dimensions {
+	// Handle join button click
+	if ga.widgetState.joinGroupButton.Clicked(gtx) {
+		ga.openJoinGroupDialog()
+	}
+
 	// Handle create button click
 	if ga.widgetState.groupsCreateButton.Clicked(gtx) {
 		ga.logger.Info("Opening create group dialog")
@@ -170,6 +175,11 @@ func (ga *GioApp) renderGroupCard(gtx layout.Context, group Group, index int) la
 		ga.deleteGroupID = group.ID
 	}
 
+	// Handle members button click
+	if itemState.membersButton.Clicked(gtx) {
+		ga.openMembersDialog(&group)
+	}
+
 	card := widgets.DefaultCard()
 	return card.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{
@@ -198,6 +208,11 @@ func (ga *GioApp) renderGroupCard(gtx layout.Context, group Group, index int) la
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 								return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 									return widgets.AccentButton(ga.theme.Theme, &itemState.editButton, "Edit")(gtx)
+								})
+							}),
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									return widgets.CancelButton(ga.theme.Theme, &itemState.membersButton, "Members")(gtx)
 								})
 							}),
 							layout.Rigid(func(gtx layout.Context) layout.Dimensions {

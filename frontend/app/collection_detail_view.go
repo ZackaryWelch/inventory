@@ -222,6 +222,16 @@ func (ga *GioApp) renderCollectionDetailHeader(gtx layout.Context) layout.Dimens
 					return btn.Layout(gtx)
 				})
 			}),
+
+			// Edit Schema button
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Left: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					btn := material.Button(ga.theme.Theme, &ga.widgetState.editSchemaButton, "Schema")
+					btn.Background = theme.ColorPrimaryDark
+					btn.Color = theme.ColorWhite
+					return btn.Layout(gtx)
+				})
+			}),
 		)
 	})
 }

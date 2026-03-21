@@ -95,6 +95,15 @@ type GioApp struct {
 	selectedGroupID       *string
 	selectedContainerID   *string
 
+	// Group members dialog state
+	showMembersDialog bool
+	groupMembersOf    *Group
+	groupMembers      []User
+	knownUsers        []User
+
+	// Join group dialog state
+	showJoinGroupDialog bool
+
 	// Schema editor state
 	showSchemaDialog bool
 
@@ -209,6 +218,23 @@ type WidgetState struct {
 	objectDialogSubmit      widget.Clickable
 	objectDialogCancel      widget.Clickable
 
+	// Group members dialog
+	membersDialog        *widgets.Dialog
+	membersDialogClose   widget.Clickable
+	membersAddButton     widget.Clickable
+	memberUserIDEditor   widget.Editor
+	memberSearchEditor   widget.Editor
+	knownUserClickables  map[string]*widget.Clickable
+	memberItems          []MemberItemState
+	membersList          widget.List
+	knownUsersList       widget.List
+
+	// Join group dialog
+	joinGroupButton widget.Clickable
+	joinGroupDialog *widgets.Dialog
+	joinGroupClose  widget.Clickable
+	joinHashEditor  widget.Editor
+
 	// Schema editor dialog
 	editSchemaButton   widget.Clickable
 	schemaDialog       *widgets.Dialog
@@ -228,9 +254,15 @@ type WidgetState struct {
 
 // GroupItemState holds widget state for a single group list item
 type GroupItemState struct {
-	clickable    widget.Clickable
-	editButton   widget.Clickable
-	deleteButton widget.Clickable
+	clickable     widget.Clickable
+	editButton    widget.Clickable
+	deleteButton  widget.Clickable
+	membersButton widget.Clickable
+}
+
+// MemberItemState holds widget state for a single group member row
+type MemberItemState struct {
+	removeButton widget.Clickable
 }
 
 // CollectionItemState holds widget state for a single collection list item
@@ -327,6 +359,9 @@ func NewGioApp() *GioApp {
 		containerDialog:             widgets.NewDialog(),
 		objectDialog:                widgets.NewDialog(),
 		schemaDialog:                widgets.NewDialog(),
+		membersDialog:               widgets.NewDialog(),
+		joinGroupDialog:             widgets.NewDialog(),
+		knownUserClickables:         make(map[string]*widget.Clickable),
 	}
 
 	gioApp := &GioApp{
@@ -423,6 +458,12 @@ func (ga *GioApp) render(gtx layout.Context) layout.Dimensions {
 				}
 				if ga.showDeleteConfirm {
 					return ga.renderDeleteConfirmDialog(gtx)
+				}
+				if ga.showMembersDialog {
+					return ga.renderMembersDialog(gtx)
+				}
+				if ga.showJoinGroupDialog {
+					return ga.renderJoinGroupDialog(gtx)
 				}
 			}
 			// Render collection dialogs if in collections view
