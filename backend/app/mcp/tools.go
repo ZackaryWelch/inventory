@@ -14,6 +14,31 @@ import (
 	"github.com/nishiki/backend/domain/usecases"
 )
 
+func boolPtr(b bool) *bool { return &b }
+
+// Common tool annotation patterns.
+var (
+	readOnlyAnnotations = &mcp.ToolAnnotations{
+		ReadOnlyHint:    true,
+		IdempotentHint:  true,
+		DestructiveHint: boolPtr(false),
+		OpenWorldHint:   boolPtr(false),
+	}
+	createAnnotations = &mcp.ToolAnnotations{
+		DestructiveHint: boolPtr(false),
+		OpenWorldHint:   boolPtr(false),
+	}
+	updateAnnotations = &mcp.ToolAnnotations{
+		IdempotentHint:  true,
+		DestructiveHint: boolPtr(false),
+		OpenWorldHint:   boolPtr(false),
+	}
+	deleteAnnotations = &mcp.ToolAnnotations{
+		IdempotentHint: true,
+		OpenWorldHint:  boolPtr(false),
+	}
+)
+
 func registerTools(s *mcp.Server, mctx *MCPContext) {
 	registerCollectionTools(s, mctx)
 	registerContainerTools(s, mctx)
@@ -38,6 +63,7 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "create_collection",
 		Description: "Create a new inventory collection for a specific object type (food, books, games, etc.)",
+		Annotations: createAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input CreateCollectionInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -69,6 +95,7 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://collections")
 		r, err := jsonResult(response.NewCollectionResponse(resp.Collection))
 		return r, nil, err
 	})
@@ -82,6 +109,7 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "update_collection",
 		Description: "Update a collection's name, location, or tags",
+		Annotations: updateAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input UpdateCollectionInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -113,6 +141,7 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://collections", "nishiki://collections/"+input.CollectionID)
 		r, err := jsonResult(response.NewCollectionResponse(resp.Collection))
 		return r, nil, err
 	})
@@ -123,6 +152,7 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "delete_collection",
 		Description: "Delete a collection (must have no containers)",
+		Annotations: deleteAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input DeleteCollectionInput) (*mcp.CallToolResult, any, error) {
 		user, _, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -144,6 +174,7 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://collections")
 		r, err := jsonResult(map[string]any{"success": true, "collection_id": input.CollectionID})
 		return r, nil, err
 	})
@@ -166,6 +197,7 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "create_container",
 		Description: "Create a container within a collection for organizing objects",
+		Annotations: createAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input CreateContainerInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -206,6 +238,7 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://containers", "nishiki://collections/"+input.CollectionID+"/containers")
 		r, err := jsonResult(response.NewContainerResponse(resp.Container))
 		return r, nil, err
 	})
@@ -223,6 +256,7 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "update_container",
 		Description: "Update a container's name, type, location, or dimensions",
+		Annotations: updateAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input UpdateContainerInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -269,6 +303,7 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://containers", "nishiki://containers/"+input.ContainerID)
 		r, err := jsonResult(response.NewContainerResponse(resp.Container))
 		return r, nil, err
 	})
@@ -279,6 +314,7 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "delete_container",
 		Description: "Delete a container (must have no child containers)",
+		Annotations: deleteAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input DeleteContainerInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -301,6 +337,7 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://containers")
 		r, err := jsonResult(map[string]any{"success": true, "container_id": input.ContainerID})
 		return r, nil, err
 	})
@@ -323,6 +360,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "create_object",
 		Description: "Add an object to a container in a collection",
+		Annotations: createAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input CreateObjectInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -363,6 +401,8 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		// Notify — we don't know the collection ID here, so notify the containers resource
+		mctx.notifyResourceUpdated(ctx, "nishiki://containers/"+input.ContainerID)
 		r, err := jsonResult(response.NewObjectResponse(*resp.Object, input.ContainerID))
 		return r, nil, err
 	})
@@ -374,6 +414,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "delete_object",
 		Description: "Remove an object from a container",
+		Annotations: deleteAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input DeleteObjectInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -402,6 +443,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://containers/"+input.ContainerID)
 		r, err := jsonResult(map[string]any{"success": true, "object_id": input.ObjectID})
 		return r, nil, err
 	})
@@ -416,6 +458,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "update_object",
 		Description: "Update an object's name, properties, or tags",
+		Annotations: updateAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input UpdateObjectInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -455,6 +498,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://containers/"+input.ContainerID)
 		r, err := jsonResult(response.NewObjectResponse(*resp.Object, input.ContainerID))
 		return r, nil, err
 	})
@@ -469,6 +513,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "create_group",
 		Description: "Create a new group for collaborating on collections",
+		Annotations: createAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input CreateGroupInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -485,6 +530,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://groups")
 		r, err := jsonResult(response.NewGroupResponse(resp.Group))
 		return r, nil, err
 	})
@@ -496,6 +542,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "add_group_member",
 		Description: "Add a user to a group by their numeric user ID.",
+		Annotations: updateAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input AddGroupMemberInput) (*mcp.CallToolResult, any, error) {
 		_, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -517,6 +564,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://groups/"+input.GroupID, "nishiki://groups/"+input.GroupID+"/users")
 		r, err := jsonResult(map[string]string{"status": "added"})
 		return r, nil, err
 	})
@@ -528,6 +576,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "remove_group_member",
 		Description: "Remove a user from a group by their numeric user ID.",
+		Annotations: deleteAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input RemoveGroupMemberInput) (*mcp.CallToolResult, any, error) {
 		_, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -549,6 +598,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://groups/"+input.GroupID, "nishiki://groups/"+input.GroupID+"/users")
 		r, err := jsonResult(map[string]string{"status": "removed"})
 		return r, nil, err
 	})
@@ -560,6 +610,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "join_group",
 		Description: "Join a group using an invite code (currently unavailable — backend returns 501)",
+		Annotations: createAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input JoinGroupInput) (*mcp.CallToolResult, any, error) {
 		r, _ := errorResult(fmt.Errorf("backend unimplemented: JoinGroup returns 501. Fix planned in Phase 2"))
 		return r, nil, nil
@@ -572,6 +623,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "update_group",
 		Description: "Rename a group.",
+		Annotations: updateAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input UpdateGroupInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -595,6 +647,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 			return r, nil, nil
 		}
 		_ = user
+		mctx.notifyResourceUpdated(ctx, "nishiki://groups", "nishiki://groups/"+input.GroupID)
 		r, err := jsonResult(response.NewGroupResponse(resp.Group))
 		return r, nil, err
 	})
@@ -605,6 +658,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "delete_group",
 		Description: "Delete a group by ID.",
+		Annotations: deleteAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input DeleteGroupInput) (*mcp.CallToolResult, any, error) {
 		_, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -625,6 +679,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://groups")
 		r, err := jsonResult(map[string]string{"status": "deleted"})
 		return r, nil, err
 	})
@@ -646,6 +701,7 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "bulk_import",
 		Description: "Bulk import objects into a collection. Each item must have a 'name' field; other fields become properties. Use distribution_mode='location' to auto-create containers from a Location column.",
+		Annotations: createAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input BulkImportInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -685,6 +741,7 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://collections/"+input.CollectionID+"/objects", "nishiki://containers")
 		r, err := jsonResult(resp)
 		return r, nil, err
 	})
@@ -701,6 +758,7 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "smart_import",
 		Description: "Parse a raw CSV string, infer property types, sanitize values, auto-create containers from Location column, and import into a collection. Returns the import summary and inferred schema.",
+		Annotations: createAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input SmartImportInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -758,6 +816,7 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://collections/"+input.CollectionID+"/objects", "nishiki://containers")
 		r, err := jsonResult(resp)
 		return r, nil, err
 	})
@@ -776,6 +835,7 @@ func registerSearchTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "search_objects",
 		Description: "Search and filter objects in a collection by name, tags, container, or property values. All filters are ANDed together.",
+		Annotations: readOnlyAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input SearchObjectsInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -835,6 +895,7 @@ func registerExportTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "export_collection",
 		Description: "Export all objects in a collection as CSV or JSON. CSV columns follow the collection's property schema order. Useful for data pipelines and backups.",
+		Annotations: readOnlyAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input ExportCollectionInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -928,6 +989,7 @@ func registerSchemaTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "get_collection_schema",
 		Description: "Get the property schema for a collection, which defines the typed fields for its objects.",
+		Annotations: readOnlyAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input GetCollectionSchemaInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -969,6 +1031,7 @@ func registerSchemaTools(s *mcp.Server, mctx *MCPContext) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "update_collection_schema",
 		Description: "Set or replace the property schema on a collection. This defines typed fields for object properties.",
+		Annotations: updateAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input UpdateCollectionSchemaInput) (*mcp.CallToolResult, any, error) {
 		user, _, err := MCPUserFromContext(ctx)
 		if err != nil {
@@ -1003,6 +1066,7 @@ func registerSchemaTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
+		mctx.notifyResourceUpdated(ctx, "nishiki://collections/"+input.CollectionID)
 		r, err := jsonResult(response.NewCollectionResponse(resp.Collection))
 		return r, nil, err
 	})

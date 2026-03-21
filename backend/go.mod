@@ -1,6 +1,6 @@
 module github.com/nishiki/backend
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/brianvoe/gofakeit/v7 v7.14.1
@@ -9,7 +9,7 @@ require (
 	github.com/go-swagno/swagno/v3 v3.2.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
-	github.com/modelcontextprotocol/go-sdk v1.4.0
+	github.com/modelcontextprotocol/go-sdk v1.4.1
 	github.com/samber/slog-multi v1.7.1
 	github.com/spf13/cast v1.7.1
 	github.com/spf13/viper v1.20.1
@@ -52,7 +52,7 @@ require (
 	github.com/samber/lo v1.52.0 // indirect
 	github.com/samber/slog-common v0.20.0 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
-	github.com/segmentio/encoding v0.5.3 // indirect
+	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect

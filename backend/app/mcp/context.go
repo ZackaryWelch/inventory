@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"log/slog"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
 	"github.com/nishiki/backend/app/container"
 	"github.com/nishiki/backend/domain/entities"
 	"github.com/nishiki/backend/domain/usecases"
@@ -13,6 +17,7 @@ import (
 type MCPContext struct {
 	Container *container.Container
 	Notifier  *MCPNotifier
+	Server    *mcp.Server // set after NewMCPServer returns; used for resource notifications
 }
 
 // mcpAuthKey is the context key for per-request auth data.
@@ -121,4 +126,17 @@ func (c *MCPContext) updatePropertySchemaUC() *usecases.UpdatePropertySchemaUseC
 
 func (c *MCPContext) exportCollectionUC() *usecases.ExportCollectionUseCase {
 	return usecases.NewExportCollectionUseCase(c.Container.CollectionRepo, c.Container.AuthService)
+}
+
+// notifyResourceUpdated sends a resource-changed notification to subscribed clients.
+// It is a no-op if the server is not yet set.
+func (c *MCPContext) notifyResourceUpdated(ctx context.Context, uris ...string) {
+	if c.Server == nil {
+		return
+	}
+	for _, uri := range uris {
+		if err := c.Server.ResourceUpdated(ctx, &mcp.ResourceUpdatedNotificationParams{URI: uri}); err != nil {
+			slog.Warn("MCP: failed to send resource update notification", "uri", uri, "error", err)
+		}
+	}
 }
