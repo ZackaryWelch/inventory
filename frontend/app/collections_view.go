@@ -59,17 +59,6 @@ func (ga *GioApp) renderCollectionsView(gtx layout.Context) layout.Dimensions {
 		ga.widgetState.collectionTagsEditor.SetText("")
 	}
 
-	// Handle bottom menu clicks
-	if ga.widgetState.menuDashboard.Clicked(gtx) {
-		ga.currentView = ViewDashboardGio
-	}
-	if ga.widgetState.menuGroups.Clicked(gtx) {
-		ga.currentView = ViewGroupsGio
-	}
-	if ga.widgetState.menuProfile.Clicked(gtx) {
-		ga.currentView = ViewProfileGio
-	}
-
 	// Ensure we have collection item states
 	ga.ensureCollectionItemStates()
 
@@ -108,7 +97,7 @@ func (ga *GioApp) renderCollectionsView(gtx layout.Context) layout.Dimensions {
 
 		// Bottom navigation menu
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return ga.renderBottomMenu(gtx, "collections")
+			return ga.renderBottomMenu(gtx, ViewCollectionsGio)
 		}),
 	)
 }

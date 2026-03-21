@@ -32,17 +32,6 @@ func (ga *GioApp) renderGroupsView(gtx layout.Context) layout.Dimensions {
 		ga.widgetState.groupDescriptionEditor.SetText("")
 	}
 
-	// Handle bottom menu clicks
-	if ga.widgetState.menuDashboard.Clicked(gtx) {
-		ga.currentView = ViewDashboardGio
-	}
-	if ga.widgetState.menuCollections.Clicked(gtx) {
-		ga.currentView = ViewCollectionsGio
-	}
-	if ga.widgetState.menuProfile.Clicked(gtx) {
-		ga.currentView = ViewProfileGio
-	}
-
 	// Ensure we have group item states for all groups
 	ga.ensureGroupItemStates()
 
@@ -81,7 +70,7 @@ func (ga *GioApp) renderGroupsView(gtx layout.Context) layout.Dimensions {
 
 		// Bottom navigation menu
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return ga.renderBottomMenu(gtx, "groups")
+			return ga.renderBottomMenu(gtx, ViewGroupsGio)
 		}),
 	)
 }

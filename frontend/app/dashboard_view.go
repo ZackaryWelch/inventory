@@ -8,6 +8,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/text"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
 
 	"github.com/nishiki/frontend/ui/theme"
@@ -32,17 +33,6 @@ func (ga *GioApp) renderDashboardView(gtx layout.Context) layout.Dimensions {
 	if ga.widgetState.searchButton.Clicked(gtx) {
 		ga.logger.Info("Navigating to search view")
 		ga.currentView = ViewSearchGio
-	}
-
-	// Bottom menu navigation
-	if ga.widgetState.menuGroups.Clicked(gtx) {
-		ga.currentView = ViewGroupsGio
-	}
-	if ga.widgetState.menuCollections.Clicked(gtx) {
-		ga.currentView = ViewCollectionsGio
-	}
-	if ga.widgetState.menuProfile.Clicked(gtx) {
-		ga.currentView = ViewProfileGio
 	}
 
 	// Main layout
@@ -84,7 +74,7 @@ func (ga *GioApp) renderDashboardView(gtx layout.Context) layout.Dimensions {
 
 		// Bottom navigation menu
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return ga.renderBottomMenu(gtx, "dashboard")
+			return ga.renderBottomMenu(gtx, ViewDashboardGio)
 		}),
 	)
 }
@@ -217,15 +207,35 @@ func (ga *GioApp) renderStatCard(gtx layout.Context, value, label string, bgColo
 	})
 }
 
-// renderBottomMenu renders the bottom navigation menu
-func (ga *GioApp) renderBottomMenu(gtx layout.Context, activeView string) layout.Dimensions {
+// renderBottomMenu renders the bottom navigation menu and handles its click events.
+// activeView identifies the current view so its tab is highlighted.
+func (ga *GioApp) renderBottomMenu(gtx layout.Context, activeView ViewID) layout.Dimensions {
+	// Menu items: clickable, label, target view
+	type menuItem struct {
+		btn    *widget.Clickable
+		label  string
+		target ViewID
+	}
+	items := []menuItem{
+		{&ga.widgetState.menuDashboard, "Home", ViewDashboardGio},
+		{&ga.widgetState.menuGroups, "Groups", ViewGroupsGio},
+		{&ga.widgetState.menuCollections, "Collections", ViewCollectionsGio},
+		{&ga.widgetState.menuProfile, "Profile", ViewProfileGio},
+	}
+
+	// Handle clicks — navigate to target view if not already active
+	for _, item := range items {
+		if item.btn.Clicked(gtx) && item.target != activeView {
+			ga.currentView = item.target
+		}
+	}
+
 	return layout.Inset{
 		Top:    unit.Dp(theme.Spacing2),
 		Bottom: unit.Dp(theme.Spacing2),
 		Left:   unit.Dp(theme.Spacing2),
 		Right:  unit.Dp(theme.Spacing2),
 	}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		// Background
 		card := widgets.Card{
 			BackgroundColor: theme.ColorWhite,
 			CornerRadius:    unit.Dp(theme.RadiusDefault),
@@ -233,39 +243,21 @@ func (ga *GioApp) renderBottomMenu(gtx layout.Context, activeView string) layout
 		}
 
 		return card.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			children := make([]layout.FlexChild, len(items))
+			for i, item := range items {
+				item := item
+				children[i] = layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					variant := widgets.PrimaryButton
+					if item.target == activeView {
+						variant = widgets.AccentButton
+					}
+					return variant(ga.theme.Theme, item.btn, item.label)(gtx)
+				})
+			}
 			return layout.Flex{
 				Axis:    layout.Horizontal,
 				Spacing: layout.SpaceEvenly,
-			}.Layout(gtx,
-				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					variant := widgets.PrimaryButton
-					if activeView == "dashboard" {
-						variant = widgets.AccentButton
-					}
-					return variant(ga.theme.Theme, &ga.widgetState.menuDashboard, "Home")(gtx)
-				}),
-				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					variant := widgets.PrimaryButton
-					if activeView == "groups" {
-						variant = widgets.AccentButton
-					}
-					return variant(ga.theme.Theme, &ga.widgetState.menuGroups, "Groups")(gtx)
-				}),
-				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					variant := widgets.PrimaryButton
-					if activeView == "collections" {
-						variant = widgets.AccentButton
-					}
-					return variant(ga.theme.Theme, &ga.widgetState.menuCollections, "Collections")(gtx)
-				}),
-				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-					variant := widgets.PrimaryButton
-					if activeView == "profile" {
-						variant = widgets.AccentButton
-					}
-					return variant(ga.theme.Theme, &ga.widgetState.menuProfile, "Profile")(gtx)
-				}),
-			)
+			}.Layout(gtx, children...)
 		})
 	})
 }

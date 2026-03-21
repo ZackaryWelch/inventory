@@ -142,7 +142,7 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 
 				// Bottom navigation menu
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return ga.renderBottomMenu(gtx, "collections")
+					return ga.renderBottomMenu(gtx, ViewCollectionsGio)
 				}),
 			)
 		}),
@@ -191,6 +191,7 @@ func (ga *GioApp) renderCollectionDetailHeader(gtx layout.Context) layout.Dimens
 					btn := material.Button(ga.theme.Theme, &ga.widgetState.backToCollections, "← Back")
 					btn.Background = theme.ColorPrimaryDark
 					btn.Color = theme.ColorWhite
+					btn.CornerRadius = unit.Dp(theme.RadiusDefault)
 					return btn.Layout(gtx)
 				})
 			}),
@@ -219,6 +220,7 @@ func (ga *GioApp) renderCollectionDetailHeader(gtx layout.Context) layout.Dimens
 					btn := material.Button(ga.theme.Theme, &ga.widgetState.importButton, "📥 Import")
 					btn.Background = theme.ColorAccent
 					btn.Color = theme.ColorBlack
+					btn.CornerRadius = unit.Dp(theme.RadiusDefault)
 					return btn.Layout(gtx)
 				})
 			}),
@@ -229,6 +231,7 @@ func (ga *GioApp) renderCollectionDetailHeader(gtx layout.Context) layout.Dimens
 					btn := material.Button(ga.theme.Theme, &ga.widgetState.editSchemaButton, "Schema")
 					btn.Background = theme.ColorPrimaryDark
 					btn.Color = theme.ColorWhite
+					btn.CornerRadius = unit.Dp(theme.RadiusDefault)
 					return btn.Layout(gtx)
 				})
 			}),

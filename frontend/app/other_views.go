@@ -17,17 +17,6 @@ func (ga *GioApp) renderProfileView(gtx layout.Context) layout.Dimensions {
 		ga.handleLogout()
 	}
 
-	// Handle bottom menu clicks
-	if ga.widgetState.menuDashboard.Clicked(gtx) {
-		ga.currentView = ViewDashboardGio
-	}
-	if ga.widgetState.menuGroups.Clicked(gtx) {
-		ga.currentView = ViewGroupsGio
-	}
-	if ga.widgetState.menuCollections.Clicked(gtx) {
-		ga.currentView = ViewCollectionsGio
-	}
-
 	return layout.Flex{
 		Axis: layout.Vertical,
 	}.Layout(gtx,
@@ -69,7 +58,7 @@ func (ga *GioApp) renderProfileView(gtx layout.Context) layout.Dimensions {
 
 		// Bottom menu
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return ga.renderBottomMenu(gtx, "profile")
+			return ga.renderBottomMenu(gtx, ViewProfileGio)
 		}),
 	)
 }

@@ -1,13 +1,9 @@
 package widgets
 
 import (
-	"image"
 	"image/color"
 
 	"gioui.org/layout"
-	"gioui.org/op"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -32,28 +28,18 @@ func (b Button) Layout(gtx layout.Context, th *material.Theme, btn *widget.Click
 		inset = layout.UniformInset(unit.Dp(theme.Spacing4))
 	}
 
-	// Create button with material design ripple effect
-	return material.ButtonLayout(th, btn).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		// Measure and render the content (text with padding)
-		macro := op.Record(gtx.Ops)
-		dims := inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	// Use ButtonLayoutStyle's own Background and CornerRadius so the
+	// background color fills exactly the rounded rect (no color leak).
+	bls := material.ButtonLayout(th, btn)
+	bls.Background = b.BackgroundColor
+	bls.CornerRadius = b.CornerRadius
+
+	return bls.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			label := material.Label(th, unit.Sp(theme.FontSizeBase), b.Text)
 			label.Color = b.TextColor
 			return label.Layout(gtx)
 		})
-		call := macro.Stop()
-
-		// Draw rounded rectangle background with the measured size
-		rr := gtx.Dp(b.CornerRadius)
-		bounds := image.Rectangle{Max: dims.Size}
-		defer clip.UniformRRect(bounds, rr).Push(gtx.Ops).Pop()
-		paint.ColorOp{Color: b.BackgroundColor}.Add(gtx.Ops)
-		paint.PaintOp{}.Add(gtx.Ops)
-
-		// Render the recorded content on top
-		call.Add(gtx.Ops)
-
-		return dims
 	})
 }
 
