@@ -1,16 +1,10 @@
 backend/backend
-backend/backend-go
 backend/mocks
-frontend/verification/*
 *.wasm
 app.toml
 config.toml
-frontend/frontend
 frontend/bin/*
 frontend/web/app.wasm
-frontend/logs/*
 .idea
 .serena
 data
-desktop
-gio-webmain
