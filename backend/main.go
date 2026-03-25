@@ -86,7 +86,7 @@ func main() {
 
 	mcpHTTPServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.MCPPort),
-		Handler: mcp.NewStreamableHTTPHandler(factory, nil),
+		Handler: mcp.NewStreamableHTTPHandler(factory, &mcp.StreamableHTTPOptions{Stateless: true}),
 	}
 	mcpSSEServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.MCPSSEPort),
