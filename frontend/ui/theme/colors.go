@@ -45,7 +45,7 @@ type Palette struct {
 
 // DarkPalette is the default dark color scheme.
 var DarkPalette = Palette{
-	PrimaryLightest: color.NRGBA{R: 30, G: 60, B: 57, A: 255},   // #1e3c39
+	PrimaryLightest: color.NRGBA{R: 30, G: 60, B: 57, A: 255},    // #1e3c39
 	PrimaryLight:    color.NRGBA{R: 60, G: 120, B: 114, A: 255},  // #3c7872
 	Primary:         color.NRGBA{R: 106, G: 179, B: 171, A: 255}, // #6ab3ab
 	PrimaryDark:     color.NRGBA{R: 85, G: 143, B: 137, A: 255},  // #558f89
@@ -56,9 +56,9 @@ var DarkPalette = Palette{
 	Danger:     color.NRGBA{R: 220, G: 100, B: 100, A: 255}, // #dc6464
 	DangerDark: color.NRGBA{R: 184, G: 72, B: 72, A: 255},   // #b84848
 
-	Background: color.NRGBA{R: 24, G: 27, B: 32, A: 255},  // #181b20
-	Surface:    color.NRGBA{R: 32, G: 36, B: 42, A: 255},   // #20242a
-	SurfaceAlt: color.NRGBA{R: 42, G: 46, B: 54, A: 255},   // #2a2e36
+	Background: color.NRGBA{R: 24, G: 27, B: 32, A: 255}, // #181b20
+	Surface:    color.NRGBA{R: 32, G: 36, B: 42, A: 255}, // #20242a
+	SurfaceAlt: color.NRGBA{R: 42, G: 46, B: 54, A: 255}, // #2a2e36
 
 	TextPrimary:   color.NRGBA{R: 230, G: 233, B: 240, A: 255}, // #e6e9f0
 	TextSecondary: color.NRGBA{R: 160, G: 168, B: 180, A: 255}, // #a0a8b4
@@ -84,7 +84,7 @@ var LightPalette = Palette{
 	Surface:    color.NRGBA{R: 255, G: 255, B: 255, A: 255}, // #ffffff
 	SurfaceAlt: color.NRGBA{R: 249, G: 250, B: 251, A: 255}, // #f9fafb
 
-	TextPrimary:   color.NRGBA{R: 30, G: 35, B: 45, A: 255},   // #1e232d
+	TextPrimary:   color.NRGBA{R: 30, G: 35, B: 45, A: 255},    // #1e232d
 	TextSecondary: color.NRGBA{R: 100, G: 110, B: 125, A: 255}, // #646e7d
 
 	Border:  color.NRGBA{R: 210, G: 215, B: 225, A: 255}, // #d2d7e1

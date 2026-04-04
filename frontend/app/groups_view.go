@@ -281,15 +281,13 @@ func (ga *GioApp) handleGroupCreate() {
 		group, err := ga.groupsClient.Create(req)
 		if err != nil {
 			ga.logger.Error("Failed to create group", "error", err)
-			ga.ops <- Operation{Type: "group_create_failed", Err: err}
 			return
 		}
 
 		ga.logger.Info("Group created successfully", "group_id", group.ID)
-		ga.ops <- Operation{Type: "group_created", Data: group}
-		// Refresh groups list
-		ga.fetchGroups()
-		ga.window.Invalidate()
+		ga.do(func() {
+			ga.groups = append(ga.groups, *group)
+		})
 	}()
 
 	// Close dialog
@@ -322,18 +320,21 @@ func (ga *GioApp) handleGroupUpdate() {
 			Description: description,
 		}
 
-		_, err := ga.groupsClient.Update(groupID, req)
+		updated, err := ga.groupsClient.Update(groupID, req)
 		if err != nil {
 			ga.logger.Error("Failed to update group", "error", err)
-			ga.ops <- Operation{Type: "group_update_failed", Err: err}
 			return
 		}
 
 		ga.logger.Info("Group updated successfully", "group_id", groupID)
-		ga.ops <- Operation{Type: "group_updated"}
-		// Refresh groups list
-		ga.fetchGroups()
-		ga.window.Invalidate()
+		ga.do(func() {
+			for i, g := range ga.groups {
+				if g.ID == updated.ID {
+					ga.groups[i] = *updated
+					break
+				}
+			}
+		})
 	}()
 
 	// Close dialog
@@ -357,15 +358,18 @@ func (ga *GioApp) handleGroupDelete() {
 		err := ga.groupsClient.Delete(groupID)
 		if err != nil {
 			ga.logger.Error("Failed to delete group", "error", err)
-			ga.ops <- Operation{Type: "group_delete_failed", Err: err}
 			return
 		}
 
 		ga.logger.Info("Group deleted successfully", "group_id", groupID)
-		ga.ops <- Operation{Type: "group_deleted"}
-		// Refresh groups list
-		ga.fetchGroups()
-		ga.window.Invalidate()
+		ga.do(func() {
+			for i, g := range ga.groups {
+				if g.ID == groupID {
+					ga.groups = append(ga.groups[:i], ga.groups[i+1:]...)
+					break
+				}
+			}
+		})
 	}()
 
 	// Close dialog
@@ -575,6 +579,7 @@ func (ga *GioApp) renderModal(gtx layout.Context, content layout.Widget) layout.
 		}),
 		// Content centered
 		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min = gtx.Constraints.Max
 			return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				// Constrain width for dialogs
 				gtx.Constraints.Max.X = gtx.Dp(unit.Dp(400))

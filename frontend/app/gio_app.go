@@ -74,25 +74,25 @@ type GioApp struct {
 	logger             *slog.Logger
 
 	// Dialog state
-	showGroupDialog       bool
-	groupDialogMode       string // "create" or "edit"
-	showDeleteConfirm     bool
-	deleteGroupID         string
-	showCollectionDialog  bool
-	collectionDialogMode  string // "create" or "edit"
-	showDeleteCollection  bool
-	deleteCollectionID    string
-	showContainerDialog   bool
-	containerDialogMode   string // "create" or "edit"
-	showDeleteContainer   bool
-	deleteContainerID     string
-	showObjectDialog      bool
-	objectDialogMode      string // "create" or "edit"
-	showDeleteObject      bool
-	deleteObjectID        string
-	selectedObjectType    string
-	selectedContainerType string
-	selectedGroupID       *string
+	showGroupDialog           bool
+	groupDialogMode           string // "create" or "edit"
+	showDeleteConfirm         bool
+	deleteGroupID             string
+	showCollectionDialog      bool
+	collectionDialogMode      string // "create" or "edit"
+	showDeleteCollection      bool
+	deleteCollectionID        string
+	showContainerDialog       bool
+	containerDialogMode       string // "create" or "edit"
+	showDeleteContainer       bool
+	deleteContainerID         string
+	showObjectDialog          bool
+	objectDialogMode          string // "create" or "edit"
+	showDeleteObject          bool
+	deleteObjectID            string
+	selectedObjectType        string
+	selectedContainerType     string
+	selectedGroupID           *string
 	selectedContainerID       *string
 	selectedParentContainerID *string // nil = no parent (root), pointer to "" = explicitly clearing parent
 
@@ -121,7 +121,7 @@ type GioApp struct {
 	// Gio-specific fields
 	window *app.Window
 	theme  *theme.NishikiTheme
-	ops    chan Operation
+	ops    chan func()
 
 	// API clients
 	apiClient         *apiCommon.Client
@@ -207,10 +207,10 @@ type WidgetState struct {
 	// Container dialog widgets
 	containerNameEditor     widget.Editor
 	containerLocationEditor widget.Editor
-	containerTypeButtons       map[string]*widget.Clickable
-	parentContainerButtons     map[string]*widget.Clickable
-	containerDialogSubmit      widget.Clickable
-	containerDialogCancel      widget.Clickable
+	containerTypeButtons    map[string]*widget.Clickable
+	parentContainerButtons  map[string]*widget.Clickable
+	containerDialogSubmit   widget.Clickable
+	containerDialogCancel   widget.Clickable
 
 	// Object dialog widgets
 	objectNameEditor        widget.Editor
@@ -314,11 +314,12 @@ const (
 	ViewSearchGio
 )
 
-// Operation represents an async operation result
-type Operation struct {
-	Type string
-	Data interface{}
-	Err  error
+// do schedules a state mutation from a goroutine. The function runs on the
+// main event loop and the window is automatically invalidated afterward.
+// This is the idiomatic Gio pattern for async → UI communication.
+func (ga *GioApp) do(fn func()) {
+	ga.ops <- fn
+	ga.window.Invalidate()
 }
 
 // NewGioApp creates a new Gio-based application instance
@@ -375,7 +376,7 @@ func NewGioApp() *GioApp {
 		logger:            logger,
 		window:            w,
 		theme:             th,
-		ops:               make(chan Operation, 10),
+		ops:               make(chan func(), 10),
 		apiClient:         apiClient,
 		authClient:        authClient,
 		groupsClient:      groupsClient,
@@ -401,11 +402,10 @@ func (ga *GioApp) Run() error {
 	}()
 
 	for {
-		// Process any pending operations before handling window events
+		// Process any pending state mutations from goroutines
 		select {
-		case op := <-ga.ops:
-			ga.handleOperation(op)
-			ga.window.Invalidate()
+		case fn := <-ga.ops:
+			fn()
 		default:
 			// No operations pending, continue to window event
 		}
@@ -597,6 +597,7 @@ func (ga *GioApp) handleAuthCallback() {
 
 // renderCallbackView renders a loading message during OAuth callback
 func (ga *GioApp) renderCallbackView(gtx layout.Context) layout.Dimensions {
+	gtx.Constraints.Min = gtx.Constraints.Max
 	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		label := material.H5(ga.theme.Theme, "Authenticating...")
 		label.Color = theme.ColorTextSecondary
@@ -612,7 +613,7 @@ func (ga *GioApp) loadUserData() {
 		ga.logger.Error("Error fetching user after login", "error", err)
 		return
 	}
-	// Groups and collections will be fetched after user is loaded (see handleOperation)
+	// Groups and collections will be fetched after user is loaded (see fetchCurrentUser)
 }
 
 // fetchCurrentUser gets the current user from the backend
@@ -621,11 +622,23 @@ func (ga *GioApp) fetchCurrentUser() error {
 		authInfo, err := ga.authClient.GetCurrentUser()
 		if err != nil {
 			ga.logger.Error("Failed to fetch current user", "error", err)
-			ga.ops <- Operation{Type: "user_load_failed", Err: err}
+			ga.do(func() {
+				// Token might be invalid, clear it and show login
+				ga.authService.ClearToken()
+				ga.isSignedIn = false
+				ga.currentUser = nil
+				ga.currentView = ViewLoginGio
+			})
 			return
 		}
 		ga.logger.Info("Current user fetched", "user_id", authInfo.User.ID, "name", authInfo.User.Name)
-		ga.ops <- Operation{Type: "user_loaded", Data: &authInfo.User}
+		user := authInfo.User
+		ga.do(func() {
+			ga.currentUser = &user
+			ga.logger.Info("User loaded in state", "user_id", user.ID, "name", user.Name)
+			ga.fetchGroups()
+			ga.fetchCollections()
+		})
 	}()
 	return nil
 }
@@ -636,11 +649,12 @@ func (ga *GioApp) fetchGroups() {
 		groups, err := ga.groupsClient.List()
 		if err != nil {
 			ga.logger.Error("Failed to fetch groups", "error", err)
-			ga.ops <- Operation{Type: "groups_load_failed", Err: err}
 			return
 		}
-		ga.logger.Debug("Groups fetched", "count", len(groups))
-		ga.ops <- Operation{Type: "groups_loaded", Data: groups}
+		ga.do(func() {
+			ga.groups = groups
+			ga.logger.Info("Groups loaded in state", "count", len(groups))
+		})
 	}()
 }
 
@@ -655,50 +669,11 @@ func (ga *GioApp) fetchCollections() {
 		collections, err := ga.collectionsClient.List(ga.currentUser.ID)
 		if err != nil {
 			ga.logger.Error("Failed to fetch collections", "error", err)
-			ga.ops <- Operation{Type: "collections_load_failed", Err: err}
 			return
 		}
-		ga.logger.Debug("Collections fetched", "count", len(collections))
-		ga.ops <- Operation{Type: "collections_loaded", Data: collections}
-	}()
-}
-
-// handleOperation handles async operations
-func (ga *GioApp) handleOperation(op Operation) {
-	ga.logger.Debug("Handling operation", "type", op.Type)
-
-	if op.Err != nil {
-		ga.logger.Error("Operation failed", "type", op.Type, "error", op.Err)
-		return
-	}
-
-	// Handle different operation types
-	switch op.Type {
-	case "user_loaded":
-		if user, ok := op.Data.(*User); ok {
-			ga.currentUser = user
-			ga.logger.Info("User loaded in state", "user_id", user.ID, "name", user.Name)
-			// Now that user is loaded, fetch groups and collections
-			ga.fetchGroups()
-			ga.fetchCollections()
-		}
-	case "user_load_failed":
-		ga.logger.Error("User load failed on refresh, clearing auth", "error", op.Err)
-		// Token might be invalid on backend side, clear it and show login
-		// Just clear the token, don't redirect to logout URL
-		ga.authService.ClearToken()
-		ga.isSignedIn = false
-		ga.currentUser = nil
-		ga.currentView = ViewLoginGio
-	case "groups_loaded":
-		if groups, ok := op.Data.([]Group); ok {
-			ga.groups = groups
-			ga.logger.Info("Groups loaded in state", "count", len(groups))
-		}
-	case "collections_loaded":
-		if collections, ok := op.Data.([]Collection); ok {
+		ga.do(func() {
 			ga.collections = collections
 			ga.logger.Info("Collections loaded in state", "count", len(collections))
-		}
-	}
+		})
+	}()
 }

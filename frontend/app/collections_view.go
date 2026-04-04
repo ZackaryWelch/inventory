@@ -223,24 +223,12 @@ func (ga *GioApp) renderCollectionCard(gtx layout.Context, collection Collection
 						return label.Layout(gtx)
 					}),
 
-					// Type badge
+					// Type label
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Left: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							badge := widgets.Card{
-								BackgroundColor: theme.ColorAccent,
-								CornerRadius:    unit.Dp(theme.RadiusFull),
-								Inset: layout.Inset{
-									Top:    unit.Dp(theme.Spacing1),
-									Bottom: unit.Dp(theme.Spacing1),
-									Left:   unit.Dp(theme.Spacing2),
-									Right:  unit.Dp(theme.Spacing2),
-								},
-							}
-							return badge.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								label := material.Body2(ga.theme.Theme, objectTypeLabels[collection.ObjectType])
-								label.Color = theme.ColorBlack
-								return label.Layout(gtx)
-							})
+							label := material.Body2(ga.theme.Theme, objectTypeLabels[collection.ObjectType])
+							label.Color = theme.ColorAccent
+							return label.Layout(gtx)
 						})
 					}),
 				)
@@ -601,15 +589,13 @@ func (ga *GioApp) handleCollectionCreate() {
 		collection, err := ga.collectionsClient.Create(ga.currentUser.ID, req)
 		if err != nil {
 			ga.logger.Error("Failed to create collection", "error", err)
-			ga.ops <- Operation{Type: "collection_create_failed", Err: err}
 			return
 		}
 
 		ga.logger.Info("Collection created successfully", "collection_id", collection.ID)
-		ga.ops <- Operation{Type: "collection_created", Data: collection}
-		// Refresh collections list
-		ga.fetchCollections()
-		ga.window.Invalidate()
+		ga.do(func() {
+			ga.collections = append(ga.collections, *collection)
+		})
 	}()
 
 	// Close dialog
@@ -655,18 +641,21 @@ func (ga *GioApp) handleCollectionUpdate() {
 			Tags:     tags,
 		}
 
-		_, err := ga.collectionsClient.Update(ga.currentUser.ID, collectionID, req)
+		updated, err := ga.collectionsClient.Update(ga.currentUser.ID, collectionID, req)
 		if err != nil {
 			ga.logger.Error("Failed to update collection", "error", err)
-			ga.ops <- Operation{Type: "collection_update_failed", Err: err}
 			return
 		}
 
 		ga.logger.Info("Collection updated successfully", "collection_id", collectionID)
-		ga.ops <- Operation{Type: "collection_updated"}
-		// Refresh collections list
-		ga.fetchCollections()
-		ga.window.Invalidate()
+		ga.do(func() {
+			for i, c := range ga.collections {
+				if c.ID == updated.ID {
+					ga.collections[i] = *updated
+					break
+				}
+			}
+		})
 	}()
 
 	// Close dialog
@@ -768,15 +757,18 @@ func (ga *GioApp) handleCollectionDelete() {
 		err := ga.collectionsClient.Delete(ga.currentUser.ID, collectionID)
 		if err != nil {
 			ga.logger.Error("Failed to delete collection", "error", err)
-			ga.ops <- Operation{Type: "collection_delete_failed", Err: err}
 			return
 		}
 
 		ga.logger.Info("Collection deleted successfully", "collection_id", collectionID)
-		ga.ops <- Operation{Type: "collection_deleted"}
-		// Refresh collections list
-		ga.fetchCollections()
-		ga.window.Invalidate()
+		ga.do(func() {
+			for i, c := range ga.collections {
+				if c.ID == collectionID {
+					ga.collections = append(ga.collections[:i], ga.collections[i+1:]...)
+					break
+				}
+			}
+		})
 	}()
 
 	// Close dialog
