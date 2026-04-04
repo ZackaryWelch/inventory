@@ -145,9 +145,9 @@ func (uc *UpdateContainerUseCase) Execute(ctx context.Context, req UpdateContain
 
 	// Update location if provided
 	if req.Location != nil {
-		// Location is a simple string field, so we need to update it directly
-		// Since there's no UpdateLocation method on the entity, we'll update dimensions which triggers updatedAt
-		// For now, we'll just update dimensions to refresh the timestamp if location changes
+		if err := container.UpdateLocation(*req.Location); err != nil {
+			return nil, fmt.Errorf("failed to update location: %w", err)
+		}
 	}
 
 	// Update dimensions if any are provided

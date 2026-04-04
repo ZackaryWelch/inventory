@@ -13,6 +13,9 @@ type UpdateObjectRequest struct {
 	ContainerID entities.ContainerID
 	ObjectID    entities.ObjectID
 	Name        *string
+	Description *string
+	Quantity    *float64
+	Unit        *string
 	Properties  map[string]interface{}
 	Tags        []string
 	UserID      entities.UserID
@@ -87,6 +90,28 @@ func (uc *UpdateObjectUseCase) Execute(ctx context.Context, req UpdateObjectRequ
 		}
 		if err := updatedObject.UpdateName(objectName); err != nil {
 			return nil, fmt.Errorf("failed to update object name: %w", err)
+		}
+	}
+
+	// Update description if provided
+	if req.Description != nil {
+		desc := entities.NewObjectDescription(*req.Description)
+		if err := updatedObject.UpdateDescription(desc); err != nil {
+			return nil, fmt.Errorf("failed to update object description: %w", err)
+		}
+	}
+
+	// Update quantity if provided
+	if req.Quantity != nil {
+		if err := updatedObject.UpdateQuantity(req.Quantity); err != nil {
+			return nil, fmt.Errorf("failed to update object quantity: %w", err)
+		}
+	}
+
+	// Update unit if provided
+	if req.Unit != nil {
+		if err := updatedObject.UpdateUnit(*req.Unit); err != nil {
+			return nil, fmt.Errorf("failed to update object unit: %w", err)
 		}
 	}
 

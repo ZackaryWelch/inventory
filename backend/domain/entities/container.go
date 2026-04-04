@@ -376,6 +376,12 @@ func (c *Container) UpdateParentContainer(parentContainerID *ContainerID) error 
 	return nil
 }
 
+func (c *Container) UpdateLocation(location string) error {
+	c.location = location
+	c.updatedAt = time.Now()
+	return nil
+}
+
 func (c *Container) UpdateDimensions(width, depth *float64, rows *int, capacity *float64) error {
 	c.width = width
 	c.depth = depth
