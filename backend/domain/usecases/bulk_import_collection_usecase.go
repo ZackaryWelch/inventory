@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/nishiki/backend/domain/entities"
@@ -233,22 +234,16 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		// Use the collection's object type
 		objectType := collection.ObjectType()
 
+		// Extract reserved fields
+		desc, quantity := resolveReservedFields(item)
+		tags := resolveTagsField(item, req.DefaultTags)
+
 		// Extract properties (all fields except reserved columns), with normalized keys
 		properties := make(map[string]interface{})
 		for key, value := range item {
 			nk := services.ToSnakeCase(key)
 			if !uc.typeInference.IsReserved(nk) {
 				properties[nk] = value
-			}
-		}
-
-		// Combine default tags with any item-specific tags
-		tags := append([]string(nil), req.DefaultTags...)
-		if itemTags, ok := item["tags"].([]interface{}); ok {
-			for _, tag := range itemTags {
-				if tagStr, ok := tag.(string); ok {
-					tags = append(tags, tagStr)
-				}
 			}
 		}
 
@@ -261,10 +256,12 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		}
 
 		newObject, err := entities.NewObject(entities.ObjectProps{
-			Name:       objectName,
-			ObjectType: objectType,
-			Properties: properties,
-			Tags:       tags,
+			Name:        objectName,
+			Description: entities.NewObjectDescription(desc),
+			ObjectType:  objectType,
+			Quantity:    quantity,
+			Properties:  properties,
+			Tags:        tags,
 		})
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("failed to create object '%s': %v", name, err))
@@ -342,22 +339,16 @@ func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.
 		// Use the collection's object type
 		objectType := collection.ObjectType()
 
+		// Extract reserved fields
+		desc, quantity := resolveReservedFields(item)
+		tags := resolveTagsField(item, req.DefaultTags)
+
 		// Extract properties (all fields except reserved columns), with normalized keys
 		properties := make(map[string]interface{})
 		for key, value := range item {
 			nk := services.ToSnakeCase(key)
 			if !uc.typeInference.IsReserved(nk) {
 				properties[nk] = value
-			}
-		}
-
-		// Combine default tags with any item-specific tags
-		tags := append([]string(nil), req.DefaultTags...)
-		if itemTags, ok := item["tags"].([]interface{}); ok {
-			for _, tag := range itemTags {
-				if tagStr, ok := tag.(string); ok {
-					tags = append(tags, tagStr)
-				}
 			}
 		}
 
@@ -370,10 +361,12 @@ func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.
 		}
 
 		newObject, err := entities.NewObject(entities.ObjectProps{
-			Name:       objectName,
-			ObjectType: objectType,
-			Properties: properties,
-			Tags:       tags,
+			Name:        objectName,
+			Description: entities.NewObjectDescription(desc),
+			ObjectType:  objectType,
+			Quantity:    quantity,
+			Properties:  properties,
+			Tags:        tags,
 		})
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("failed to create object '%s': %v", name, err))
@@ -574,6 +567,10 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 			container = locationToContainer[defaultKey]
 		}
 
+		// Extract reserved fields
+		desc, quantity := resolveReservedFields(item)
+		tags := resolveTagsField(item, req.DefaultTags)
+
 		// Build properties (exclude reserved columns and location column), with normalized keys
 		properties := make(map[string]interface{})
 		for key, value := range item {
@@ -587,16 +584,6 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 			properties[nk] = value
 		}
 
-		// Combine default tags with item-specific tags
-		tags := append([]string(nil), req.DefaultTags...)
-		if itemTags, ok := item["tags"].([]interface{}); ok {
-			for _, tag := range itemTags {
-				if tagStr, ok := tag.(string); ok {
-					tags = append(tags, tagStr)
-				}
-			}
-		}
-
 		objectName, err := entities.NewObjectName(name)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("invalid object name '%s': %v", name, err))
@@ -605,10 +592,12 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 		}
 
 		newObject, err := entities.NewObject(entities.ObjectProps{
-			Name:       objectName,
-			ObjectType: objectType,
-			Properties: properties,
-			Tags:       tags,
+			Name:        objectName,
+			Description: entities.NewObjectDescription(desc),
+			ObjectType:  objectType,
+			Quantity:    quantity,
+			Properties:  properties,
+			Tags:        tags,
 		})
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("failed to create object '%s': %v", name, err))
@@ -645,6 +634,66 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 		ContainersCreated: containersCreated,
 		InferredSchema:    inferredSchema,
 	}, nil
+}
+
+// resolveReservedFields extracts description and quantity from a data row.
+// These are reserved columns that get stripped from properties but need to be
+// mapped to top-level Object fields.
+func resolveReservedFields(item map[string]interface{}) (description string, quantity *float64) {
+	// Try case-insensitive lookup for description
+	for k, v := range item {
+		if strings.EqualFold(k, "description") {
+			description = strings.TrimSpace(fmt.Sprintf("%v", v))
+			break
+		}
+	}
+
+	// Try case-insensitive lookup for quantity
+	for k, v := range item {
+		if strings.EqualFold(k, "quantity") {
+			switch val := v.(type) {
+			case float64:
+				quantity = &val
+			case string:
+				if f, err := strconv.ParseFloat(strings.TrimSpace(val), 64); err == nil {
+					quantity = &f
+				}
+			}
+			break
+		}
+	}
+
+	return description, quantity
+}
+
+// resolveTagsField extracts tags from a data row, combining with default tags.
+func resolveTagsField(item map[string]interface{}, defaultTags []string) []string {
+	tags := append([]string(nil), defaultTags...)
+
+	// Check for tags as []interface{} (from JSON)
+	if itemTags, ok := item["tags"].([]interface{}); ok {
+		for _, tag := range itemTags {
+			if tagStr, ok := tag.(string); ok {
+				tags = append(tags, tagStr)
+			}
+		}
+	}
+	// Check for tags as comma-separated string (from CSV)
+	for k, v := range item {
+		if strings.EqualFold(k, "tags") {
+			if tagStr, ok := v.(string); ok && tagStr != "" {
+				for _, t := range strings.Split(tagStr, ",") {
+					t = strings.TrimSpace(t)
+					if t != "" {
+						tags = append(tags, t)
+					}
+				}
+			}
+			break
+		}
+	}
+
+	return tags
 }
 
 // resolveNameField finds the object name from a data row using explicit nameCol or auto-detection.
