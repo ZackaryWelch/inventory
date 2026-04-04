@@ -22,7 +22,10 @@ services:
     container_name: nishiki-frontend
     restart: unless-stopped
     ports:
-      - "3000:3002"
+      - "3002:3002"
+    environment:
+      - NISHIKI_PORT=3002
+      - NISHIKI_BACKEND_URL=http://nishiki-backend:3001
     networks:
       - nishiki-network
 

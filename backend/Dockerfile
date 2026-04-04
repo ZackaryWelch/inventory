@@ -2,7 +2,7 @@ FROM golang:1.26-trixie AS builder
 
 WORKDIR /app
 
-COPY ./ ./src
+COPY backend/ ./src
 
 WORKDIR /app/src
 

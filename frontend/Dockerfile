@@ -1,8 +1,9 @@
 FROM golang:1.26-trixie AS builder
 
-WORKDIR /app
+WORKDIR /app/frontend
 
 COPY frontend/ ./
+COPY backend/ ../backend/
 
 # Build WASM binary
 RUN GOOS=js GOARCH=wasm go build -o gio-web/app.wasm ./cmd/gio-webmain
@@ -20,9 +21,9 @@ RUN groupadd -g 1001 nishiki && \
 
 WORKDIR /app
 
-COPY --from=builder /app/gio-web/ ./gio-web/
-COPY --from=builder /app/nishiki-frontend .
-COPY --from=builder /app/config.toml .
+COPY --from=builder /app/frontend/gio-web/ ./gio-web/
+COPY --from=builder /app/frontend/nishiki-frontend .
+COPY --from=builder /app/frontend/config.toml .
 
 RUN chown -R nishiki:nishiki /app
 
