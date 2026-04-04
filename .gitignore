@@ -6,5 +6,4 @@ config.toml
 frontend/bin/*
 frontend/web/app.wasm
 .idea
-.serena
 data

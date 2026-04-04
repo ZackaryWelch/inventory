@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(cp:*)",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(docker logs:*)",
+      "Read(//tmp/**)",
+      "Bash(cat:*)",
+      "Bash(go test:*)",
+      "Bash(go mod:*)",
+      "Bash(go vet:*)",
+      "Bash(go doc:*)",
+      "Bash(go list:*)",
+      "Bash(go generate:*)",
+      "Bash(identify:*)",
+      "mcp__plugin_serena_serena__list_dir",
+      "WebSearch",
+      "WebFetch(domain:pkg.go.dev)",
+      "WebFetch(domain:github.com)"
+    ],
+    "deny": [],
+    "ask": [],
+    "defaultMode": "acceptEdits"
+  }
+}
