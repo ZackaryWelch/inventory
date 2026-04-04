@@ -43,87 +43,105 @@ func (ga *GioApp) renderImportPreviewDialog(gtx layout.Context) layout.Dimension
 	// Render draggable dialog
 	dims, dismissed := dialogStyle.Layout(gtx, ga.theme.Theme, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			// File info
+			// Scrollable content area with max height
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				// Limit height so buttons remain visible
+				maxHeight := gtx.Constraints.Max.Y - gtx.Dp(unit.Dp(120))
+				if maxHeight < gtx.Dp(unit.Dp(200)) {
+					maxHeight = gtx.Dp(unit.Dp(200))
+				}
+				if gtx.Constraints.Max.Y > 0 && gtx.Constraints.Max.Y > maxHeight {
+					gtx.Constraints.Max.Y = maxHeight
+				}
+
+				listStyle := material.List(ga.theme.Theme, &ga.widgetState.importPreviewList)
+				return listStyle.Layout(gtx, 1, func(gtx layout.Context, _ int) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+						// File info
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							label := material.Body1(ga.theme.Theme, "File: "+ga.importFilename)
-							label.Font.Weight = font.Bold
-							return label.Layout(gtx)
+							return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+									layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+										label := material.Body1(ga.theme.Theme, "File: "+ga.importFilename)
+										label.Font.Weight = font.Bold
+										return label.Layout(gtx)
+									}),
+									layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+										info := fmt.Sprintf("Format: %s | Items: %d", ga.importData.Format, len(ga.importData.Data))
+										label := material.Body2(ga.theme.Theme, info)
+										label.Color = theme.ColorTextSecondary
+										return label.Layout(gtx)
+									}),
+								)
+							})
 						}),
+
+						// Errors section (if any)
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							info := fmt.Sprintf("Format: %s | Items: %d", ga.importData.Format, len(ga.importData.Data))
-							label := material.Body2(ga.theme.Theme, info)
-							label.Color = theme.ColorTextSecondary
-							return label.Layout(gtx)
+							if len(ga.importData.Errors) > 0 {
+								return ga.renderImportErrors(gtx)
+							}
+							return layout.Dimensions{}
+						}),
+
+						// Preview of first few items
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return ga.renderImportPreview(gtx)
+						}),
+
+						// Column mapping
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{
+								Top:    unit.Dp(theme.Spacing3),
+								Bottom: unit.Dp(theme.Spacing2),
+							}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return ga.renderImportColumnMapping(gtx)
+							})
+						}),
+
+						// Summary
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{
+								Top:    unit.Dp(theme.Spacing3),
+								Bottom: unit.Dp(theme.Spacing3),
+							}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								validItems := len(ga.importData.Data)
+								errorCount := len(ga.importData.Errors)
+								summary := fmt.Sprintf("✓ %d items ready to import", validItems)
+								if errorCount > 0 {
+									summary += fmt.Sprintf(" (%d errors)", errorCount)
+								}
+								label := material.Body1(ga.theme.Theme, summary)
+								label.Font.Weight = font.Bold
+								return label.Layout(gtx)
+							})
 						}),
 					)
 				})
 			}),
 
-			// Errors section (if any)
+			// Buttons (always visible below scroll area)
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				if len(ga.importData.Errors) > 0 {
-					return ga.renderImportErrors(gtx)
-				}
-				return layout.Dimensions{}
-			}),
-
-			// Preview of first few items
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return ga.renderImportPreview(gtx)
-			}),
-
-			// Column mapping
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{
-					Top:    unit.Dp(theme.Spacing3),
-					Bottom: unit.Dp(theme.Spacing2),
-				}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return ga.renderImportColumnMapping(gtx)
+				return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{
+						Axis:    layout.Horizontal,
+						Spacing: layout.SpaceEnd,
+					}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return widgets.CancelButton(ga.theme.Theme, &ga.widgetState.importCancelButton, "Cancel")(gtx)
+							})
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							if len(ga.importData.Data) == 0 {
+								label := material.Body1(ga.theme.Theme, "No valid items to import")
+								label.Color = theme.ColorTextSecondary
+								return label.Layout(gtx)
+							}
+							return widgets.PrimaryButton(ga.theme.Theme, &ga.widgetState.importExecuteButton, "Import")(gtx)
+						}),
+					)
 				})
-			}),
-
-			// Summary
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{
-					Top:    unit.Dp(theme.Spacing3),
-					Bottom: unit.Dp(theme.Spacing3),
-				}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					validItems := len(ga.importData.Data)
-					errorCount := len(ga.importData.Errors)
-					summary := fmt.Sprintf("✓ %d items ready to import", validItems)
-					if errorCount > 0 {
-						summary += fmt.Sprintf(" (%d errors)", errorCount)
-					}
-					label := material.Body1(ga.theme.Theme, summary)
-					label.Font.Weight = font.Bold
-					return label.Layout(gtx)
-				})
-			}),
-
-			// Buttons
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{
-					Axis:    layout.Horizontal,
-					Spacing: layout.SpaceEnd,
-				}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return widgets.CancelButton(ga.theme.Theme, &ga.widgetState.importCancelButton, "Cancel")(gtx)
-						})
-					}),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						if len(ga.importData.Data) == 0 {
-							// Disable import button if no valid data
-							label := material.Body1(ga.theme.Theme, "No valid items to import")
-							label.Color = theme.ColorTextSecondary
-							return label.Layout(gtx)
-						}
-						return widgets.PrimaryButton(ga.theme.Theme, &ga.widgetState.importExecuteButton, "Import")(gtx)
-					}),
-				)
 			}),
 		)
 	})

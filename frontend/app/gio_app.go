@@ -195,6 +195,7 @@ type WidgetState struct {
 	importButton          widget.Clickable
 	importExecuteButton   widget.Clickable
 	importCancelButton    widget.Clickable
+	importPreviewList     widget.List
 
 	// Import column mapping
 	importNameColumnButtons     map[string]*widget.Clickable
@@ -357,6 +358,7 @@ func NewGioApp() *GioApp {
 		importNameColumnButtons:     make(map[string]*widget.Clickable),
 		importLocationColumnButtons: make(map[string]*widget.Clickable),
 		groupedTextFilterButtons:    make(map[string]*widget.Clickable),
+		importPreviewList:           widget.List{List: layout.List{Axis: layout.Vertical}},
 		collectionDialog:            widgets.NewDialog(),
 		groupDialog:                 widgets.NewDialog(),
 		deleteDialog:                widgets.NewDialog(),
