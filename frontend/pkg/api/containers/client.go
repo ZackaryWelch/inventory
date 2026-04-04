@@ -74,7 +74,7 @@ func (c *Client) Update(accountID, collectionID, containerID string, req types.U
 
 // Delete deletes a container
 func (c *Client) Delete(accountID, collectionID, containerID string) error {
-	resp, err := c.common.Delete(fmt.Sprintf("/containers/%s", containerID))
+	resp, err := c.common.Delete(fmt.Sprintf("/accounts/%s/collections/%s/containers/%s", accountID, collectionID, containerID))
 	if err != nil {
 		return err
 	}

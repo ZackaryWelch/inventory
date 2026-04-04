@@ -59,6 +59,7 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 		ga.containers = nil
 		ga.objects = nil
 		ga.activeGroupedTextFilters = nil
+		return layout.Dimensions{}
 	}
 
 	// Handle create container button
@@ -69,6 +70,7 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 		ga.selectedContainerID = nil
 		ga.widgetState.containerNameEditor.SetText("")
 		ga.widgetState.containerLocationEditor.SetText("")
+		ga.selectedParentContainerID = nil
 	}
 
 	// Handle create object button
@@ -427,6 +429,11 @@ func (ga *GioApp) renderContainerCard(gtx layout.Context, container Container, i
 		ga.containerDialogMode = "edit"
 		ga.widgetState.containerNameEditor.SetText(container.Name)
 		ga.widgetState.containerLocationEditor.SetText(container.Location)
+		if container.ParentContainerID != nil {
+			ga.selectedParentContainerID = container.ParentContainerID
+		} else {
+			ga.selectedParentContainerID = nil
+		}
 	}
 
 	// Handle delete button click
@@ -533,6 +540,12 @@ func (ga *GioApp) renderObjectCard(gtx layout.Context, object Object, index int)
 			ga.widgetState.objectQuantityEditor.SetText("")
 		}
 		ga.widgetState.objectUnitEditor.SetText(object.Unit)
+		if object.ContainerID != "" {
+			cid := object.ContainerID
+			ga.selectedContainerID = &cid
+		} else {
+			ga.selectedContainerID = nil
+		}
 	}
 
 	// Handle delete button click

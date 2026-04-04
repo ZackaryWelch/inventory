@@ -219,12 +219,15 @@ func (ga *GioApp) renderDeleteContainerDialog(gtx layout.Context) layout.Dimensi
 		return layout.Dimensions{}
 	}
 
-	// Find container name for confirmation
+	// Find container name and count children
 	var containerName string
+	var childCount int
 	for _, container := range ga.containers {
 		if container.ID == ga.deleteContainerID {
 			containerName = container.Name
-			break
+		}
+		if container.ParentContainerID != nil && *container.ParentContainerID == ga.deleteContainerID {
+			childCount++
 		}
 	}
 
@@ -254,8 +257,16 @@ func (ga *GioApp) renderDeleteContainerDialog(gtx layout.Context) layout.Dimensi
 			// Message
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Bottom: unit.Dp(theme.Spacing4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					message := fmt.Sprintf("Are you sure you want to delete the container \"%s\"? All objects within it will also be deleted. This action cannot be undone.", containerName)
+					var message string
+					if childCount > 0 {
+						message = fmt.Sprintf("Cannot delete container \"%s\" because it has %d child container(s). Remove or reassign all child containers first.", containerName, childCount)
+					} else {
+						message = fmt.Sprintf("Are you sure you want to delete the container \"%s\"? All objects within it will also be deleted. This action cannot be undone.", containerName)
+					}
 					label := material.Body1(ga.theme.Theme, message)
+					if childCount > 0 {
+						label.Color = theme.ColorDanger
+					}
 					return label.Layout(gtx)
 				})
 			}),
@@ -268,10 +279,18 @@ func (ga *GioApp) renderDeleteContainerDialog(gtx layout.Context) layout.Dimensi
 				}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return widgets.CancelButton(ga.theme.Theme, &ga.widgetState.containerDialogCancel, "Cancel")(gtx)
+							cancelLabel := "Cancel"
+							if childCount > 0 {
+								cancelLabel = "Close"
+							}
+							return widgets.CancelButton(ga.theme.Theme, &ga.widgetState.containerDialogCancel, cancelLabel)(gtx)
 						})
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						if childCount > 0 {
+							// Don't show delete button when there are children
+							return layout.Dimensions{}
+						}
 						return widgets.DangerButton(ga.theme.Theme, &ga.widgetState.containerDialogSubmit, "Delete")(gtx)
 					}),
 				)
@@ -444,43 +463,119 @@ func (ga *GioApp) renderContainerTypeButton(gtx layout.Context, containerType st
 
 // renderParentContainerSelector renders parent container selection buttons
 func (ga *GioApp) renderParentContainerSelector(gtx layout.Context) layout.Dimensions {
+	if len(ga.containers) == 0 {
+		return layout.Dimensions{}
+	}
+
 	return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				label := material.Body2(ga.theme.Theme, "Parent Container (Optional)")
+				label := material.Body2(ga.theme.Theme, "Parent Container")
 				label.Color = theme.ColorTextSecondary
 				return label.Layout(gtx)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					// Show "None" button and container buttons in a scrollable list
-					label := material.Body2(ga.theme.Theme, "Select parent container or leave as root")
-					label.Color = theme.ColorTextSecondary
-					return label.Layout(gtx)
+					// "(none)" chip to make this a root container
+					noneBtn := ga.getParentContainerButton("")
+					if noneBtn.Clicked(gtx) {
+						ga.selectedParentContainerID = nil
+					}
+					children := []layout.FlexChild{
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{Right: unit.Dp(theme.Spacing1), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return ga.renderFilterChip(gtx, noneBtn, "(none)", ga.selectedParentContainerID == nil)
+							})
+						}),
+					}
+					// Exclude the container being edited from parent options
+					editingID := ""
+					if ga.selectedContainer != nil {
+						editingID = ga.selectedContainer.ID
+					}
+					for _, c := range ga.containers {
+						c := c
+						if c.ID == editingID {
+							continue
+						}
+						btn := ga.getParentContainerButton(c.ID)
+						if btn.Clicked(gtx) {
+							cid := c.ID
+							ga.selectedParentContainerID = &cid
+						}
+						active := ga.selectedParentContainerID != nil && *ga.selectedParentContainerID == c.ID
+						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{Right: unit.Dp(theme.Spacing1), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return ga.renderFilterChip(gtx, btn, c.Name, active)
+							})
+						}))
+					}
+					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
 				})
 			}),
 		)
 	})
 }
 
+func (ga *GioApp) getParentContainerButton(containerID string) *widget.Clickable {
+	if ga.widgetState.parentContainerButtons == nil {
+		ga.widgetState.parentContainerButtons = make(map[string]*widget.Clickable)
+	}
+	if btn, ok := ga.widgetState.parentContainerButtons[containerID]; ok {
+		return btn
+	}
+	btn := new(widget.Clickable)
+	ga.widgetState.parentContainerButtons[containerID] = btn
+	return btn
+}
+
 // renderObjectContainerSelector renders container selection for objects
 func (ga *GioApp) renderObjectContainerSelector(gtx layout.Context) layout.Dimensions {
+	if len(ga.containers) == 0 {
+		return layout.Dimensions{}
+	}
+
 	return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				label := material.Body2(ga.theme.Theme, "Container (Optional)")
+				label := material.Body2(ga.theme.Theme, "Container *")
 				label.Color = theme.ColorTextSecondary
 				return label.Layout(gtx)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					label := material.Body2(ga.theme.Theme, "Select a container to place this object")
-					label.Color = theme.ColorTextSecondary
-					return label.Layout(gtx)
+					children := make([]layout.FlexChild, len(ga.containers))
+					for i, c := range ga.containers {
+						c := c
+						btn := ga.getObjectContainerButton(c.ID)
+						if btn.Clicked(gtx) {
+							cid := c.ID
+							ga.selectedContainerID = &cid
+						}
+						active := ga.selectedContainerID != nil && *ga.selectedContainerID == c.ID
+						children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{Right: unit.Dp(theme.Spacing1), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return ga.renderFilterChip(gtx, btn, c.Name, active)
+							})
+						})
+					}
+					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
 				})
 			}),
 		)
 	})
+}
+
+func (ga *GioApp) getObjectContainerButton(containerID string) *widget.Clickable {
+	if ga.widgetState.objectContainerButtons == nil {
+		ga.widgetState.objectContainerButtons = make(map[string]*widget.Clickable)
+	}
+	if btn, ok := ga.widgetState.objectContainerButtons[containerID]; ok {
+		return btn
+	}
+	btn := new(widget.Clickable)
+	ga.widgetState.objectContainerButtons[containerID] = btn
+	return btn
 }
 
 // handleContainerCreate handles creating a new container
@@ -507,10 +602,11 @@ func (ga *GioApp) handleContainerCreate() {
 
 	go func() {
 		req := types.CreateContainerRequest{
-			CollectionID: ga.selectedCollection.ID,
-			Name:         name,
-			Type:         containerType,
-			Location:     location,
+			CollectionID:      ga.selectedCollection.ID,
+			Name:              name,
+			Type:              containerType,
+			Location:          location,
+			ParentContainerID: ga.selectedParentContainerID,
 		}
 
 		container, err := ga.containersClient.Create(ga.currentUser.ID, ga.selectedCollection.ID, req)
@@ -528,6 +624,7 @@ func (ga *GioApp) handleContainerCreate() {
 	// Close dialog
 	ga.showContainerDialog = false
 	ga.selectedContainerType = ""
+	ga.selectedParentContainerID = nil
 	ga.window.Invalidate()
 }
 
@@ -551,9 +648,19 @@ func (ga *GioApp) handleContainerUpdate() {
 	containerID := ga.selectedContainer.ID
 
 	go func() {
+		// Use pointer to allow clearing parent (nil = not provided, pointer to "" = clear parent)
+		var parentID *string
+		if ga.selectedParentContainerID != nil {
+			parentID = ga.selectedParentContainerID
+		} else if ga.selectedContainer != nil && ga.selectedContainer.ParentContainerID != nil {
+			// User explicitly selected "(none)" to remove parent
+			empty := ""
+			parentID = &empty
+		}
 		req := types.UpdateContainerRequest{
-			Name:     name,
-			Location: location,
+			Name:              name,
+			Location:          location,
+			ParentContainerID: parentID,
 		}
 
 		_, err := ga.containersClient.Update(ga.currentUser.ID, ga.selectedCollection.ID, containerID, req)
@@ -571,6 +678,7 @@ func (ga *GioApp) handleContainerUpdate() {
 	// Close dialog
 	ga.showContainerDialog = false
 	ga.selectedContainer = nil
+	ga.selectedParentContainerID = nil
 	ga.window.Invalidate()
 }
 
@@ -694,12 +802,26 @@ func (ga *GioApp) handleObjectUpdate() {
 
 	objectID := ga.selectedObject.ID
 
+	containerID := ""
+	if ga.selectedContainerID != nil {
+		containerID = *ga.selectedContainerID
+	} else if ga.selectedObject != nil {
+		containerID = ga.selectedObject.ContainerID
+	}
+
+	// Preserve existing properties and tags
+	properties := ga.selectedObject.Properties
+	tags := ga.selectedObject.Tags
+
 	go func() {
 		req := types.UpdateObjectRequest{
+			ContainerID: containerID,
 			Name:        &name,
 			Description: &description,
 			Quantity:    quantity,
 			Unit:        &unit,
+			Properties:  properties,
+			Tags:        tags,
 		}
 
 		_, err := ga.objectsClient.Update(ga.currentUser.ID, objectID, req)

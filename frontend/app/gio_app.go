@@ -93,7 +93,8 @@ type GioApp struct {
 	selectedObjectType    string
 	selectedContainerType string
 	selectedGroupID       *string
-	selectedContainerID   *string
+	selectedContainerID       *string
+	selectedParentContainerID *string // nil = no parent (root), pointer to "" = explicitly clearing parent
 
 	// Group members dialog state
 	showMembersDialog bool
@@ -206,9 +207,10 @@ type WidgetState struct {
 	// Container dialog widgets
 	containerNameEditor     widget.Editor
 	containerLocationEditor widget.Editor
-	containerTypeButtons    map[string]*widget.Clickable
-	containerDialogSubmit   widget.Clickable
-	containerDialogCancel   widget.Clickable
+	containerTypeButtons       map[string]*widget.Clickable
+	parentContainerButtons     map[string]*widget.Clickable
+	containerDialogSubmit      widget.Clickable
+	containerDialogCancel      widget.Clickable
 
 	// Object dialog widgets
 	objectNameEditor        widget.Editor
@@ -217,6 +219,7 @@ type WidgetState struct {
 	objectUnitEditor        widget.Editor
 	objectDialogSubmit      widget.Clickable
 	objectDialogCancel      widget.Clickable
+	objectContainerButtons  map[string]*widget.Clickable
 
 	// Group members dialog
 	membersDialog       *widgets.Dialog

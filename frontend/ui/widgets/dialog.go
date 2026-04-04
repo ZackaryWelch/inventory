@@ -28,6 +28,8 @@ type Dialog struct {
 	drag gesture.Drag
 	// Click for backdrop dismissal
 	backdropClick widget.Clickable
+	// Click absorber for dialog body (prevents backdrop dismissal)
+	bodyClick widget.Clickable
 	// Offset during drag
 	dragOffset f32.Point
 }
@@ -154,39 +156,43 @@ func (ds DialogStyle) Layout(gtx layout.Context, th *material.Theme, content lay
 
 // layoutDialog renders the dialog structure (title bar + content)
 func (ds DialogStyle) layoutDialog(gtx layout.Context, th *material.Theme, content layout.Widget) layout.Dimensions {
-	// Constrain dialog width
-	gtx.Constraints.Max.X = gtx.Dp(ds.Width)
-	gtx.Constraints.Min.X = gtx.Dp(ds.Width)
+	// Absorb pointer events on the dialog body to prevent backdrop dismissal
+	// when clicking inside the dialog but not on an interactive widget
+	return ds.Dialog.bodyClick.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		// Constrain width inside the clickable
+		gtx.Constraints.Max.X = gtx.Dp(ds.Width)
+		gtx.Constraints.Min.X = gtx.Dp(ds.Width)
 
-	// Record dialog content for background
-	macro := op.Record(gtx.Ops)
-	dims := layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		// Title bar (draggable)
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return ds.layoutTitleBar(gtx, th)
-		}),
-		// Content area
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{
-				Top:    unit.Dp(theme.Spacing4),
-				Bottom: unit.Dp(theme.Spacing4),
-				Left:   unit.Dp(theme.Spacing4),
-				Right:  unit.Dp(theme.Spacing4),
-			}.Layout(gtx, content)
-		}),
-	)
-	call := macro.Stop()
+		// Record dialog content for background
+		macro := op.Record(gtx.Ops)
+		dims := layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			// Title bar (draggable)
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return ds.layoutTitleBar(gtx, th)
+			}),
+			// Content area
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{
+					Top:    unit.Dp(theme.Spacing4),
+					Bottom: unit.Dp(theme.Spacing4),
+					Left:   unit.Dp(theme.Spacing4),
+					Right:  unit.Dp(theme.Spacing4),
+				}.Layout(gtx, content)
+			}),
+		)
+		call := macro.Stop()
 
-	// Draw rounded background
-	rr := gtx.Dp(ds.CornerRadius)
-	defer clip.UniformRRect(image.Rectangle{Max: dims.Size}, rr).Push(gtx.Ops).Pop()
-	paint.ColorOp{Color: ds.BackgroundColor}.Add(gtx.Ops)
-	paint.PaintOp{}.Add(gtx.Ops)
+		// Draw rounded background
+		rr := gtx.Dp(ds.CornerRadius)
+		defer clip.UniformRRect(image.Rectangle{Max: dims.Size}, rr).Push(gtx.Ops).Pop()
+		paint.ColorOp{Color: ds.BackgroundColor}.Add(gtx.Ops)
+		paint.PaintOp{}.Add(gtx.Ops)
 
-	// Draw content
-	call.Add(gtx.Ops)
+		// Draw content
+		call.Add(gtx.Ops)
 
-	return dims
+		return dims
+	})
 }
 
 // layoutTitleBar renders the draggable title bar
