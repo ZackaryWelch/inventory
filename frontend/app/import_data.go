@@ -90,15 +90,6 @@ func (ga *GioApp) parseCSV(content string) (*ImportData, error) {
 			}
 		}
 
-		if _, hasName := row["name"]; !hasName {
-			if _, hasTitle := row["title"]; !hasTitle {
-				if _, hasItem := row["item"]; !hasItem {
-					data.Errors = append(data.Errors, fmt.Sprintf("Row %d: missing required field 'name'", rowIdx+2))
-					continue
-				}
-			}
-		}
-
 		data.Data = append(data.Data, row)
 	}
 
@@ -118,43 +109,50 @@ func (ga *GioApp) parseJSON(content string) (*ImportData, error) {
 		Errors: make([]string, 0),
 	}
 
-	for i, row := range rawData {
-		if _, hasName := row["name"]; !hasName {
-			if _, hasTitle := row["title"]; !hasTitle {
-				if _, hasItem := row["item"]; !hasItem {
-					data.Errors = append(data.Errors, fmt.Sprintf("Item %d: missing required field 'name'", i+1))
+	return data, nil
+}
+
+// findStringField returns the first string value found for any of the given
+// field names, matched case-insensitively against the map keys.
+func findStringField(m map[string]interface{}, fields ...string) string {
+	for k, v := range m {
+		kLower := strings.ToLower(k)
+		for _, f := range fields {
+			if kLower == f {
+				if s, ok := v.(string); ok {
+					return s
 				}
+				return fmt.Sprintf("%v", v)
 			}
 		}
 	}
+	return ""
+}
 
-	return data, nil
+// detectColumnByName returns the actual key from the first data row that
+// matches one of the given names case-insensitively, checked in order.
+func detectColumnByName(data []map[string]interface{}, names ...string) string {
+	if len(data) == 0 {
+		return ""
+	}
+	for _, target := range names {
+		for key := range data[0] {
+			if strings.EqualFold(key, target) {
+				return key
+			}
+		}
+	}
+	return ""
 }
 
 // detectLocationColumn returns the location column name if found in the data headers.
 func detectLocationColumn(data []map[string]interface{}) string {
-	if len(data) == 0 {
-		return ""
-	}
-	for key := range data[0] {
-		if strings.EqualFold(key, "location") {
-			return key
-		}
-	}
-	return ""
+	return detectColumnByName(data, "location")
 }
 
 // detectNameColumn returns the name column if "name", "title", or "item" is present.
 func detectNameColumn(data []map[string]interface{}) string {
-	if len(data) == 0 {
-		return ""
-	}
-	for _, candidate := range []string{"Name", "name", "Title", "title", "Item", "item"} {
-		if _, ok := data[0][candidate]; ok {
-			return candidate
-		}
-	}
-	return ""
+	return detectColumnByName(data, "name", "title", "item")
 }
 
 // executeImport sends the import request to the backend.

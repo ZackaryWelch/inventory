@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"fmt"
 	"strings"
+	"syscall/js"
 
 	"github.com/spf13/viper"
 
@@ -34,9 +35,12 @@ func LoadConfig() *config.Config {
 		fmt.Printf("Error unmarshaling config: %v\n", err)
 	}
 
-	// Auto-generate redirect URL based on port if not explicitly set
-	if cfg.RedirectURL == "" && cfg.Port != "" {
-		cfg.RedirectURL = fmt.Sprintf("http://localhost:%s/auth/callback", cfg.Port)
+	// Auto-generate redirect URL from the browser's actual origin
+	// This ensures the redirect URL matches the URL the user is accessing,
+	// regardless of Docker port mapping or reverse proxy configuration
+	if cfg.RedirectURL == "" {
+		origin := js.Global().Get("window").Get("location").Get("origin").String()
+		cfg.RedirectURL = origin + "/auth/callback"
 	}
 
 	// Debug: Print loaded config

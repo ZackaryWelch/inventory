@@ -258,21 +258,11 @@ func (ga *GioApp) renderPreviewItem(gtx layout.Context, item map[string]interfac
 		}
 
 		return card.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			// Get name from item (try multiple field names)
-			name := ""
-			if n, ok := item["name"].(string); ok {
-				name = n
-			} else if n, ok := item["title"].(string); ok {
-				name = n
-			} else if n, ok := item["item"].(string); ok {
-				name = n
-			}
+			// Get name from item using case-insensitive key lookup
+			name := findStringField(item, "name", "title", "item")
 
 			// Get description if available
-			desc := ""
-			if d, ok := item["description"].(string); ok {
-				desc = d
-			}
+			desc := findStringField(item, "description")
 
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -360,19 +350,30 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							children := make([]layout.FlexChild, len(cols))
-							for i, col := range cols {
+							// "(auto)" chip to let the backend auto-detect
+							autoBtn := ga.getImportNameColButton("")
+							if autoBtn.Clicked(gtx) {
+								ga.importNameColumn = ""
+							}
+							children := []layout.FlexChild{
+								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+									return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return ga.renderFilterChip(gtx, autoBtn, "(auto)", ga.importNameColumn == "")
+									})
+								}),
+							}
+							for _, col := range cols {
 								col := col
 								btn := ga.getImportNameColButton(col)
 								if btn.Clicked(gtx) {
 									ga.importNameColumn = col
 								}
 								active := ga.importNameColumn == col
-								children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 										return ga.renderFilterChip(gtx, btn, col, active)
 									})
-								})
+								}))
 							}
 							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
 						})
