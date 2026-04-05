@@ -754,9 +754,13 @@ func (ga *GioApp) handleCollectionDelete() {
 	collectionID := ga.deleteCollectionID
 
 	go func() {
-		err := ga.collectionsClient.Delete(ga.currentUser.ID, collectionID)
+		err := ga.collectionsClient.Delete(ga.currentUser.ID, collectionID, true)
 		if err != nil {
 			ga.logger.Error("Failed to delete collection", "error", err)
+			ga.do(func() {
+				ga.showDeleteCollectionError = true
+				ga.deleteCollectionErrorMsg = err.Error()
+			})
 			return
 		}
 
@@ -775,4 +779,54 @@ func (ga *GioApp) handleCollectionDelete() {
 	ga.showDeleteCollection = false
 	ga.deleteCollectionID = ""
 	ga.window.Invalidate()
+}
+
+// renderDeleteCollectionErrorDialog renders an error dialog when collection deletion fails
+func (ga *GioApp) renderDeleteCollectionErrorDialog(gtx layout.Context) layout.Dimensions {
+	if !ga.showDeleteCollectionError {
+		return layout.Dimensions{}
+	}
+
+	// Handle dismiss button
+	if ga.widgetState.collectionErrorDialogDismiss.Clicked(gtx) {
+		ga.showDeleteCollectionError = false
+		ga.deleteCollectionErrorMsg = ""
+		ga.widgetState.collectionErrorDialog.Reset()
+		return layout.Dimensions{}
+	}
+
+	dialogStyle := widgets.DefaultDialogStyle(ga.widgetState.collectionErrorDialog, "Delete Failed")
+	dialogStyle.Width = unit.Dp(500)
+	dialogStyle.TitleBarColor = theme.ColorDanger
+
+	dims, dismissed := dialogStyle.Layout(gtx, ga.theme.Theme, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{
+			Axis: layout.Vertical,
+		}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Bottom: unit.Dp(theme.Spacing4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					label := material.Body1(ga.theme.Theme, ga.deleteCollectionErrorMsg)
+					return label.Layout(gtx)
+				})
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{
+					Axis:    layout.Horizontal,
+					Spacing: layout.SpaceEnd,
+				}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return widgets.PrimaryButton(ga.theme.Theme, &ga.widgetState.collectionErrorDialogDismiss, "OK")(gtx)
+					}),
+				)
+			}),
+		)
+	})
+
+	if dismissed {
+		ga.showDeleteCollectionError = false
+		ga.deleteCollectionErrorMsg = ""
+		ga.widgetState.collectionErrorDialog.Reset()
+	}
+
+	return dims
 }

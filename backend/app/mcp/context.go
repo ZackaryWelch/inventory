@@ -57,7 +57,7 @@ func (c *MCPContext) updateCollectionUC() *usecases.UpdateCollectionUseCase {
 }
 
 func (c *MCPContext) deleteCollectionUC() *usecases.DeleteCollectionUseCase {
-	return usecases.NewDeleteCollectionUseCase(c.Container.CollectionRepo)
+	return usecases.NewDeleteCollectionUseCase(c.Container.CollectionRepo, c.Container.ContainerRepo)
 }
 
 func (c *MCPContext) getContainersByCollectionUC() *usecases.GetContainersByCollectionUseCase {

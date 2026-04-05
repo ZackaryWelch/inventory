@@ -11,19 +11,23 @@ import (
 type DeleteCollectionRequest struct {
 	CollectionID entities.CollectionID
 	UserID       entities.UserID
+	Force        bool
 }
 
 type DeleteCollectionResponse struct {
-	Success bool
+	Success           bool
+	ContainersDeleted int64
 }
 
 type DeleteCollectionUseCase struct {
 	collectionRepo repositories.CollectionRepository
+	containerRepo  repositories.ContainerRepository
 }
 
-func NewDeleteCollectionUseCase(collectionRepo repositories.CollectionRepository) *DeleteCollectionUseCase {
+func NewDeleteCollectionUseCase(collectionRepo repositories.CollectionRepository, containerRepo repositories.ContainerRepository) *DeleteCollectionUseCase {
 	return &DeleteCollectionUseCase{
 		collectionRepo: collectionRepo,
+		containerRepo:  containerRepo,
 	}
 }
 
@@ -39,9 +43,18 @@ func (uc *DeleteCollectionUseCase) Execute(ctx context.Context, req DeleteCollec
 		return nil, fmt.Errorf("access denied: only collection owner can delete")
 	}
 
-	// Business rule: Cannot delete collection with containers
+	// If collection has containers, require force flag
+	if collection.ContainerCount() > 0 && !req.Force {
+		return nil, fmt.Errorf("collection has containers: use force to delete collection and all its containers and objects")
+	}
+
+	// Cascade-delete containers (and their embedded objects)
+	var containersDeleted int64
 	if collection.ContainerCount() > 0 {
-		return nil, fmt.Errorf("cannot delete collection with containers: remove all containers first")
+		containersDeleted, err = uc.containerRepo.DeleteByCollectionID(ctx, req.CollectionID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to delete containers: %w", err)
+		}
 	}
 
 	// Delete collection
@@ -49,5 +62,8 @@ func (uc *DeleteCollectionUseCase) Execute(ctx context.Context, req DeleteCollec
 		return nil, fmt.Errorf("failed to delete collection: %w", err)
 	}
 
-	return &DeleteCollectionResponse{Success: true}, nil
+	return &DeleteCollectionResponse{
+		Success:           true,
+		ContainersDeleted: containersDeleted,
+	}, nil
 }

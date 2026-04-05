@@ -21,8 +21,9 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
+	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
 
-	useCase := NewDeleteCollectionUseCase(mockCollectionRepo)
+	useCase := NewDeleteCollectionUseCase(mockCollectionRepo, mockContainerRepo)
 
 	t.Run("success - delete empty collection", func(t *testing.T) {
 		userID := entities.NewUserID()
@@ -66,6 +67,109 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		assert.True(t, resp.Success)
+		assert.Equal(t, int64(0), resp.ContainersDeleted)
+	})
+
+	t.Run("success - force delete collection with containers", func(t *testing.T) {
+		userID := entities.NewUserID()
+		collectionID := entities.NewCollectionID()
+
+		// Create container
+		containerName, _ := entities.NewContainerName("Test Container")
+		container, _ := entities.NewContainer(entities.ContainerProps{
+			CollectionID: collectionID,
+			Name:         containerName,
+		})
+
+		// Create collection with container
+		collectionName, _ := entities.NewCollectionName("Test Collection")
+		existingCollection := entities.ReconstructCollection(
+			collectionID,
+			userID,
+			nil,
+			collectionName,
+			nil,
+			entities.ObjectTypeGeneral,
+			[]entities.Container{*container},
+			[]string{},
+			"",
+			nil,
+			time.Now(),
+			time.Now(),
+		)
+
+		req := DeleteCollectionRequest{
+			CollectionID: collectionID,
+			UserID:       userID,
+			Force:        true,
+		}
+
+		mockCollectionRepo.EXPECT().
+			GetByID(gomock.Any(), collectionID).
+			Return(existingCollection, nil).
+			Times(1)
+
+		mockContainerRepo.EXPECT().
+			DeleteByCollectionID(gomock.Any(), collectionID).
+			Return(int64(1), nil).
+			Times(1)
+
+		mockCollectionRepo.EXPECT().
+			Delete(gomock.Any(), collectionID).
+			Return(nil).
+			Times(1)
+
+		resp, err := useCase.Execute(context.Background(), req)
+
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		assert.True(t, resp.Success)
+		assert.Equal(t, int64(1), resp.ContainersDeleted)
+	})
+
+	t.Run("error - collection has containers without force", func(t *testing.T) {
+		userID := entities.NewUserID()
+		collectionID := entities.NewCollectionID()
+
+		// Create container
+		containerName, _ := entities.NewContainerName("Test Container")
+		container, _ := entities.NewContainer(entities.ContainerProps{
+			CollectionID: collectionID,
+			Name:         containerName,
+		})
+
+		// Create collection with container
+		collectionName, _ := entities.NewCollectionName("Test Collection")
+		existingCollection := entities.ReconstructCollection(
+			collectionID,
+			userID,
+			nil,
+			collectionName,
+			nil,
+			entities.ObjectTypeGeneral,
+			[]entities.Container{*container},
+			[]string{},
+			"",
+			nil,
+			time.Now(),
+			time.Now(),
+		)
+
+		req := DeleteCollectionRequest{
+			CollectionID: collectionID,
+			UserID:       userID,
+		}
+
+		mockCollectionRepo.EXPECT().
+			GetByID(gomock.Any(), collectionID).
+			Return(existingCollection, nil).
+			Times(1)
+
+		resp, err := useCase.Execute(context.Background(), req)
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+		assert.Contains(t, err.Error(), "collection has containers")
 	})
 
 	t.Run("error - collection not found", func(t *testing.T) {
@@ -128,52 +232,6 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "access denied")
-	})
-
-	t.Run("error - cannot delete collection with containers", func(t *testing.T) {
-		userID := entities.NewUserID()
-		collectionID := entities.NewCollectionID()
-
-		// Create container
-		containerName, _ := entities.NewContainerName("Test Container")
-		container, _ := entities.NewContainer(entities.ContainerProps{
-			CollectionID: collectionID,
-			Name:         containerName,
-		})
-
-		// Create collection with container
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		existingCollection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{*container}, // Has container
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
-
-		req := DeleteCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       userID,
-		}
-
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(existingCollection, nil).
-			Times(1)
-
-		resp, err := useCase.Execute(context.Background(), req)
-
-		assert.Error(t, err)
-		assert.Nil(t, resp)
-		assert.Contains(t, err.Error(), "cannot delete collection with containers")
 	})
 
 	t.Run("error - repository delete failure", func(t *testing.T) {

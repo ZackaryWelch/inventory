@@ -32,7 +32,7 @@ func NewCollectionController(
 		createCollectionUC:     usecases.NewCreateCollectionUseCase(c.CollectionRepo, c.AuthService),
 		getCollectionsUC:       usecases.NewGetCollectionsUseCase(c.CollectionRepo, c.AuthService),
 		updateCollectionUC:     usecases.NewUpdateCollectionUseCase(c.CollectionRepo, c.AuthService),
-		deleteCollectionUC:     usecases.NewDeleteCollectionUseCase(c.CollectionRepo),
+		deleteCollectionUC:     usecases.NewDeleteCollectionUseCase(c.CollectionRepo, c.ContainerRepo),
 		updatePropertySchemaUC: usecases.NewUpdatePropertySchemaUseCase(c.CollectionRepo),
 		exportCollectionUC:     usecases.NewExportCollectionUseCase(c.CollectionRepo, c.AuthService),
 		logger:                 logger,
@@ -478,9 +478,12 @@ func (ctrl *CollectionController) DeleteCollection(w http.ResponseWriter, r *htt
 		return
 	}
 
+	force := r.URL.Query().Get("force") == "true"
+
 	ucReq := usecases.DeleteCollectionRequest{
 		CollectionID: collectionID,
 		UserID:       pathUserID,
+		Force:        force,
 	}
 
 	resp, err := ctrl.deleteCollectionUC.Execute(r.Context(), ucReq)
@@ -494,8 +497,8 @@ func (ctrl *CollectionController) DeleteCollection(w http.ResponseWriter, r *htt
 			httputil.Error(w, http.StatusNotFound, "collection not found")
 			return
 		}
-		if strings.Contains(err.Error(), "cannot delete collection with objects") {
-			httputil.Error(w, http.StatusBadRequest, "cannot delete collection with objects")
+		if strings.Contains(err.Error(), "collection has containers") {
+			httputil.Error(w, http.StatusConflict, err.Error())
 			return
 		}
 		httputil.Error(w, http.StatusInternalServerError, "failed to delete collection")

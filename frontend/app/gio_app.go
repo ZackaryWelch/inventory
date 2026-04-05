@@ -82,6 +82,8 @@ type GioApp struct {
 	collectionDialogMode      string // "create" or "edit"
 	showDeleteCollection      bool
 	deleteCollectionID        string
+	showDeleteCollectionError bool
+	deleteCollectionErrorMsg  string
 	showContainerDialog       bool
 	containerDialogMode       string // "create" or "edit"
 	showDeleteContainer       bool
@@ -114,6 +116,8 @@ type GioApp struct {
 	importFilename       string
 	importNameColumn     string
 	importLocationColumn *string // nil = no location column (automatic distribution)
+	importRunning        bool
+	importResult         *importResult
 
 	// Grouped-text filter state (property key → selected value; empty = "All")
 	activeGroupedTextFilters map[string]string
@@ -179,8 +183,10 @@ type WidgetState struct {
 	collectionTagsEditor     widget.Editor
 	collectionTypeButtons    map[string]*widget.Clickable
 	collectionGroupButtons   map[string]*widget.Clickable
-	collectionDialogSubmit   widget.Clickable
-	collectionDialogCancel   widget.Clickable
+	collectionDialogSubmit        widget.Clickable
+	collectionDialogCancel        widget.Clickable
+	collectionErrorDialogDismiss  widget.Clickable
+	collectionErrorDialog         *widgets.Dialog
 
 	// Container/Object view
 	containersSearchField widget.Editor
@@ -195,6 +201,7 @@ type WidgetState struct {
 	importButton          widget.Clickable
 	importExecuteButton   widget.Clickable
 	importCancelButton    widget.Clickable
+	importDialogList      widget.List
 	importPreviewList     widget.List
 
 	// Import column mapping
@@ -358,10 +365,12 @@ func NewGioApp() *GioApp {
 		importNameColumnButtons:     make(map[string]*widget.Clickable),
 		importLocationColumnButtons: make(map[string]*widget.Clickable),
 		groupedTextFilterButtons:    make(map[string]*widget.Clickable),
+		importDialogList:            widget.List{List: layout.List{Axis: layout.Vertical}},
 		importPreviewList:           widget.List{List: layout.List{Axis: layout.Vertical}},
 		collectionDialog:            widgets.NewDialog(),
 		groupDialog:                 widgets.NewDialog(),
 		deleteDialog:                widgets.NewDialog(),
+		collectionErrorDialog:       widgets.NewDialog(),
 		containerDialog:             widgets.NewDialog(),
 		objectDialog:                widgets.NewDialog(),
 		schemaDialog:                widgets.NewDialog(),
@@ -478,6 +487,9 @@ func (ga *GioApp) render(gtx layout.Context) layout.Dimensions {
 				}
 				if ga.showDeleteCollection {
 					return ga.renderDeleteCollectionDialog(gtx)
+				}
+				if ga.showDeleteCollectionError {
+					return ga.renderDeleteCollectionErrorDialog(gtx)
 				}
 			}
 			return layout.Dimensions{}

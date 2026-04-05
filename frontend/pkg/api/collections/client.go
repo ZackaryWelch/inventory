@@ -59,9 +59,13 @@ func (c *Client) Update(accountID, collectionID string, req types.UpdateCollecti
 	return common.DecodeResponse[types.Collection](resp)
 }
 
-// Delete deletes a collection
-func (c *Client) Delete(accountID, collectionID string) error {
-	resp, err := c.common.Delete(fmt.Sprintf("/accounts/%s/collections/%s", accountID, collectionID))
+// Delete deletes a collection. If force is true, cascade-deletes containers and objects.
+func (c *Client) Delete(accountID, collectionID string, force bool) error {
+	path := fmt.Sprintf("/accounts/%s/collections/%s", accountID, collectionID)
+	if force {
+		path += "?force=true"
+	}
+	resp, err := c.common.Delete(path)
 	if err != nil {
 		return err
 	}

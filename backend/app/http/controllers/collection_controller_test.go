@@ -239,8 +239,9 @@ func TestCollectionController_DeleteCollection(t *testing.T) {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
+	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
 
-	deleteCollectionUC := usecases.NewDeleteCollectionUseCase(mockCollectionRepo)
+	deleteCollectionUC := usecases.NewDeleteCollectionUseCase(mockCollectionRepo, mockContainerRepo)
 
 	controller := &CollectionController{
 		deleteCollectionUC: deleteCollectionUC,
