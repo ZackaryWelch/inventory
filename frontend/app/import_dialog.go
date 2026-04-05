@@ -2,10 +2,12 @@ package app
 
 import (
 	"fmt"
+	"image"
 	"sort"
 
 	"gioui.org/font"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -28,33 +30,49 @@ func (ga *GioApp) renderImportPreviewDialog(gtx layout.Context) layout.Dimension
 		return layout.Dimensions{}
 	}
 
-	// Handle cancel button
+	// Handle cancel/close button
 	if ga.widgetState.importCancelButton.Clicked(gtx) {
-		ga.showImportPreview = false
-		ga.importData = nil
-		ga.importFilename = ""
+		ga.dismissImport()
 		return layout.Dimensions{}
 	}
 
+	// Choose dialog title based on state
+	dialogTitle := "Import Preview"
+	if ga.importResult != nil {
+		dialogTitle = "Import Results"
+	}
+
 	// Create dialog style
-	dialogStyle := widgets.DefaultDialogStyle(ga.widgetState.containerDialog, "Import Preview")
+	dialogStyle := widgets.DefaultDialogStyle(ga.widgetState.containerDialog, dialogTitle)
 	dialogStyle.Width = unit.Dp(700)
 
 	// Render draggable dialog
 	dims, dismissed := dialogStyle.Layout(gtx, ga.theme.Theme, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			// Scrollable content area with max height
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				// Limit height so buttons remain visible
-				maxHeight := gtx.Constraints.Max.Y - gtx.Dp(unit.Dp(120))
-				if maxHeight < gtx.Dp(unit.Dp(200)) {
-					maxHeight = gtx.Dp(unit.Dp(200))
-				}
-				if gtx.Constraints.Max.Y > 0 && gtx.Constraints.Max.Y > maxHeight {
-					gtx.Constraints.Max.Y = maxHeight
-				}
+		// Show result view after import completes with failures
+		if ga.importResult != nil {
+			return ga.renderImportResultView(gtx)
+		}
 
-				listStyle := material.List(ga.theme.Theme, &ga.widgetState.importPreviewList)
+		// Show loading state while import is running
+		if ga.importRunning {
+			return layout.Flex{Axis: layout.Vertical, Alignment: layout.Middle}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return layout.Inset{
+						Top:    unit.Dp(theme.Spacing4),
+						Bottom: unit.Dp(theme.Spacing4),
+					}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						label := material.Body1(ga.theme.Theme, "Importing...")
+						label.Alignment = text.Middle
+						return label.Layout(gtx)
+					})
+				}),
+			)
+		}
+
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			// Scrollable content area
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				listStyle := material.List(ga.theme.Theme, &ga.widgetState.importDialogList)
 				return listStyle.Layout(gtx, 1, func(gtx layout.Context, _ int) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						// File info
@@ -84,7 +102,7 @@ func (ga *GioApp) renderImportPreviewDialog(gtx layout.Context) layout.Dimension
 							return layout.Dimensions{}
 						}),
 
-						// Preview of first few items
+						// Preview of items (inner scroll)
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return ga.renderImportPreview(gtx)
 						}),
@@ -102,8 +120,7 @@ func (ga *GioApp) renderImportPreviewDialog(gtx layout.Context) layout.Dimension
 						// Summary
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.Inset{
-								Top:    unit.Dp(theme.Spacing3),
-								Bottom: unit.Dp(theme.Spacing3),
+								Top:    unit.Dp(theme.Spacing2),
 							}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								validItems := len(ga.importData.Data)
 								errorCount := len(ga.importData.Errors)
@@ -120,9 +137,9 @@ func (ga *GioApp) renderImportPreviewDialog(gtx layout.Context) layout.Dimension
 				})
 			}),
 
-			// Buttons (always visible below scroll area)
+			// Buttons (pinned at bottom)
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Top: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{
 						Axis:    layout.Horizontal,
 						Spacing: layout.SpaceEnd,
@@ -148,9 +165,7 @@ func (ga *GioApp) renderImportPreviewDialog(gtx layout.Context) layout.Dimension
 
 	// Handle backdrop dismissal
 	if dismissed {
-		ga.showImportPreview = false
-		ga.importData = nil
-		ga.importFilename = ""
+		ga.dismissImport()
 	}
 
 	return dims
@@ -213,49 +228,62 @@ func (ga *GioApp) renderImportErrors(gtx layout.Context) layout.Dimensions {
 	})
 }
 
-// renderImportPreview renders a preview of the first few items
+// renderImportResultView renders the post-import result with error details.
+func (ga *GioApp) renderImportResultView(gtx layout.Context) layout.Dimensions {
+	r := ga.importResult
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		// Result summary
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				summary := fmt.Sprintf("%d of %d items imported successfully", r.Imported, r.Total)
+				label := material.Body1(ga.theme.Theme, summary)
+				label.Font.Weight = font.Bold
+				return label.Layout(gtx)
+			})
+		}),
+
+		// Errors section
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			if len(ga.importData.Errors) > 0 {
+				return ga.renderImportErrors(gtx)
+			}
+			return layout.Dimensions{}
+		}),
+
+		// Close button
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return widgets.PrimaryButton(ga.theme.Theme, &ga.widgetState.importCancelButton, "Close")(gtx)
+			})
+		}),
+	)
+}
+
+// renderImportPreview renders a scrollable preview of items
 func (ga *GioApp) renderImportPreview(gtx layout.Context) layout.Dimensions {
 	if len(ga.importData.Data) == 0 {
 		return layout.Dimensions{}
 	}
 
-	return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				label := material.Body2(ga.theme.Theme, "Preview (first 5 items):")
-				label.Font.Weight = font.Bold
-				return label.Layout(gtx)
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				// Show first 5 items
-				maxItems := 5
-				if len(ga.importData.Data) < maxItems {
-					maxItems = len(ga.importData.Data)
-				}
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			label := material.Body2(ga.theme.Theme, fmt.Sprintf("Preview (%d items):", len(ga.importData.Data)))
+			label.Font.Weight = font.Bold
+			return label.Layout(gtx)
+		}),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			// Cap the preview list height
+			maxHeight := gtx.Dp(unit.Dp(300))
+			if gtx.Constraints.Max.Y > maxHeight {
+				gtx.Constraints.Max.Y = maxHeight
+			}
 
-				return layout.Flex{Axis: layout.Vertical}.Layout(gtx, func() []layout.FlexChild {
-					children := make([]layout.FlexChild, maxItems)
-					for i := 0; i < maxItems; i++ {
-						item := ga.importData.Data[i]
-						children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return ga.renderPreviewItem(gtx, item, i+1)
-						})
-					}
-					return children
-				}()...)
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				if len(ga.importData.Data) > 5 {
-					remaining := len(ga.importData.Data) - 5
-					label := material.Body2(ga.theme.Theme, fmt.Sprintf("...and %d more items", remaining))
-					label.Color = theme.ColorTextSecondary
-					label.Font.Style = font.Italic
-					return label.Layout(gtx)
-				}
-				return layout.Dimensions{}
-			}),
-		)
-	})
+			listStyle := material.List(ga.theme.Theme, &ga.widgetState.importPreviewList)
+			return listStyle.Layout(gtx, len(ga.importData.Data), func(gtx layout.Context, i int) layout.Dimensions {
+				return ga.renderPreviewItem(gtx, ga.importData.Data[i], i+1)
+			})
+		}),
+	)
 }
 
 // renderPreviewItem renders a single preview item
@@ -342,12 +370,63 @@ func (ga *GioApp) getImportLocationColButton(col string) *widget.Clickable {
 	return btn
 }
 
+// layoutFlowWrap lays out widgets in a horizontal flow that wraps to the next line.
+func layoutFlowWrap(gtx layout.Context, hGap, vGap int, widgets ...layout.Widget) layout.Dimensions {
+	maxWidth := gtx.Constraints.Max.X
+	var x, y, rowHeight int
+
+	type positioned struct {
+		call op.CallOp
+		pos  image.Point
+		size image.Point
+	}
+	var items []positioned
+
+	for _, w := range widgets {
+		macro := op.Record(gtx.Ops)
+		dims := w(gtx)
+		call := macro.Stop()
+
+		// Wrap to next line if this item doesn't fit
+		if x > 0 && x+dims.Size.X > maxWidth {
+			y += rowHeight + vGap
+			x = 0
+			rowHeight = 0
+		}
+
+		items = append(items, positioned{
+			call: call,
+			pos:  image.Point{X: x, Y: y},
+			size: dims.Size,
+		})
+
+		x += dims.Size.X + hGap
+		if dims.Size.Y > rowHeight {
+			rowHeight = dims.Size.Y
+		}
+	}
+
+	totalHeight := y + rowHeight
+
+	// Draw all items at their computed positions
+	for _, item := range items {
+		stack := op.Offset(item.pos).Push(gtx.Ops)
+		item.call.Add(gtx.Ops)
+		stack.Pop()
+	}
+
+	return layout.Dimensions{Size: image.Point{X: maxWidth, Y: totalHeight}}
+}
+
 // renderImportColumnMapping renders the column mapping section of the import dialog.
 func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimensions {
 	cols := importColumns(ga.importData.Data)
 	if len(cols) == 0 {
 		return layout.Dimensions{}
 	}
+
+	chipGap := gtx.Dp(unit.Dp(theme.Spacing1))
+	rowGap := gtx.Dp(unit.Dp(theme.Spacing1))
 
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		// Section header
@@ -368,17 +447,14 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							// "(auto)" chip to let the backend auto-detect
 							autoBtn := ga.getImportNameColButton("")
 							if autoBtn.Clicked(gtx) {
 								ga.importNameColumn = ""
 							}
-							children := []layout.FlexChild{
-								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-									return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-										return ga.renderFilterChip(gtx, autoBtn, "(auto)", ga.importNameColumn == "")
-									})
-								}),
+							chipWidgets := []layout.Widget{
+								func(gtx layout.Context) layout.Dimensions {
+									return ga.renderFilterChip(gtx, autoBtn, "(auto)", ga.importNameColumn == "")
+								},
 							}
 							for _, col := range cols {
 								col := col
@@ -387,13 +463,11 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 									ga.importNameColumn = col
 								}
 								active := ga.importNameColumn == col
-								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-									return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-										return ga.renderFilterChip(gtx, btn, col, active)
-									})
-								}))
+								chipWidgets = append(chipWidgets, func(gtx layout.Context) layout.Dimensions {
+									return ga.renderFilterChip(gtx, btn, col, active)
+								})
 							}
-							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
+							return layoutFlowWrap(gtx, chipGap, rowGap, chipWidgets...)
 						})
 					}),
 				)
@@ -411,17 +485,14 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							// "(none)" chip — key "" in button map, nil importLocationColumn
 							noneBtn := ga.getImportLocationColButton("")
 							if noneBtn.Clicked(gtx) {
 								ga.importLocationColumn = nil
 							}
-							children := []layout.FlexChild{
-								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-									return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-										return ga.renderFilterChip(gtx, noneBtn, "(none)", ga.importLocationColumn == nil)
-									})
-								}),
+							chipWidgets := []layout.Widget{
+								func(gtx layout.Context) layout.Dimensions {
+									return ga.renderFilterChip(gtx, noneBtn, "(none)", ga.importLocationColumn == nil)
+								},
 							}
 							for _, col := range cols {
 								col := col
@@ -431,13 +502,11 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 									ga.importLocationColumn = &c
 								}
 								active := ga.importLocationColumn != nil && *ga.importLocationColumn == col
-								children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-									return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-										return ga.renderFilterChip(gtx, btn, col, active)
-									})
-								}))
+								chipWidgets = append(chipWidgets, func(gtx layout.Context) layout.Dimensions {
+									return ga.renderFilterChip(gtx, btn, col, active)
+								})
 							}
-							return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
+							return layoutFlowWrap(gtx, chipGap, rowGap, chipWidgets...)
 						})
 					}),
 				)

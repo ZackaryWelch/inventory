@@ -15,6 +15,22 @@ type ImportData struct {
 	Errors []string
 }
 
+// importResult holds the outcome of a completed import for display.
+type importResult struct {
+	Imported          int
+	Failed            int
+	Total             int
+	ContainersCreated int
+}
+
+func (ga *GioApp) dismissImport() {
+	ga.showImportPreview = false
+	ga.importData = nil
+	ga.importFilename = ""
+	ga.importRunning = false
+	ga.importResult = nil
+}
+
 // handleImportFileContent processes file content and stores it as import data.
 func (ga *GioApp) handleImportFileContent(content string, filename string) {
 	ga.logger.Info("Processing import file", "filename", filename)
@@ -163,6 +179,7 @@ func (ga *GioApp) executeImport() {
 	}
 
 	ga.logger.Info("Executing import", "collection_id", ga.selectedCollection.ID, "items", len(ga.importData.Data))
+	ga.importRunning = true
 
 	go func() {
 		locationCol := ga.importLocationColumn
@@ -190,6 +207,7 @@ func (ga *GioApp) executeImport() {
 		endpoint := fmt.Sprintf("/accounts/%s/collections/%s/import", ga.currentUser.ID, ga.selectedCollection.ID)
 		resp, err := ga.apiClient.Post(endpoint, req)
 		if err != nil {
+			ga.importRunning = false
 			ga.logger.Error("Import failed", "error", err)
 			return
 		}
@@ -203,6 +221,7 @@ func (ga *GioApp) executeImport() {
 		}
 
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			ga.importRunning = false
 			ga.logger.Error("Failed to parse import response", "error", err)
 			return
 		}
@@ -213,9 +232,23 @@ func (ga *GioApp) executeImport() {
 			"total", result.Total,
 			"containers_created", result.ContainersCreated)
 
-		ga.showImportPreview = false
-		ga.importData = nil
-		ga.importFilename = ""
+		ga.importRunning = false
+		if result.Failed > 0 {
+			for _, errMsg := range result.Errors {
+				ga.logger.Warn("Import item failed", "error", errMsg)
+			}
+			// Keep dialog open and show errors so the user can see what failed
+			ga.importData.Data = nil // Clear preview data
+			ga.importData.Errors = result.Errors
+			ga.importResult = &importResult{
+				Imported:          result.Imported,
+				Failed:            result.Failed,
+				Total:             result.Total,
+				ContainersCreated: result.ContainersCreated,
+			}
+		} else {
+			ga.dismissImport()
+		}
 		ga.fetchContainersAndObjects()
 		ga.window.Invalidate()
 	}()

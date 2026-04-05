@@ -163,6 +163,12 @@ func (ds DialogStyle) layoutDialog(gtx layout.Context, th *material.Theme, conte
 		gtx.Constraints.Max.X = gtx.Dp(ds.Width)
 		gtx.Constraints.Min.X = gtx.Dp(ds.Width)
 
+		// Cap dialog height to 85% of viewport so content can use Flexed
+		maxDialogHeight := gtx.Constraints.Max.Y * 85 / 100
+		if maxDialogHeight > 0 {
+			gtx.Constraints.Max.Y = maxDialogHeight
+		}
+
 		// Record dialog content for background
 		macro := op.Record(gtx.Ops)
 		dims := layout.Flex{Axis: layout.Vertical}.Layout(gtx,
@@ -170,8 +176,8 @@ func (ds DialogStyle) layoutDialog(gtx layout.Context, th *material.Theme, conte
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return ds.layoutTitleBar(gtx, th)
 			}),
-			// Content area
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			// Content area (uses remaining space for Flexed children)
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{
 					Top:    unit.Dp(theme.Spacing4),
 					Bottom: unit.Dp(theme.Spacing4),

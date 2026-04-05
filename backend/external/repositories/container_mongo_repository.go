@@ -133,6 +133,17 @@ func (r *MongoContainerRepository) Delete(ctx context.Context, id entities.Conta
 	return nil
 }
 
+func (r *MongoContainerRepository) DeleteByCollectionID(ctx context.Context, collectionID entities.CollectionID) (int64, error) {
+	filter := bson.M{"collection_id": collectionID.String()}
+
+	result, err := r.collection.DeleteMany(ctx, filter)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete containers by collection ID: %w", err)
+	}
+
+	return result.DeletedCount, nil
+}
+
 func (r *MongoContainerRepository) GetByGroupID(ctx context.Context, groupID entities.GroupID) ([]*entities.Container, error) {
 	filter := bson.M{"group_id": groupID.String()}
 

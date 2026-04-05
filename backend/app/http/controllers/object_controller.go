@@ -648,6 +648,12 @@ func (ctrl *ObjectController) BulkImport(w http.ResponseWriter, r *http.Request)
 		slog.Int("imported", resp.Imported),
 		slog.Int("failed", resp.Failed))
 
+	if resp.Failed > 0 {
+		for _, errMsg := range resp.Errors {
+			ctrl.logger.Warn("Import item failed", slog.String("container_id", containerID.String()), slog.String("error", errMsg))
+		}
+	}
+
 	httputil.JSON(w, http.StatusOK, response.BulkImportResponse{
 		Imported: resp.Imported,
 		Failed:   resp.Failed,
@@ -766,6 +772,12 @@ func (ctrl *ObjectController) BulkImportToCollection(w http.ResponseWriter, r *h
 		slog.String("collection_id", collectionID.String()),
 		slog.Int("imported", resp.Imported),
 		slog.Int("failed", resp.Failed))
+
+	if resp.Failed > 0 {
+		for _, errMsg := range resp.Errors {
+			ctrl.logger.Warn("Import item failed", slog.String("collection_id", collectionID.String()), slog.String("error", errMsg))
+		}
+	}
 
 	httputil.JSON(w, http.StatusOK, response.BulkImportResponse{
 		Imported: resp.Imported,
