@@ -13,11 +13,18 @@ import (
 
 // spaHandler implements SPA fallback routing
 type spaHandler struct {
-	staticDir string
-	indexPath string
+	staticDir  string
+	indexPath  string
+	backendURL string
 }
 
 func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Serve docs.html with backend URL injected
+	if r.URL.Path == "/docs" || r.URL.Path == "/docs/" {
+		h.serveDocs(w, r)
+		return
+	}
+
 	// Get the requested path
 	urlPath := r.URL.Path
 	path := filepath.Join(h.staticDir, urlPath)
@@ -85,6 +92,22 @@ func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, path)
 }
 
+func (h spaHandler) serveDocs(w http.ResponseWriter, r *http.Request) {
+	docsPath := filepath.Join(h.staticDir, "docs.html")
+	content, err := os.ReadFile(docsPath)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	// Inject the backend URL so the page can find the OpenAPI spec
+	injected := strings.Replace(string(content),
+		"window.__NISHIKI_BACKEND_URL__",
+		fmt.Sprintf("'%s'", h.backendURL),
+		1)
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(injected)) //nolint:errcheck
+}
+
 func getContentType(path string) string {
 	ext := strings.ToLower(filepath.Ext(path))
 	switch ext {
@@ -147,8 +170,9 @@ func main() {
 
 	// Create SPA handler
 	spa := spaHandler{
-		staticDir: webOutputDir,
-		indexPath: indexPath,
+		staticDir:  webOutputDir,
+		indexPath:  indexPath,
+		backendURL: frontendConfig.BackendURL,
 	}
 
 	addr := fmt.Sprintf(":%s", port)

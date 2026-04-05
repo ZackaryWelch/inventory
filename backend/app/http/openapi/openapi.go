@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/go-openapi/runtime/middleware"
 	swagno "github.com/go-swagno/swagno/v3"
 	"github.com/go-swagno/swagno/v3/components/endpoint"
 	"github.com/go-swagno/swagno/v3/components/http/response"
@@ -85,14 +84,6 @@ func HandleOpenAPISpec(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(spec) //nolint:errcheck
-}
-
-// CreateRedocHandler returns an http.Handler serving Redoc documentation at /docs.
-func CreateRedocHandler() http.Handler {
-	return middleware.Redoc(middleware.RedocOpts{
-		SpecURL: "/api/openapi.json",
-		Title:   "Nishiki API Documentation",
-	}, nil)
 }
 
 // authSecurity returns the security requirement for JWT-protected endpoints.

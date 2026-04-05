@@ -48,9 +48,8 @@ func Setup(appContainer *container.Container) http.Handler {
 		return httputil.WrapHandler(http.HandlerFunc(h), authRequired)
 	}
 
-	// API docs (no auth required)
+	// API spec (no auth required — docs UI served by frontend)
 	mux.HandleFunc("GET /api/openapi.json", openapi.HandleOpenAPISpec)
-	mux.Handle("GET /docs", openapi.CreateRedocHandler())
 
 	// Health check endpoint (no auth required)
 	mux.HandleFunc("GET /health", authController.HealthCheck)

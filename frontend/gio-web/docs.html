@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nishiki API Documentation</title>
+  <style>
+    body { margin: 0; padding: 0; }
+  </style>
+</head>
+<body>
+  <div id="redoc-container"></div>
+  <script src="vendor/redoc.standalone.js"></script>
+  <script>
+    // Resolve spec URL: check query param, then fall back to configured backend
+    var params = new URLSearchParams(window.location.search);
+    var specURL = params.get('spec') || window.__NISHIKI_BACKEND_URL__ + '/api/openapi.json';
+
+    Redoc.init(specURL, {
+      theme: {
+        colors: { primary: { main: '#0052cc' } },
+        typography: { fontFamily: 'system-ui, -apple-system, sans-serif' }
+      }
+    }, document.getElementById('redoc-container'));
+  </script>
+</body>
+</html>
