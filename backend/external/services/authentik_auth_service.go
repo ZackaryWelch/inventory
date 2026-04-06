@@ -850,12 +850,22 @@ func (s *AuthentikAuthService) ProxyTokenExchange(ctx context.Context, tokenRequ
 	s.logger.Debug("Processing token exchange request",
 		slog.String("grant_type", fmt.Sprintf("%v", tokenRequest["grant_type"])))
 
-	// Determine which client to use based on redirect_uri
+	// Determine which client to use.
+	// Code exchange requests include redirect_uri; refresh token requests do not — fall back to client_id.
 	redirectURI, _ := tokenRequest["redirect_uri"].(string)
-	client, err := s.getClientByRedirectURL(redirectURI)
-	if err != nil {
-		s.logger.Error("Failed to determine OAuth client", slog.String("error", err.Error()))
-		return nil, http.StatusBadRequest, fmt.Errorf("failed to determine OAuth client: %w", err)
+	clientIDParam, _ := tokenRequest["client_id"].(string)
+	var client *clientProvider
+	var clientLookupErr error
+	if redirectURI != "" {
+		client, clientLookupErr = s.getClientByRedirectURL(redirectURI)
+	} else if clientIDParam != "" {
+		client, clientLookupErr = s.getClientByClientID(clientIDParam)
+	} else {
+		return nil, http.StatusBadRequest, fmt.Errorf("failed to determine OAuth client: no redirect_uri or client_id provided")
+	}
+	if clientLookupErr != nil {
+		s.logger.Error("Failed to determine OAuth client", slog.String("error", clientLookupErr.Error()))
+		return nil, http.StatusBadRequest, fmt.Errorf("failed to determine OAuth client: %w", clientLookupErr)
 	}
 
 	// Add client credentials from matched client config
