@@ -63,6 +63,10 @@ app/
 ├── collection_detail_view.go
 ├── collection_detail_dialogs.go
 ├── import_dialog.go
+├── property_renderers.go     # Type-specific object property rendering
+├── join_group_dialog.go      # Group join dialog
+├── group_members_dialog.go   # Group member management dialog
+├── schema_editor_dialog.go   # Collection property schema editor
 ├── other_views.go            # Profile view, handleLogout
 └── config/
     └── config.toml           # Embedded for WASM builds

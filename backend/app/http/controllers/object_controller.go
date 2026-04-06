@@ -101,18 +101,31 @@ func (ctrl *ObjectController) CreateObject(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// CollectionID from path (needed when no container specified)
+	var collectionID *entities.CollectionID
+	if cidStr := r.URL.Query().Get("collection_id"); cidStr != "" {
+		cid, err := entities.CollectionIDFromString(cidStr)
+		if err != nil {
+			ctrl.logger.Warn("Invalid collection_id query param", slog.Any("error", err))
+			httputil.Error(w, http.StatusBadRequest, "invalid collection_id")
+			return
+		}
+		collectionID = &cid
+	}
+
 	ucReq := usecases.CreateObjectRequest{
-		ContainerID: containerID,
-		Name:        req.Name,
-		Description: req.Description,
-		ObjectType:  req.GetObjectType(),
-		Quantity:    req.Quantity,
-		Unit:        req.Unit,
-		Properties:  req.Properties,
-		Tags:        req.Tags,
-		ExpiresAt:   req.ExpiresAt,
-		UserID:      pathUserID,
-		UserToken:   userToken,
+		ContainerID:  containerID,
+		CollectionID: collectionID,
+		Name:         req.Name,
+		Description:  req.Description,
+		ObjectType:   req.GetObjectType(),
+		Quantity:     req.Quantity,
+		Unit:         req.Unit,
+		Properties:   req.Properties,
+		Tags:         req.Tags,
+		ExpiresAt:    req.ExpiresAt,
+		UserID:       pathUserID,
+		UserToken:    userToken,
 	}
 
 	resp, err := ctrl.createObjectUC.Execute(r.Context(), ucReq)
@@ -123,7 +136,7 @@ func (ctrl *ObjectController) CreateObject(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		if strings.Contains(err.Error(), "not found") {
-			httputil.Error(w, http.StatusNotFound, "container not found")
+			httputil.Error(w, http.StatusNotFound, "container or collection not found")
 			return
 		}
 		httputil.Error(w, http.StatusInternalServerError, "failed to create object")
@@ -133,10 +146,10 @@ func (ctrl *ObjectController) CreateObject(w http.ResponseWriter, r *http.Reques
 	ctrl.logger.Info("Object created successfully",
 		slog.String("object_id", resp.Object.ID().String()),
 		slog.String("object_name", resp.Object.Name().String()),
-		slog.String("container_id", containerID.String()),
+		slog.String("container_id", resp.ContainerID.String()),
 		slog.String("user_id", user.ID().String()))
 
-	httputil.JSON(w, http.StatusCreated, response.NewObjectResponse(*resp.Object, containerID.String()))
+	httputil.JSON(w, http.StatusCreated, response.NewObjectResponse(*resp.Object, resp.ContainerID.String()))
 }
 
 // GetCollectionObjects godoc
@@ -351,7 +364,7 @@ func (ctrl *ObjectController) UpdateObject(w http.ResponseWriter, r *http.Reques
 		slog.String("object_id", objectID.String()),
 		slog.String("user_id", user.ID().String()))
 
-	httputil.JSON(w, http.StatusOK, response.NewObjectResponse(*resp.Object, containerID.String()))
+	httputil.JSON(w, http.StatusOK, response.NewObjectResponse(*resp.Object, resp.ContainerID.String()))
 }
 
 // DeleteObject godoc

@@ -181,7 +181,7 @@ func (ga *GioApp) renderCollectionCard(gtx layout.Context, collection Collection
 		ga.selectedCollection = &collection
 		ga.currentView = ViewCollectionDetailGio
 		// Fetch containers and objects for this collection
-		go ga.fetchContainersAndObjects()
+		ga.fetchContainersAndObjects()
 	}
 
 	// Handle edit button click

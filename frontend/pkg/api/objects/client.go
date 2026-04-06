@@ -30,9 +30,14 @@ func (c *Client) Get(accountID, objectID string) (*types.Object, error) {
 	return common.DecodeResponse[types.Object](resp)
 }
 
-// Create creates a new object
-func (c *Client) Create(accountID string, req types.CreateObjectRequest) (*types.Object, error) {
-	resp, err := c.common.Post(fmt.Sprintf("/accounts/%s/objects", accountID), req)
+// Create creates a new object. If collectionID is non-empty and req.ContainerID is
+// empty, the backend will auto-assign the object to a default container.
+func (c *Client) Create(accountID string, req types.CreateObjectRequest, collectionID string) (*types.Object, error) {
+	url := fmt.Sprintf("/accounts/%s/objects", accountID)
+	if collectionID != "" && req.ContainerID == "" {
+		url += "?collection_id=" + collectionID
+	}
+	resp, err := c.common.Post(url, req)
 	if err != nil {
 		return nil, err
 	}

@@ -10,7 +10,7 @@ import (
 )
 
 type UpdateObjectRequest struct {
-	ContainerID entities.ContainerID
+	ContainerID *entities.ContainerID // nil = keep current container
 	ObjectID    entities.ObjectID
 	Name        *string
 	Description *string
@@ -23,7 +23,8 @@ type UpdateObjectRequest struct {
 }
 
 type UpdateObjectResponse struct {
-	Object *entities.Object
+	Object      *entities.Object
+	ContainerID entities.ContainerID
 }
 
 type UpdateObjectUseCase struct {
@@ -41,10 +42,10 @@ func NewUpdateObjectUseCase(containerRepo repositories.ContainerRepository, coll
 }
 
 func (uc *UpdateObjectUseCase) Execute(ctx context.Context, req UpdateObjectRequest) (*UpdateObjectResponse, error) {
-	// Get container
-	container, err := uc.containerRepo.GetByID(ctx, req.ContainerID)
+	// Find the container that currently holds the object
+	currentContainer, err := uc.containerRepo.FindByObjectID(ctx, req.ObjectID)
 	if err != nil {
-		return nil, fmt.Errorf("container not found: %w", err)
+		return nil, fmt.Errorf("object not found: %w", err)
 	}
 
 	// Check user access to collection
@@ -53,12 +54,11 @@ func (uc *UpdateObjectUseCase) Execute(ctx context.Context, req UpdateObjectRequ
 		return nil, fmt.Errorf("failed to get user groups: %w", err)
 	}
 
-	collection, err := uc.collectionRepo.GetByID(ctx, container.CollectionID())
+	collection, err := uc.collectionRepo.GetByID(ctx, currentContainer.CollectionID())
 	if err != nil {
 		return nil, fmt.Errorf("collection not found: %w", err)
 	}
 
-	// Check access: user is owner OR user is member of collection's group
 	hasAccess := collection.UserID().Equals(req.UserID)
 	if !hasAccess && collection.GroupID() != nil {
 		for _, group := range userGroups {
@@ -68,21 +68,19 @@ func (uc *UpdateObjectUseCase) Execute(ctx context.Context, req UpdateObjectRequ
 			}
 		}
 	}
-
 	if !hasAccess {
 		return nil, fmt.Errorf("access denied: user does not have access to this collection")
 	}
 
-	// Get existing object
-	existingObject, err := container.GetObject(req.ObjectID)
+	// Get existing object from current container
+	existingObject, err := currentContainer.GetObject(req.ObjectID)
 	if err != nil {
 		return nil, fmt.Errorf("object not found in container: %w", err)
 	}
 
-	// Create updated object
+	// Apply field updates
 	updatedObject := *existingObject
 
-	// Update name if provided
 	if req.Name != nil {
 		objectName, err := entities.NewObjectName(*req.Name)
 		if err != nil {
@@ -93,7 +91,6 @@ func (uc *UpdateObjectUseCase) Execute(ctx context.Context, req UpdateObjectRequ
 		}
 	}
 
-	// Update description if provided
 	if req.Description != nil {
 		desc := entities.NewObjectDescription(*req.Description)
 		if err := updatedObject.UpdateDescription(desc); err != nil {
@@ -101,45 +98,65 @@ func (uc *UpdateObjectUseCase) Execute(ctx context.Context, req UpdateObjectRequ
 		}
 	}
 
-	// Update quantity if provided
 	if req.Quantity != nil {
 		if err := updatedObject.UpdateQuantity(req.Quantity); err != nil {
 			return nil, fmt.Errorf("failed to update object quantity: %w", err)
 		}
 	}
 
-	// Update unit if provided
 	if req.Unit != nil {
 		if err := updatedObject.UpdateUnit(*req.Unit); err != nil {
 			return nil, fmt.Errorf("failed to update object unit: %w", err)
 		}
 	}
 
-	// Update properties if provided
 	if req.Properties != nil {
 		if err := updatedObject.UpdateProperties(req.Properties); err != nil {
 			return nil, fmt.Errorf("failed to update object properties: %w", err)
 		}
 	}
 
-	// Update tags if provided
 	if req.Tags != nil {
 		if err := updatedObject.UpdateTags(req.Tags); err != nil {
 			return nil, fmt.Errorf("failed to update object tags: %w", err)
 		}
 	}
 
-	// Update object in container
-	if err := container.UpdateObject(req.ObjectID, updatedObject); err != nil {
-		return nil, fmt.Errorf("failed to update object in container: %w", err)
+	// Determine target container
+	targetContainer := currentContainer
+	if req.ContainerID != nil && !req.ContainerID.Equals(currentContainer.ID()) {
+		// Moving to a different container
+		targetContainer, err = uc.containerRepo.GetByID(ctx, *req.ContainerID)
+		if err != nil {
+			return nil, fmt.Errorf("target container not found: %w", err)
+		}
+
+		// Remove from old container
+		if err := currentContainer.RemoveObject(req.ObjectID); err != nil {
+			return nil, fmt.Errorf("failed to remove object from current container: %w", err)
+		}
+		if err := uc.containerRepo.Update(ctx, currentContainer); err != nil {
+			return nil, fmt.Errorf("failed to save old container: %w", err)
+		}
+
+		// Add to new container
+		if err := targetContainer.AddObject(updatedObject); err != nil {
+			return nil, fmt.Errorf("failed to add object to target container: %w", err)
+		}
+	} else {
+		// Update in place
+		if err := currentContainer.UpdateObject(req.ObjectID, updatedObject); err != nil {
+			return nil, fmt.Errorf("failed to update object in container: %w", err)
+		}
 	}
 
-	// Save updated container
-	if err := uc.containerRepo.Update(ctx, container); err != nil {
+	// Save target container
+	if err := uc.containerRepo.Update(ctx, targetContainer); err != nil {
 		return nil, fmt.Errorf("failed to save container: %w", err)
 	}
 
 	return &UpdateObjectResponse{
-		Object: &updatedObject,
+		Object:      &updatedObject,
+		ContainerID: targetContainer.ID(),
 	}, nil
 }

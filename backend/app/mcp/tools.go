@@ -347,19 +347,20 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 
 func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 	type CreateObjectInput struct {
-		ContainerID string                 `json:"container_id" jsonschema:"ID of the container to add the object to"`
-		Name        string                 `json:"name" jsonschema:"Name of the object"`
-		Description string                 `json:"description,omitempty" jsonschema:"Description (optional)"`
-		ObjectType  string                 `json:"object_type" jsonschema:"Object type matching the collection: food, book, videogame, music, boardgame, general"`
-		Quantity    *float64               `json:"quantity,omitempty" jsonschema:"Quantity (optional)"`
-		Unit        string                 `json:"unit,omitempty" jsonschema:"Unit of quantity e.g. kg, pieces (optional)"`
-		Properties  map[string]interface{} `json:"properties,omitempty" jsonschema:"Type-specific properties e.g. author, ISBN, brand (optional)"`
-		Tags        []string               `json:"tags,omitempty" jsonschema:"Tags (optional)"`
-		ExpiresAt   string                 `json:"expires_at,omitempty" jsonschema:"Expiration date in RFC3339 format (optional, mainly for food)"`
+		ContainerID  string                 `json:"container_id,omitempty" jsonschema:"ID of the container to add the object to (optional)"`
+		CollectionID string                 `json:"collection_id,omitempty" jsonschema:"ID of the collection (required when container_id is omitted)"`
+		Name         string                 `json:"name" jsonschema:"Name of the object"`
+		Description  string                 `json:"description,omitempty" jsonschema:"Description (optional)"`
+		ObjectType   string                 `json:"object_type" jsonschema:"Object type matching the collection: food, book, videogame, music, boardgame, general"`
+		Quantity     *float64               `json:"quantity,omitempty" jsonschema:"Quantity (optional)"`
+		Unit         string                 `json:"unit,omitempty" jsonschema:"Unit of quantity e.g. kg, pieces (optional)"`
+		Properties   map[string]interface{} `json:"properties,omitempty" jsonschema:"Type-specific properties e.g. author, ISBN, brand (optional)"`
+		Tags         []string               `json:"tags,omitempty" jsonschema:"Tags (optional)"`
+		ExpiresAt    string                 `json:"expires_at,omitempty" jsonschema:"Expiration date in RFC3339 format (optional, mainly for food)"`
 	}
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "create_object",
-		Description: "Add an object to a container in a collection",
+		Description: "Add an object to a collection, optionally specifying a container",
 		Annotations: createAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input CreateObjectInput) (*mcp.CallToolResult, any, error) {
 		user, token, err := MCPUserFromContext(ctx)
@@ -368,14 +369,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 			return r, nil, nil
 		}
 
-		containerID, err := entities.ContainerIDFromString(input.ContainerID)
-		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
-			return r, nil, nil
-		}
-
 		ucReq := usecases.CreateObjectRequest{
-			ContainerID: containerID,
 			Name:        input.Name,
 			Description: input.Description,
 			ObjectType:  entities.ObjectType(input.ObjectType),
@@ -385,6 +379,24 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 			Tags:        input.Tags,
 			UserID:      user.ID(),
 			UserToken:   token,
+		}
+
+		if input.ContainerID != "" {
+			containerID, err := entities.ContainerIDFromString(input.ContainerID)
+			if err != nil {
+				r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
+				return r, nil, nil
+			}
+			ucReq.ContainerID = &containerID
+		}
+
+		if input.CollectionID != "" {
+			collectionID, err := entities.CollectionIDFromString(input.CollectionID)
+			if err != nil {
+				r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
+				return r, nil, nil
+			}
+			ucReq.CollectionID = &collectionID
 		}
 
 		if input.ExpiresAt != "" {
@@ -401,9 +413,8 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
-		// Notify — we don't know the collection ID here, so notify the containers resource
-		mctx.notifyResourceUpdated(ctx, "nishiki://containers/"+input.ContainerID)
-		r, err := jsonResult(response.NewObjectResponse(*resp.Object, input.ContainerID))
+		mctx.notifyResourceUpdated(ctx, "nishiki://containers/"+resp.ContainerID.String())
+		r, err := jsonResult(response.NewObjectResponse(*resp.Object, resp.ContainerID.String()))
 		return r, nil, err
 	})
 
@@ -449,7 +460,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 	})
 
 	type UpdateObjectInput struct {
-		ContainerID string                 `json:"container_id" jsonschema:"ID of the container holding the object"`
+		ContainerID string                 `json:"container_id,omitempty" jsonschema:"ID of the container to move the object to (optional, keeps current if omitted)"`
 		ObjectID    string                 `json:"object_id" jsonschema:"ID of the object to update"`
 		Name        string                 `json:"name,omitempty" jsonschema:"New name (optional)"`
 		Properties  map[string]interface{} `json:"properties,omitempty" jsonschema:"New properties (optional, replaces existing)"`
@@ -466,11 +477,6 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 			return r, nil, nil
 		}
 
-		containerID, err := entities.ContainerIDFromString(input.ContainerID)
-		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
-			return r, nil, nil
-		}
 		objectID, err := entities.ObjectIDFromHex(input.ObjectID)
 		if err != nil {
 			r, _ := errorResult(fmt.Errorf("invalid object_id: %w", err))
@@ -478,10 +484,18 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 		}
 
 		ucReq := usecases.UpdateObjectRequest{
-			ContainerID: containerID,
-			ObjectID:    objectID,
-			UserID:      user.ID(),
-			UserToken:   token,
+			ObjectID:  objectID,
+			UserID:    user.ID(),
+			UserToken: token,
+		}
+
+		if input.ContainerID != "" {
+			containerID, err := entities.ContainerIDFromString(input.ContainerID)
+			if err != nil {
+				r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
+				return r, nil, nil
+			}
+			ucReq.ContainerID = &containerID
 		}
 		if input.Name != "" {
 			ucReq.Name = &input.Name
@@ -498,8 +512,8 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 			r, _ := errorResult(err)
 			return r, nil, nil
 		}
-		mctx.notifyResourceUpdated(ctx, "nishiki://containers/"+input.ContainerID)
-		r, err := jsonResult(response.NewObjectResponse(*resp.Object, input.ContainerID))
+		mctx.notifyResourceUpdated(ctx, "nishiki://containers/"+resp.ContainerID.String())
+		r, err := jsonResult(response.NewObjectResponse(*resp.Object, resp.ContainerID.String()))
 		return r, nil, err
 	})
 }

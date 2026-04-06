@@ -88,7 +88,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		newName := "New Object Name"
 		req := UpdateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			Name:        &newName,
 			Properties:  nil,
@@ -99,7 +99,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		// Mock expectations
 		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
+			FindByObjectID(gomock.Any(), objectID).
 			Return(container, nil).
 			Times(1)
 
@@ -192,7 +192,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := UpdateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			Name:        nil,
 			Properties:  map[string]interface{}{"new": "property", "count": 42},
@@ -203,7 +203,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		// Mock expectations
 		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
+			FindByObjectID(gomock.Any(), objectID).
 			Return(container, nil).
 			Times(1)
 
@@ -228,14 +228,14 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 		require.NotNil(t, resp)
 	})
 
-	t.Run("error - container not found", func(t *testing.T) {
+	t.Run("error - object not found", func(t *testing.T) {
 		userID := entities.NewUserID()
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
 
 		newName := "New Name"
 		req := UpdateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			Name:        &newName,
 			Properties:  nil,
@@ -246,15 +246,15 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		// Mock repository returns error
 		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
-			Return(nil, errors.New("container not found")).
+			FindByObjectID(gomock.Any(), objectID).
+			Return(nil, errors.New("object not found")).
 			Times(1)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
 		assert.Error(t, err)
 		assert.Nil(t, resp)
-		assert.Contains(t, err.Error(), "container not found")
+		assert.Contains(t, err.Error(), "object not found")
 	})
 
 	t.Run("error - object not found in container", func(t *testing.T) {
@@ -302,7 +302,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		newName := "New Name"
 		req := UpdateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			Name:        &newName,
 			Properties:  nil,
@@ -313,7 +313,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		// Mock expectations
 		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
+			FindByObjectID(gomock.Any(), objectID).
 			Return(container, nil).
 			Times(1)
 
@@ -397,7 +397,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		newName := "New Name"
 		req := UpdateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			Name:        &newName,
 			Properties:  nil,
@@ -408,7 +408,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		// Mock expectations
 		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
+			FindByObjectID(gomock.Any(), objectID).
 			Return(container, nil).
 			Times(1)
 
@@ -491,7 +491,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		emptyName := "" // Invalid
 		req := UpdateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			ObjectID:    objectID,
 			Name:        &emptyName,
 			Properties:  nil,
@@ -502,7 +502,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		// Mock expectations
 		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
+			FindByObjectID(gomock.Any(), objectID).
 			Return(container, nil).
 			Times(1)
 

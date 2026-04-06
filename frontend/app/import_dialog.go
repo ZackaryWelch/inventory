@@ -120,7 +120,7 @@ func (ga *GioApp) renderImportPreviewDialog(gtx layout.Context) layout.Dimension
 						// Summary
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.Inset{
-								Top:    unit.Dp(theme.Spacing2),
+								Top: unit.Dp(theme.Spacing2),
 							}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								validItems := len(ga.importData.Data)
 								errorCount := len(ga.importData.Errors)

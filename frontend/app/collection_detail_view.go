@@ -59,6 +59,8 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 		ga.containers = nil
 		ga.objects = nil
 		ga.activeGroupedTextFilters = nil
+		ga.showContainersPanel = false
+		ga.containerViewMode = ""
 		return layout.Dimensions{}
 	}
 
@@ -96,6 +98,22 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 		ga.openSchemaEditor()
 	}
 
+	// Handle container panel toggle
+	if ga.widgetState.toggleContainersButton.Clicked(gtx) {
+		ga.showContainersPanel = !ga.showContainersPanel
+		if ga.showContainersPanel && ga.containerViewMode == "" {
+			ga.containerViewMode = "split"
+		}
+	}
+
+	// Handle container view mode toggle
+	if ga.widgetState.containerViewSplitBtn.Clicked(gtx) {
+		ga.containerViewMode = "split"
+	}
+	if ga.widgetState.containerViewGroupBtn.Clicked(gtx) {
+		ga.containerViewMode = "grouped"
+	}
+
 	// Ensure we have widget states
 	ga.ensureContainerItemStates()
 	ga.ensureObjectItemStates()
@@ -120,25 +138,30 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 						Left:   unit.Dp(theme.Spacing4),
 						Right:  unit.Dp(theme.Spacing4),
 					}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						// Split view: Containers on left, Objects on right
-						return layout.Flex{
-							Axis:    layout.Horizontal,
-							Spacing: layout.SpaceBetween,
-						}.Layout(gtx,
-							// Containers column
-							layout.Flexed(0.4, func(gtx layout.Context) layout.Dimensions {
-								return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return ga.renderContainersColumn(gtx)
-								})
-							}),
-
-							// Objects column
-							layout.Flexed(0.6, func(gtx layout.Context) layout.Dimensions {
-								return layout.Inset{Left: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									return ga.renderObjectsColumn(gtx)
-								})
-							}),
-						)
+						if ga.showContainersPanel && ga.containerViewMode == "grouped" {
+							// Grouped mode: objects grouped under container headers
+							return ga.renderObjectsGroupedByContainer(gtx)
+						}
+						if ga.showContainersPanel && ga.containerViewMode == "split" {
+							// Split view: Containers on left (≤1/3), Objects on right
+							return layout.Flex{
+								Axis:    layout.Horizontal,
+								Spacing: layout.SpaceBetween,
+							}.Layout(gtx,
+								layout.Flexed(0.3, func(gtx layout.Context) layout.Dimensions {
+									return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return ga.renderContainersColumn(gtx)
+									})
+								}),
+								layout.Flexed(0.7, func(gtx layout.Context) layout.Dimensions {
+									return layout.Inset{Left: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return ga.renderObjectsColumn(gtx)
+									})
+								}),
+							)
+						}
+						// Default: objects only (full width)
+						return ga.renderObjectsColumn(gtx)
 					})
 				}),
 
@@ -216,9 +239,44 @@ func (ga *GioApp) renderCollectionDetailHeader(gtx layout.Context) layout.Dimens
 				)
 			}),
 
-			// Import button
+			// Containers page button
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				if ga.widgetState.containersPageButton.Clicked(gtx) {
+					ga.currentView = ViewContainersGio
+					ga.selectedContainer = nil
+				}
+				return layout.Inset{Left: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					btn := material.Button(ga.theme.Theme, &ga.widgetState.containersPageButton, "Manage")
+					btn.Background = theme.ColorPrimaryDark
+					btn.Color = theme.ColorWhite
+					btn.CornerRadius = unit.Dp(theme.RadiusDefault)
+					return btn.Layout(gtx)
+				})
+			}),
+
+			// Containers toggle button
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Left: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					label := "Containers"
+					bg := theme.ColorPrimaryDark
+					if ga.showContainersPanel {
+						bg = theme.ColorAccent
+					}
+					btn := material.Button(ga.theme.Theme, &ga.widgetState.toggleContainersButton, label)
+					btn.Background = bg
+					if ga.showContainersPanel {
+						btn.Color = theme.ColorBlack
+					} else {
+						btn.Color = theme.ColorWhite
+					}
+					btn.CornerRadius = unit.Dp(theme.RadiusDefault)
+					return btn.Layout(gtx)
+				})
+			}),
+
+			// Import button
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Left: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					btn := material.Button(ga.theme.Theme, &ga.widgetState.importButton, "Import")
 					btn.Background = theme.ColorAccent
 					btn.Color = theme.ColorBlack
@@ -280,6 +338,25 @@ func (ga *GioApp) renderContainersColumn(gtx layout.Context) layout.Dimensions {
 	)
 }
 
+// renderContainerViewModeToggle renders split/grouped toggle chips when the container panel is visible.
+func (ga *GioApp) renderContainerViewModeToggle(gtx layout.Context) layout.Dimensions {
+	if !ga.showContainersPanel {
+		return layout.Dimensions{}
+	}
+	return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return ga.renderFilterChip(gtx, &ga.widgetState.containerViewSplitBtn, "Split", ga.containerViewMode == "split")
+				})
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return ga.renderFilterChip(gtx, &ga.widgetState.containerViewGroupBtn, "Grouped", ga.containerViewMode == "grouped")
+			}),
+		)
+	})
+}
+
 // renderObjectsColumn renders the objects list column
 func (ga *GioApp) renderObjectsColumn(gtx layout.Context) layout.Dimensions {
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
@@ -301,6 +378,11 @@ func (ga *GioApp) renderObjectsColumn(gtx layout.Context) layout.Dimensions {
 					}),
 				)
 			})
+		}),
+
+		// Container view mode toggle
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return ga.renderContainerViewModeToggle(gtx)
 		}),
 
 		// Grouped-text filter chips
@@ -338,6 +420,17 @@ func (ga *GioApp) ensureObjectItemStates() {
 	}
 }
 
+// containersWithObjects returns the set of container IDs that have at least one object.
+func (ga *GioApp) containersWithObjects() map[string]bool {
+	m := make(map[string]bool)
+	for _, obj := range ga.objects {
+		if obj.ContainerID != "" {
+			m[obj.ContainerID] = true
+		}
+	}
+	return m
+}
+
 // renderContainersList renders the list of containers
 func (ga *GioApp) renderContainersList(gtx layout.Context) layout.Dimensions {
 	if len(ga.containers) == 0 {
@@ -349,12 +442,17 @@ func (ga *GioApp) renderContainersList(gtx layout.Context) layout.Dimensions {
 		})
 	}
 
-	// Filter containers based on search query
+	// Filter containers based on search query and whether they have objects
 	searchQuery := strings.ToLower(ga.widgetState.containersSearchField.Text())
+	hasObjects := ga.containersWithObjects()
 	filteredContainers := make([]Container, 0)
 	filteredIndices := make([]int, 0)
 
 	for i, container := range ga.containers {
+		// In collection detail split view, only show containers with objects
+		if !hasObjects[container.ID] {
+			continue
+		}
 		if searchQuery == "" ||
 			strings.Contains(strings.ToLower(container.Name), searchQuery) ||
 			strings.Contains(strings.ToLower(container.Type), searchQuery) ||
@@ -638,32 +736,267 @@ func (ga *GioApp) renderObjectCard(gtx layout.Context, object Object, index int)
 	})
 }
 
-// fetchContainersAndObjects fetches containers and objects for the current collection
+// renderObjectsGroupedByContainer renders all objects grouped under container section headers.
+func (ga *GioApp) renderObjectsGroupedByContainer(gtx layout.Context) layout.Dimensions {
+	ga.ensureObjectItemStates()
+
+	// Build container → objects map
+	containerObjects := make(map[string][]int) // containerID → indices into ga.objects
+	var unassigned []int
+	searchQuery := strings.ToLower(ga.widgetState.objectsSearchField.Text())
+
+	for i, obj := range ga.objects {
+		if searchQuery != "" &&
+			!strings.Contains(strings.ToLower(obj.Name), searchQuery) &&
+			!strings.Contains(strings.ToLower(obj.Description), searchQuery) {
+			continue
+		}
+		if !ga.matchesGroupedTextFilters(obj) {
+			continue
+		}
+		if obj.ContainerID == "" {
+			unassigned = append(unassigned, i)
+		} else {
+			containerObjects[obj.ContainerID] = append(containerObjects[obj.ContainerID], i)
+		}
+	}
+
+	// Build ordered container list (only those with matching objects)
+	type containerGroup struct {
+		name    string
+		indices []int
+	}
+	var groups []containerGroup
+	for _, c := range ga.containers {
+		if indices, ok := containerObjects[c.ID]; ok && len(indices) > 0 {
+			groups = append(groups, containerGroup{name: c.Name, indices: indices})
+		}
+	}
+	if len(unassigned) > 0 {
+		groups = append(groups, containerGroup{name: "Unassigned", indices: unassigned})
+	}
+
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		// Header row
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle, Spacing: layout.SpaceBetween}.Layout(gtx,
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						label := material.H6(ga.theme.Theme, "Objects")
+						label.Font.Weight = font.Bold
+						return label.Layout(gtx)
+					}),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return widgets.PrimaryButton(ga.theme.Theme, &ga.widgetState.createObjectButton, "+")(gtx)
+					}),
+				)
+			})
+		}),
+
+		// View mode toggle
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return ga.renderContainerViewModeToggle(gtx)
+		}),
+
+		// Grouped-text filters
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return ga.renderGroupedTextFilters(gtx)
+		}),
+
+		// Search field
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				editor := material.Editor(ga.theme.Theme, &ga.widgetState.objectsSearchField, "Search objects...")
+				editor.Color = theme.ColorTextPrimary
+				return editor.Layout(gtx)
+			})
+		}),
+
+		// Grouped list
+		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			if len(groups) == 0 {
+				return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					label := material.Body1(ga.theme.Theme, "No objects yet")
+					label.Color = theme.ColorTextSecondary
+					label.Alignment = text.Middle
+					return label.Layout(gtx)
+				})
+			}
+
+			// Flatten groups into a list of items (headers + objects)
+			type listItem struct {
+				isHeader bool
+				header   string
+				objIndex int
+			}
+			var items []listItem
+			for _, g := range groups {
+				items = append(items, listItem{isHeader: true, header: fmt.Sprintf("%s (%d)", g.name, len(g.indices))})
+				for _, idx := range g.indices {
+					items = append(items, listItem{objIndex: idx})
+				}
+			}
+
+			list := &ga.widgetState.objectsList
+			list.Axis = layout.Vertical
+			return list.Layout(gtx, len(items), func(gtx layout.Context, index int) layout.Dimensions {
+				item := items[index]
+				if item.isHeader {
+					return layout.Inset{Top: unit.Dp(theme.Spacing3), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						label := material.Body1(ga.theme.Theme, item.header)
+						label.Font.Weight = font.Bold
+						label.Color = theme.ColorTextSecondary
+						return label.Layout(gtx)
+					})
+				}
+				obj := ga.objects[item.objIndex]
+				return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return ga.renderObjectCard(gtx, obj, item.objIndex)
+				})
+			})
+		}),
+	)
+}
+
+// --- State mutation helpers (must be called inside ga.do) ---
+
+// addContainer appends a container to the local state.
+func (ga *GioApp) addContainer(c Container) {
+	ga.containers = append(ga.containers, c)
+}
+
+// updateContainer replaces a container in local state by ID.
+func (ga *GioApp) updateContainer(updated Container) {
+	for i, c := range ga.containers {
+		if c.ID == updated.ID {
+			ga.containers[i] = updated
+			return
+		}
+	}
+}
+
+// removeContainer removes a container and its objects from local state.
+func (ga *GioApp) removeContainer(containerID string) {
+	for i, c := range ga.containers {
+		if c.ID == containerID {
+			ga.containers = append(ga.containers[:i], ga.containers[i+1:]...)
+			break
+		}
+	}
+	filtered := ga.objects[:0]
+	for _, obj := range ga.objects {
+		if obj.ContainerID != containerID {
+			filtered = append(filtered, obj)
+		}
+	}
+	ga.objects = filtered
+}
+
+// addObject appends an object to the flat list and the parent container's embedded list.
+func (ga *GioApp) addObject(obj Object) {
+	ga.objects = append(ga.objects, obj)
+	if obj.ContainerID != "" {
+		for i, c := range ga.containers {
+			if c.ID == obj.ContainerID {
+				ga.containers[i].Objects = append(ga.containers[i].Objects, obj)
+				return
+			}
+		}
+	}
+}
+
+// updateObject replaces an object in the flat list and keeps container embedded lists in sync.
+func (ga *GioApp) updateObject(updated Object, oldContainerID string) {
+	for i, obj := range ga.objects {
+		if obj.ID == updated.ID {
+			ga.objects[i] = updated
+			break
+		}
+	}
+	if oldContainerID != updated.ContainerID {
+		ga.removeObjectFromContainer(updated.ID, oldContainerID)
+		if updated.ContainerID != "" {
+			for i, c := range ga.containers {
+				if c.ID == updated.ContainerID {
+					ga.containers[i].Objects = append(ga.containers[i].Objects, updated)
+					break
+				}
+			}
+		}
+	} else if updated.ContainerID != "" {
+		for i, c := range ga.containers {
+			if c.ID == updated.ContainerID {
+				for j, obj := range c.Objects {
+					if obj.ID == updated.ID {
+						ga.containers[i].Objects[j] = updated
+						break
+					}
+				}
+				break
+			}
+		}
+	}
+}
+
+// removeObject removes an object from the flat list and its container's embedded list.
+func (ga *GioApp) removeObject(objectID, containerID string) {
+	for i, obj := range ga.objects {
+		if obj.ID == objectID {
+			ga.objects = append(ga.objects[:i], ga.objects[i+1:]...)
+			break
+		}
+	}
+	ga.removeObjectFromContainer(objectID, containerID)
+}
+
+// removeObjectFromContainer removes an object from a container's embedded Objects slice.
+func (ga *GioApp) removeObjectFromContainer(objectID, containerID string) {
+	if containerID == "" {
+		return
+	}
+	for i, c := range ga.containers {
+		if c.ID == containerID {
+			for j, obj := range c.Objects {
+				if obj.ID == objectID {
+					ga.containers[i].Objects = append(c.Objects[:j], c.Objects[j+1:]...)
+					return
+				}
+			}
+			return
+		}
+	}
+}
+
+// fetchContainersAndObjects launches a goroutine that fetches containers and objects
+// for the current collection, then updates state via ga.do(). Safe to call from anywhere.
 func (ga *GioApp) fetchContainersAndObjects() {
-	if ga.selectedCollection == nil {
+	if ga.selectedCollection == nil || ga.currentUser == nil {
 		return
 	}
+	collectionID := ga.selectedCollection.ID
+	userID := ga.currentUser.ID
 
-	ga.logger.Info("Fetching containers and objects", "collection_id", ga.selectedCollection.ID)
+	go func() {
+		ga.logger.Info("Fetching containers and objects", "collection_id", collectionID)
 
-	// Fetch containers
-	containers, err := ga.containersClient.List(ga.currentUser.ID, ga.selectedCollection.ID)
-	if err != nil {
-		ga.logger.Error("Failed to fetch containers", "error", err)
-		return
-	}
+		containers, err := ga.containersClient.List(userID, collectionID)
+		if err != nil {
+			ga.logger.Error("Failed to fetch containers", "error", err)
+			return
+		}
 
-	// Fetch objects
-	objects, err := ga.objectsClient.ListByCollection(ga.currentUser.ID, ga.selectedCollection.ID)
-	if err != nil {
-		ga.logger.Error("Failed to fetch objects", "error", err)
-		return
-	}
+		objects, err := ga.objectsClient.ListByCollection(userID, collectionID)
+		if err != nil {
+			ga.logger.Error("Failed to fetch objects", "error", err)
+			return
+		}
 
-	ga.containers = containers
-	ga.objects = objects
-	ga.activeGroupedTextFilters = nil
-	ga.window.Invalidate()
+		ga.do(func() {
+			ga.containers = containers
+			ga.objects = objects
+			ga.activeGroupedTextFilters = nil
+		})
+	}()
 }
 
 // renderObjectProperties renders the key/value properties of an object using schema-aware formatting.

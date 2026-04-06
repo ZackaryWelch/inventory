@@ -6,7 +6,7 @@ This file provides guidance to Claude Code when working with the Nishiki invento
 
 Nishiki is a full-stack inventory management system built entirely in Go:
 - **Backend**: RESTful API with Clean Architecture and DDD principles
-- **Frontend**: Cogent Core framework compiled to WebAssembly for web deployment
+- **Frontend**: Gio UI framework (gioui.org) compiled to WebAssembly and native desktop
 - **Auth**: OAuth2/OIDC via Authentik with group-based access control
 - **Database**: MongoDB with embedded document structure
 
@@ -37,11 +37,14 @@ golangci-lint run
 ```bash
 cd frontend
 
-# Build for web (WebAssembly)
-./bin/web
+# Build for web (WebAssembly) — outputs to gio-web/
+go run cmd/web/main.go
 
 # Serve locally
-./bin/serve
+go run cmd/serve/main.go
+
+# Check compilation (faster than full build)
+go vet ./...
 
 # Run tests
 go test ./...
@@ -54,11 +57,12 @@ go test ./...
 **Domain Layer** (`domain/`)
 - Entities: User, Group, Collection, Container, Object, Category
 - Repository interfaces for data access contracts
-- Use cases for business logic orchestration (26 total)
+- Use cases for business logic orchestration
 - Service interfaces for external dependencies
 
 **Application Layer** (`app/`)
 - HTTP controllers (6 total: Auth, User, Group, Collection, Container, Object)
+- MCP server (`app/mcp/`) — Streamable HTTP (:3002) and SSE (:3003) transports
 - Middleware (authentication, logging, CORS, panic recovery)
 - HTTP utilities (`httputil/` - JSON helpers, context management, response writer wrapper)
 - Configuration management (TOML with Viper)
@@ -72,34 +76,14 @@ go test ./...
 - Generated via `go generate ./domain/...`
 - Uses mockgen from go.uber.org/mock
 
-### Frontend (Cogent Core + WebAssembly)
+### Frontend (Gio + WebAssembly)
 
-**Application** (`frontend/app/`)
-- `app.go` - Application initialization
-- `auth_service.go` - OAuth2 PKCE flow (secure public client auth)
-- `collections_ui.go` - Collection management UI
-- `objects_ui.go` - Object CRUD operations
-- `containers_ui.go` - Container tree view and management
-- `ui_management.go` - Groups and navigation
-- `ui_helpers.go` - Dialog and form helpers
+See `frontend/CLAUDE.md` for detailed architecture, build constraints, and Gio UI patterns.
 
-**UI System** (`frontend/ui/`)
-- `styles/` - Centralized styling with design tokens
-  - `tokens.go` - Colors, spacing, typography constants
-  - `components.go` - Component style functions
-  - `layouts.go` - Layout style functions
-  - `utilities.go` - Utility style functions
-- `components/` - Reusable UI components (Card, Button, Badge, etc.)
-- `layouts/` - Application layout components
-
-**API Clients** (`frontend/pkg/api/`)
-- Type-safe clients for all backend endpoints
-- Common HTTP utilities and error handling
-
-**Build System** (`frontend/cmd/`)
-- `web/` - WebAssembly build tool
-- `webmain/` - WASM entry point
-- `serve/` - Development server
+**Application** (`frontend/app/`) — `GioApp` struct with immediate-mode Gio rendering
+**UI** (`frontend/ui/`) — Theme (colors, Material Design) and custom widgets (Card, Button, Dialog)
+**API Clients** (`frontend/pkg/api/`) — Type-safe clients for all backend endpoints
+**Build** (`frontend/cmd/`) — `web/` (WASM build), `gio-webmain/` (WASM entry), `serve/` (dev server), `desktop/` (native)
 
 ## Data Model
 
@@ -224,47 +208,6 @@ client_id = "your-client-id"
 - **Desktop**: Loads from filesystem
 - **WebAssembly**: Embedded at build time via `//go:embed`
 
-## Frontend Styling Conventions
-
-### Centralized Styling
-All styling uses helper functions from `ui/styles/`:
-- Never use inline styling in component code
-- Always use `appstyles.StyleXxx` functions
-- Create new style functions for repeated patterns
-
-### Common Patterns
-
-**Dialog Creation:**
-```go
-app.showDialog(DialogConfig{
-    Title: "Dialog Title",
-    SubmitButtonText: "Submit",
-    SubmitButtonStyle: appstyles.StyleButtonPrimary,
-    ContentBuilder: func(dialog core.Widget, closeDialog func()) {
-        nameField = createTextField(dialog, "Field label")
-    },
-    OnSubmit: func() {
-        // Handle submission
-    },
-})
-```
-
-**Form Fields:**
-```go
-// Always use helpers, never inline TextField creation
-nameField = createTextField(dialog, "Field name")
-searchField = createSearchField(parent, "Search...")
-header = createSectionHeader(dialog, "Section Title")
-```
-
-**Styling Containers:**
-```go
-// Use existing style functions
-typeContainer.Styler(appstyles.StyleTypeButtonContainer)
-propsContainer.Styler(appstyles.StylePropertiesContainer)
-groupLabel.Styler(appstyles.StyleGroupLabelWithMargin)
-```
-
 ## API Endpoints
 
 ### Core Resources
@@ -318,16 +261,15 @@ go test ./...
 - Health check at `/health`
 
 ### Frontend
-- Build: `cd frontend && ./bin/web`
-- Output: `frontend/web/` directory
-- Serve via nginx, Apache, or `./bin/serve`
-- Files: `app.wasm`, `wasm_exec.js`, `index.html`
+- Build: `cd frontend && go run cmd/web/main.go`
+- Output: `frontend/gio-web/` directory
+- Serve via nginx, Apache, or `go run cmd/serve/main.go`
 
 ## Technology Stack
 
 - **Language**: Go 1.24+
 - **Backend**: net/http with Go 1.22+ routing patterns, MongoDB, Authentik (OIDC), Viper (config), slog (logging)
-- **Frontend**: Cogent Core v0.3.12 (UI), OAuth2 (auth), WebAssembly
+- **Frontend**: Gio v0.9.0 (UI), OAuth2 (auth), WebAssembly + native desktop
 - **Testing**: Testcontainers, go-mock
 
 ## Backend HTTP Layer

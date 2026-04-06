@@ -82,6 +82,21 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Update vendor assets (redoc) if missing
+	vendorDir := filepath.Join(webOutputDir, "vendor")
+	redocPath := filepath.Join(vendorDir, "redoc.standalone.js")
+	if _, err := os.Stat(redocPath); os.IsNotExist(err) {
+		fmt.Println("Vendor assets missing, running update-vendor.sh...")
+		vendorCmd := exec.Command("bash", filepath.Join(webOutputDir, "update-vendor.sh"))
+		vendorCmd.Stdout = os.Stdout
+		vendorCmd.Stderr = os.Stderr
+		if err := vendorCmd.Run(); err != nil {
+			fmt.Printf("Warning: failed to update vendor assets: %v\n", err)
+		}
+	} else {
+		fmt.Println("✓ Vendor assets up to date")
+	}
+
 	fmt.Println("✓ WASM build completed successfully!")
 	fmt.Printf("✓ Output: %s\n", wasmOutput)
 	fmt.Printf("✓ WASM size: ")

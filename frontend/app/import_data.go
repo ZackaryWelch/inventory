@@ -250,6 +250,5 @@ func (ga *GioApp) executeImport() {
 			ga.dismissImport()
 		}
 		ga.fetchContainersAndObjects()
-		ga.window.Invalidate()
 	}()
 }

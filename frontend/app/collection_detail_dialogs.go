@@ -529,7 +529,7 @@ func (ga *GioApp) getParentContainerButton(containerID string) *widget.Clickable
 	return btn
 }
 
-// renderObjectContainerSelector renders container selection for objects
+// renderObjectContainerSelector renders container selection for objects (optional)
 func (ga *GioApp) renderObjectContainerSelector(gtx layout.Context) layout.Dimensions {
 	if len(ga.containers) == 0 {
 		return layout.Dimensions{}
@@ -538,14 +538,25 @@ func (ga *GioApp) renderObjectContainerSelector(gtx layout.Context) layout.Dimen
 	return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				label := material.Body2(ga.theme.Theme, "Container *")
+				label := material.Body2(ga.theme.Theme, "Container")
 				label.Color = theme.ColorTextSecondary
 				return label.Layout(gtx)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					children := make([]layout.FlexChild, len(ga.containers))
-					for i, c := range ga.containers {
+					// "(none)" chip
+					noneBtn := ga.getObjectContainerButton("")
+					if noneBtn.Clicked(gtx) {
+						ga.selectedContainerID = nil
+					}
+					children := []layout.FlexChild{
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return layout.Inset{Right: unit.Dp(theme.Spacing1), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return ga.renderFilterChip(gtx, noneBtn, "(none)", ga.selectedContainerID == nil)
+							})
+						}),
+					}
+					for _, c := range ga.containers {
 						c := c
 						btn := ga.getObjectContainerButton(c.ID)
 						if btn.Clicked(gtx) {
@@ -553,11 +564,11 @@ func (ga *GioApp) renderObjectContainerSelector(gtx layout.Context) layout.Dimen
 							ga.selectedContainerID = &cid
 						}
 						active := ga.selectedContainerID != nil && *ga.selectedContainerID == c.ID
-						children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.Inset{Right: unit.Dp(theme.Spacing1), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								return ga.renderFilterChip(gtx, btn, c.Name, active)
 							})
-						})
+						}))
 					}
 					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
 				})
@@ -600,32 +611,33 @@ func (ga *GioApp) handleContainerCreate() {
 
 	ga.logger.Info("Creating container", "name", name, "type", containerType)
 
+	collectionID := ga.selectedCollection.ID
+	userID := ga.currentUser.ID
+	parentContainerID := ga.selectedParentContainerID
+
 	go func() {
 		req := types.CreateContainerRequest{
-			CollectionID:      ga.selectedCollection.ID,
+			CollectionID:      collectionID,
 			Name:              name,
 			Type:              containerType,
 			Location:          location,
-			ParentContainerID: ga.selectedParentContainerID,
+			ParentContainerID: parentContainerID,
 		}
 
-		container, err := ga.containersClient.Create(ga.currentUser.ID, ga.selectedCollection.ID, req)
+		container, err := ga.containersClient.Create(userID, collectionID, req)
 		if err != nil {
 			ga.logger.Error("Failed to create container", "error", err)
 			return
 		}
 
 		ga.logger.Info("Container created successfully", "container_id", container.ID)
-		// Refresh containers list
-		ga.fetchContainersAndObjects()
-		ga.window.Invalidate()
+		ga.do(func() { ga.addContainer(*container) })
 	}()
 
 	// Close dialog
 	ga.showContainerDialog = false
 	ga.selectedContainerType = ""
 	ga.selectedParentContainerID = nil
-	ga.window.Invalidate()
 }
 
 // handleContainerUpdate handles updating an existing container
@@ -646,40 +658,40 @@ func (ga *GioApp) handleContainerUpdate() {
 	ga.logger.Info("Updating container", "container_id", ga.selectedContainer.ID, "name", name)
 
 	containerID := ga.selectedContainer.ID
+	collectionID := ga.selectedCollection.ID
+	userID := ga.currentUser.ID
+
+	// Capture parent ID decision before launching goroutine
+	var parentID *string
+	if ga.selectedParentContainerID != nil {
+		parentID = ga.selectedParentContainerID
+	} else if ga.selectedContainer != nil && ga.selectedContainer.ParentContainerID != nil {
+		// User explicitly selected "(none)" to remove parent
+		empty := ""
+		parentID = &empty
+	}
 
 	go func() {
-		// Use pointer to allow clearing parent (nil = not provided, pointer to "" = clear parent)
-		var parentID *string
-		if ga.selectedParentContainerID != nil {
-			parentID = ga.selectedParentContainerID
-		} else if ga.selectedContainer != nil && ga.selectedContainer.ParentContainerID != nil {
-			// User explicitly selected "(none)" to remove parent
-			empty := ""
-			parentID = &empty
-		}
 		req := types.UpdateContainerRequest{
 			Name:              name,
 			Location:          location,
 			ParentContainerID: parentID,
 		}
 
-		_, err := ga.containersClient.Update(ga.currentUser.ID, ga.selectedCollection.ID, containerID, req)
+		updated, err := ga.containersClient.Update(userID, collectionID, containerID, req)
 		if err != nil {
 			ga.logger.Error("Failed to update container", "error", err)
 			return
 		}
 
 		ga.logger.Info("Container updated successfully", "container_id", containerID)
-		// Refresh containers list
-		ga.fetchContainersAndObjects()
-		ga.window.Invalidate()
+		ga.do(func() { ga.updateContainer(*updated) })
 	}()
 
 	// Close dialog
 	ga.showContainerDialog = false
 	ga.selectedContainer = nil
 	ga.selectedParentContainerID = nil
-	ga.window.Invalidate()
 }
 
 // handleContainerDelete handles deleting a container
@@ -692,24 +704,23 @@ func (ga *GioApp) handleContainerDelete() {
 	ga.logger.Info("Deleting container", "container_id", ga.deleteContainerID)
 
 	containerID := ga.deleteContainerID
+	collectionID := ga.selectedCollection.ID
+	userID := ga.currentUser.ID
 
 	go func() {
-		err := ga.containersClient.Delete(ga.currentUser.ID, ga.selectedCollection.ID, containerID)
+		err := ga.containersClient.Delete(userID, collectionID, containerID)
 		if err != nil {
 			ga.logger.Error("Failed to delete container", "error", err)
 			return
 		}
 
 		ga.logger.Info("Container deleted successfully", "container_id", containerID)
-		// Refresh containers list
-		ga.fetchContainersAndObjects()
-		ga.window.Invalidate()
+		ga.do(func() { ga.removeContainer(containerID) })
 	}()
 
 	// Close dialog
 	ga.showDeleteContainer = false
 	ga.deleteContainerID = ""
-	ga.window.Invalidate()
 }
 
 // handleObjectCreate handles creating a new object
@@ -739,11 +750,16 @@ func (ga *GioApp) handleObjectCreate() {
 
 	ga.logger.Info("Creating object", "name", name)
 
+	userID := ga.currentUser.ID
+	objectType := ga.selectedCollection.ObjectType
+	collectionID := ga.selectedCollection.ID
+	selectedContainerID := ga.selectedContainerID
+
 	go func() {
 		req := types.CreateObjectRequest{
 			Name:        name,
 			Description: description,
-			ObjectType:  ga.selectedCollection.ObjectType,
+			ObjectType:  objectType,
 			Quantity:    quantity,
 			Unit:        unit,
 			Properties:  make(map[string]interface{}),
@@ -751,26 +767,23 @@ func (ga *GioApp) handleObjectCreate() {
 		}
 
 		// Add container ID if selected
-		if ga.selectedContainerID != nil {
-			req.ContainerID = *ga.selectedContainerID
+		if selectedContainerID != nil {
+			req.ContainerID = *selectedContainerID
 		}
 
-		object, err := ga.objectsClient.Create(ga.currentUser.ID, req)
+		object, err := ga.objectsClient.Create(userID, req, collectionID)
 		if err != nil {
 			ga.logger.Error("Failed to create object", "error", err)
 			return
 		}
 
 		ga.logger.Info("Object created successfully", "object_id", object.ID)
-		// Refresh objects list
-		ga.fetchContainersAndObjects()
-		ga.window.Invalidate()
+		ga.do(func() { ga.addObject(*object) })
 	}()
 
 	// Close dialog
 	ga.showObjectDialog = false
 	ga.selectedContainerID = nil
-	ga.window.Invalidate()
 }
 
 // handleObjectUpdate handles updating an existing object
@@ -801,6 +814,7 @@ func (ga *GioApp) handleObjectUpdate() {
 	ga.logger.Info("Updating object", "object_id", ga.selectedObject.ID, "name", name)
 
 	objectID := ga.selectedObject.ID
+	userID := ga.currentUser.ID
 
 	containerID := ""
 	if ga.selectedContainerID != nil {
@@ -813,6 +827,11 @@ func (ga *GioApp) handleObjectUpdate() {
 	properties := ga.selectedObject.Properties
 	tags := ga.selectedObject.Tags
 
+	oldContainerID := ""
+	if ga.selectedObject != nil {
+		oldContainerID = ga.selectedObject.ContainerID
+	}
+
 	go func() {
 		req := types.UpdateObjectRequest{
 			ContainerID: containerID,
@@ -824,22 +843,19 @@ func (ga *GioApp) handleObjectUpdate() {
 			Tags:        tags,
 		}
 
-		_, err := ga.objectsClient.Update(ga.currentUser.ID, objectID, req)
+		updated, err := ga.objectsClient.Update(userID, objectID, req)
 		if err != nil {
 			ga.logger.Error("Failed to update object", "error", err)
 			return
 		}
 
 		ga.logger.Info("Object updated successfully", "object_id", objectID)
-		// Refresh objects list
-		ga.fetchContainersAndObjects()
-		ga.window.Invalidate()
+		ga.do(func() { ga.updateObject(*updated, oldContainerID) })
 	}()
 
 	// Close dialog
 	ga.showObjectDialog = false
 	ga.selectedObject = nil
-	ga.window.Invalidate()
 }
 
 // handleObjectDelete handles deleting an object
@@ -861,22 +877,20 @@ func (ga *GioApp) handleObjectDelete() {
 	ga.logger.Info("Deleting object", "object_id", ga.deleteObjectID)
 
 	objectID := ga.deleteObjectID
+	userID := ga.currentUser.ID
 
 	go func() {
-		err := ga.objectsClient.Delete(ga.currentUser.ID, objectID, containerID)
+		err := ga.objectsClient.Delete(userID, objectID, containerID)
 		if err != nil {
 			ga.logger.Error("Failed to delete object", "error", err)
 			return
 		}
 
 		ga.logger.Info("Object deleted successfully", "object_id", objectID)
-		// Refresh objects list
-		ga.fetchContainersAndObjects()
-		ga.window.Invalidate()
+		ga.do(func() { ga.removeObject(objectID, containerID) })
 	}()
 
 	// Close dialog
 	ga.showDeleteObject = false
 	ga.deleteObjectID = ""
-	ga.window.Invalidate()
 }

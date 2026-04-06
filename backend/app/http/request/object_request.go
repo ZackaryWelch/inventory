@@ -9,7 +9,7 @@ import (
 )
 
 type CreateObjectRequest struct {
-	ContainerID string                 `json:"container_id" binding:"required"`
+	ContainerID string                 `json:"container_id,omitempty"`
 	Name        string                 `json:"name" binding:"required,min=1,max=255"`
 	Description string                 `json:"description,omitempty"`
 	ObjectType  string                 `json:"object_type" binding:"required"`
@@ -21,7 +21,7 @@ type CreateObjectRequest struct {
 }
 
 type UpdateObjectRequest struct {
-	ContainerID string                 `json:"container_id" binding:"required"`
+	ContainerID string                 `json:"container_id,omitempty"`
 	Name        *string                `json:"name,omitempty"`
 	Description *string                `json:"description,omitempty"`
 	Quantity    *float64               `json:"quantity,omitempty"`
@@ -34,9 +34,6 @@ type UpdateObjectRequest struct {
 func (r *CreateObjectRequest) Validate() error {
 	if len(r.Name) < 1 || len(r.Name) > 255 {
 		return fmt.Errorf("name must be between 1 and 255 characters")
-	}
-	if r.ContainerID == "" {
-		return fmt.Errorf("container_id is required")
 	}
 
 	// Validate object type
@@ -53,21 +50,32 @@ func (r *CreateObjectRequest) Validate() error {
 }
 
 func (r *UpdateObjectRequest) Validate() error {
-	if r.ContainerID == "" {
-		return fmt.Errorf("container_id is required")
-	}
 	if r.Name != nil && (len(*r.Name) < 1 || len(*r.Name) > 255) {
 		return fmt.Errorf("name must be between 1 and 255 characters")
 	}
 	return nil
 }
 
-func (r *UpdateObjectRequest) GetContainerID() (entities.ContainerID, error) {
-	return entities.ContainerIDFromString(r.ContainerID)
+func (r *UpdateObjectRequest) GetContainerID() (*entities.ContainerID, error) {
+	if r.ContainerID == "" {
+		return nil, nil
+	}
+	cid, err := entities.ContainerIDFromString(r.ContainerID)
+	if err != nil {
+		return nil, err
+	}
+	return &cid, nil
 }
 
-func (r *CreateObjectRequest) GetContainerID() (entities.ContainerID, error) {
-	return entities.ContainerIDFromString(r.ContainerID)
+func (r *CreateObjectRequest) GetContainerID() (*entities.ContainerID, error) {
+	if r.ContainerID == "" {
+		return nil, nil
+	}
+	cid, err := entities.ContainerIDFromString(r.ContainerID)
+	if err != nil {
+		return nil, err
+	}
+	return &cid, nil
 }
 
 func (r *CreateObjectRequest) GetObjectType() entities.ObjectType {

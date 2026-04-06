@@ -11,21 +11,23 @@ import (
 )
 
 type CreateObjectRequest struct {
-	ContainerID entities.ContainerID
-	Name        string
-	Description string
-	ObjectType  entities.ObjectType
-	Quantity    *float64
-	Unit        string
-	Properties  map[string]interface{}
-	Tags        []string
-	ExpiresAt   *time.Time
-	UserID      entities.UserID
-	UserToken   string
+	ContainerID  *entities.ContainerID  // nil = auto-assign to default container
+	CollectionID *entities.CollectionID // required when ContainerID is nil
+	Name         string
+	Description  string
+	ObjectType   entities.ObjectType
+	Quantity     *float64
+	Unit         string
+	Properties   map[string]interface{}
+	Tags         []string
+	ExpiresAt    *time.Time
+	UserID       entities.UserID
+	UserToken    string
 }
 
 type CreateObjectResponse struct {
-	Object *entities.Object
+	Object      *entities.Object
+	ContainerID entities.ContainerID
 }
 
 type CreateObjectUseCase struct {
@@ -43,21 +45,38 @@ func NewCreateObjectUseCase(containerRepo repositories.ContainerRepository, coll
 }
 
 func (uc *CreateObjectUseCase) Execute(ctx context.Context, req CreateObjectRequest) (*CreateObjectResponse, error) {
-	// Get container
-	container, err := uc.containerRepo.GetByID(ctx, req.ContainerID)
-	if err != nil {
-		return nil, fmt.Errorf("container not found: %w", err)
+	var container *entities.Container
+	var collection *entities.Collection
+	var err error
+
+	if req.ContainerID != nil {
+		// Container specified — look it up
+		container, err = uc.containerRepo.GetByID(ctx, *req.ContainerID)
+		if err != nil {
+			return nil, fmt.Errorf("container not found: %w", err)
+		}
+		collection, err = uc.collectionRepo.GetByID(ctx, container.CollectionID())
+		if err != nil {
+			return nil, fmt.Errorf("collection not found: %w", err)
+		}
+	} else if req.CollectionID != nil {
+		// No container — find or create a default "General" container for the collection
+		collection, err = uc.collectionRepo.GetByID(ctx, *req.CollectionID)
+		if err != nil {
+			return nil, fmt.Errorf("collection not found: %w", err)
+		}
+		container, err = uc.findOrCreateDefaultContainer(ctx, *req.CollectionID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get default container: %w", err)
+		}
+	} else {
+		return nil, fmt.Errorf("either container_id or collection_id is required")
 	}
 
 	// Check user access to collection
 	userGroups, err := uc.authService.GetUserGroups(ctx, req.UserToken, req.UserID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user groups: %w", err)
-	}
-
-	collection, err := uc.collectionRepo.GetByID(ctx, container.CollectionID())
-	if err != nil {
-		return nil, fmt.Errorf("collection not found: %w", err)
 	}
 
 	// Check access: user is owner OR user is member of collection's group
@@ -110,6 +129,42 @@ func (uc *CreateObjectUseCase) Execute(ctx context.Context, req CreateObjectRequ
 	}
 
 	return &CreateObjectResponse{
-		Object: object,
+		Object:      object,
+		ContainerID: container.ID(),
 	}, nil
+}
+
+const defaultContainerName = "General"
+
+// findOrCreateDefaultContainer returns the default "General" container for a collection,
+// creating one if it doesn't exist.
+func (uc *CreateObjectUseCase) findOrCreateDefaultContainer(ctx context.Context, collectionID entities.CollectionID) (*entities.Container, error) {
+	containers, err := uc.containerRepo.GetByCollectionID(ctx, collectionID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Look for existing default container
+	for _, c := range containers {
+		if c.Name().String() == defaultContainerName && c.ContainerType() == entities.ContainerTypeGeneral {
+			return c, nil
+		}
+	}
+
+	// Create a new default container
+	name, _ := entities.NewContainerName(defaultContainerName)
+	container, err := entities.NewContainer(entities.ContainerProps{
+		CollectionID:  collectionID,
+		Name:          name,
+		ContainerType: entities.ContainerTypeGeneral,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := uc.containerRepo.Create(ctx, container); err != nil {
+		return nil, err
+	}
+
+	return container, nil
 }

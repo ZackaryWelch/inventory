@@ -119,6 +119,10 @@ type GioApp struct {
 	importRunning        bool
 	importResult         *importResult
 
+	// Container display mode in collection detail
+	showContainersPanel bool   // whether container column is visible
+	containerViewMode   string // "split" (side-by-side) or "grouped" (objects grouped by container)
+
 	// Grouped-text filter state (property key → selected value; empty = "All")
 	activeGroupedTextFilters map[string]string
 
@@ -178,31 +182,34 @@ type WidgetState struct {
 	collectionItems         []CollectionItemState
 
 	// Collections dialog widgets
-	collectionNameEditor     widget.Editor
-	collectionLocationEditor widget.Editor
-	collectionTagsEditor     widget.Editor
-	collectionTypeButtons    map[string]*widget.Clickable
-	collectionGroupButtons   map[string]*widget.Clickable
-	collectionDialogSubmit        widget.Clickable
-	collectionDialogCancel        widget.Clickable
-	collectionErrorDialogDismiss  widget.Clickable
-	collectionErrorDialog         *widgets.Dialog
+	collectionNameEditor         widget.Editor
+	collectionLocationEditor     widget.Editor
+	collectionTagsEditor         widget.Editor
+	collectionTypeButtons        map[string]*widget.Clickable
+	collectionGroupButtons       map[string]*widget.Clickable
+	collectionDialogSubmit       widget.Clickable
+	collectionDialogCancel       widget.Clickable
+	collectionErrorDialogDismiss widget.Clickable
+	collectionErrorDialog        *widgets.Dialog
 
 	// Container/Object view
-	containersSearchField widget.Editor
-	containersList        widget.List
-	containerItems        []ContainerItemState
-	objectsSearchField    widget.Editor
-	objectsList           widget.List
-	objectItems           []ObjectItemState
-	backToCollections     widget.Clickable
-	createContainerButton widget.Clickable
-	createObjectButton    widget.Clickable
-	importButton          widget.Clickable
-	importExecuteButton   widget.Clickable
-	importCancelButton    widget.Clickable
-	importDialogList      widget.List
-	importPreviewList     widget.List
+	toggleContainersButton widget.Clickable
+	containerViewSplitBtn  widget.Clickable
+	containerViewGroupBtn  widget.Clickable
+	containersSearchField  widget.Editor
+	containersList         widget.List
+	containerItems         []ContainerItemState
+	objectsSearchField     widget.Editor
+	objectsList            widget.List
+	objectItems            []ObjectItemState
+	backToCollections      widget.Clickable
+	createContainerButton  widget.Clickable
+	createObjectButton     widget.Clickable
+	importButton           widget.Clickable
+	importExecuteButton    widget.Clickable
+	importCancelButton     widget.Clickable
+	importDialogList       widget.List
+	importPreviewList      widget.List
 
 	// Import column mapping
 	importNameColumnButtons     map[string]*widget.Clickable
@@ -211,6 +218,11 @@ type WidgetState struct {
 
 	// Grouped-text filter chips (key = "propKey||value")
 	groupedTextFilterButtons map[string]*widget.Clickable
+
+	// Containers page
+	containersPageButton widget.Clickable
+	containersBackButton widget.Clickable
+	containerDetailList  widget.List
 
 	// Container dialog widgets
 	containerNameEditor     widget.Editor
@@ -318,6 +330,7 @@ const (
 	ViewGroupsGio
 	ViewCollectionsGio
 	ViewCollectionDetailGio
+	ViewContainersGio
 	ViewProfileGio
 	ViewSearchGio
 )
@@ -456,6 +469,8 @@ func (ga *GioApp) render(gtx layout.Context) layout.Dimensions {
 				return ga.renderCollectionsView(gtx)
 			case ViewCollectionDetailGio:
 				return ga.renderCollectionDetailView(gtx)
+			case ViewContainersGio:
+				return ga.renderContainersPageView(gtx)
 			case ViewProfileGio:
 				return ga.renderProfileView(gtx)
 			default:

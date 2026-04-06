@@ -73,7 +73,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := CreateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			Name:        "Test Object",
 			ObjectType:  entities.ObjectTypeGeneral,
 			Properties:  map[string]interface{}{"description": "Test description"},
@@ -174,7 +174,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := CreateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			Name:        "Group Object",
 			ObjectType:  entities.ObjectTypeGeneral,
 			Properties:  map[string]interface{}{},
@@ -216,7 +216,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 		containerID := entities.NewContainerID()
 
 		req := CreateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			Name:        "Test Object",
 			ObjectType:  entities.ObjectTypeGeneral,
 			Properties:  map[string]interface{}{},
@@ -264,7 +264,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := CreateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			Name:        "Test Object",
 			ObjectType:  entities.ObjectTypeGeneral,
 			Properties:  map[string]interface{}{},
@@ -273,15 +273,10 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
+		// Mock expectations — collection fetch now happens before auth
 		mockContainerRepo.EXPECT().
 			GetByID(gomock.Any(), containerID).
 			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{}, nil).
 			Times(1)
 
 		mockCollectionRepo.EXPECT().
@@ -340,7 +335,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := CreateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			Name:        "Test Object",
 			ObjectType:  entities.ObjectTypeGeneral,
 			Properties:  map[string]interface{}{},
@@ -415,7 +410,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := CreateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			Name:        "", // Empty name is invalid
 			ObjectType:  entities.ObjectTypeGeneral,
 			Properties:  map[string]interface{}{},
@@ -472,8 +467,16 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			time.Now(),
 		)
 
+		// Create test collection (needed because collection is fetched before auth)
+		collName, _ := entities.NewCollectionName("Test Collection")
+		collection := entities.ReconstructCollection(
+			collectionID, userID, nil, collName, nil,
+			entities.ObjectTypeGeneral, []entities.Container{}, []string{}, "", nil,
+			time.Now(), time.Now(),
+		)
+
 		req := CreateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			Name:        "Test Object",
 			ObjectType:  entities.ObjectTypeGeneral,
 			Properties:  map[string]interface{}{},
@@ -486,6 +489,11 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 		mockContainerRepo.EXPECT().
 			GetByID(gomock.Any(), containerID).
 			Return(container, nil).
+			Times(1)
+
+		mockCollectionRepo.EXPECT().
+			GetByID(gomock.Any(), collectionID).
+			Return(collection, nil).
 			Times(1)
 
 		mockAuthService.EXPECT().
@@ -543,7 +551,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 		)
 
 		req := CreateObjectRequest{
-			ContainerID: containerID,
+			ContainerID: &containerID,
 			Name:        "Test Object",
 			ObjectType:  entities.ObjectTypeGeneral,
 			Properties:  map[string]interface{}{},
