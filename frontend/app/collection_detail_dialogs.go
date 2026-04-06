@@ -384,137 +384,62 @@ func (ga *GioApp) renderDeleteObjectDialog(gtx layout.Context) layout.Dimensions
 	return dims
 }
 
-// renderContainerTypeSelector renders container type selection buttons
+// renderContainerTypeSelector renders container type selection chips.
 func (ga *GioApp) renderContainerTypeSelector(gtx layout.Context) layout.Dimensions {
-	return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				label := material.Body2(ga.theme.Theme, "Type *")
-				label.Color = theme.ColorTextSecondary
-				return label.Layout(gtx)
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					// Create buttons for each type (2 rows of 3)
-					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.Flex{
-								Axis:    layout.Horizontal,
-								Spacing: layout.SpaceEvenly,
-							}.Layout(gtx,
-								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-									return ga.renderContainerTypeButton(gtx, ContainerTypeRoom)
-								}),
-								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-									return ga.renderContainerTypeButton(gtx, ContainerTypeBookshelf)
-								}),
-								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-									return ga.renderContainerTypeButton(gtx, ContainerTypeShelf)
-								}),
-							)
-						}),
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return layout.Flex{
-									Axis:    layout.Horizontal,
-									Spacing: layout.SpaceEvenly,
-								}.Layout(gtx,
-									layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-										return ga.renderContainerTypeButton(gtx, ContainerTypeBinder)
-									}),
-									layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-										return ga.renderContainerTypeButton(gtx, ContainerTypeCabinet)
-									}),
-									layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-										return ga.renderContainerTypeButton(gtx, ContainerTypeGeneral)
-									}),
-								)
-							})
-						}),
-					)
-				})
-			}),
-		)
-	})
-}
-
-// renderContainerTypeButton renders a container type selection button
-func (ga *GioApp) renderContainerTypeButton(gtx layout.Context, containerType string) layout.Dimensions {
-	// Get or create button state
-	if ga.widgetState.containerTypeButtons[containerType] == nil {
-		ga.widgetState.containerTypeButtons[containerType] = &widget.Clickable{}
-	}
-	btn := ga.widgetState.containerTypeButtons[containerType]
-
-	// Handle click - store in a temporary state variable
-	if btn.Clicked(gtx) {
-		ga.selectedContainerType = containerType
-	}
-
-	// Render button with appropriate style
-	isSelected := ga.selectedContainerType == containerType
-	return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		if isSelected {
-			return widgets.AccentButton(ga.theme.Theme, btn, containerTypeLabels[containerType])(gtx)
+	chips := make([]layout.Widget, len(containerTypes))
+	for i, ct := range containerTypes {
+		ct := ct
+		if ga.widgetState.containerTypeButtons[ct] == nil {
+			ga.widgetState.containerTypeButtons[ct] = &widget.Clickable{}
 		}
-		return widgets.CancelButton(ga.theme.Theme, btn, containerTypeLabels[containerType])(gtx)
-	})
+		btn := ga.widgetState.containerTypeButtons[ct]
+		if btn.Clicked(gtx) {
+			ga.selectedContainerType = ct
+		}
+		active := ga.selectedContainerType == ct
+		chips[i] = func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, btn, containerTypeLabels[ct], active)
+		}
+	}
+	return ga.renderChipSelector(gtx, "Type *", chips)
 }
 
-// renderParentContainerSelector renders parent container selection buttons
+// renderParentContainerSelector renders parent container selection chips.
 func (ga *GioApp) renderParentContainerSelector(gtx layout.Context) layout.Dimensions {
 	if len(ga.containers) == 0 {
 		return layout.Dimensions{}
 	}
 
-	return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				label := material.Body2(ga.theme.Theme, "Parent Container")
-				label.Color = theme.ColorTextSecondary
-				return label.Layout(gtx)
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					// "(none)" chip to make this a root container
-					noneBtn := ga.getParentContainerButton("")
-					if noneBtn.Clicked(gtx) {
-						ga.selectedParentContainerID = nil
-					}
-					children := []layout.FlexChild{
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.Inset{Right: unit.Dp(theme.Spacing1), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return ga.renderFilterChip(gtx, noneBtn, "(none)", ga.selectedParentContainerID == nil)
-							})
-						}),
-					}
-					// Exclude the container being edited from parent options
-					editingID := ""
-					if ga.selectedContainer != nil {
-						editingID = ga.selectedContainer.ID
-					}
-					for _, c := range ga.containers {
-						c := c
-						if c.ID == editingID {
-							continue
-						}
-						btn := ga.getParentContainerButton(c.ID)
-						if btn.Clicked(gtx) {
-							cid := c.ID
-							ga.selectedParentContainerID = &cid
-						}
-						active := ga.selectedParentContainerID != nil && *ga.selectedParentContainerID == c.ID
-						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.Inset{Right: unit.Dp(theme.Spacing1), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return ga.renderFilterChip(gtx, btn, c.Name, active)
-							})
-						}))
-					}
-					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
-				})
-			}),
-		)
-	})
+	noneBtn := ga.getParentContainerButton("")
+	if noneBtn.Clicked(gtx) {
+		ga.selectedParentContainerID = nil
+	}
+	chips := []layout.Widget{
+		func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, noneBtn, "(none)", ga.selectedParentContainerID == nil)
+		},
+	}
+
+	editingID := ""
+	if ga.selectedContainer != nil {
+		editingID = ga.selectedContainer.ID
+	}
+	for _, c := range ga.containers {
+		c := c
+		if c.ID == editingID {
+			continue
+		}
+		btn := ga.getParentContainerButton(c.ID)
+		if btn.Clicked(gtx) {
+			cid := c.ID
+			ga.selectedParentContainerID = &cid
+		}
+		active := ga.selectedParentContainerID != nil && *ga.selectedParentContainerID == c.ID
+		chips = append(chips, func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, btn, c.Name, active)
+		})
+	}
+	return ga.renderChipSelector(gtx, "Parent Container", chips)
 }
 
 func (ga *GioApp) getParentContainerButton(containerID string) *widget.Clickable {
@@ -529,52 +454,34 @@ func (ga *GioApp) getParentContainerButton(containerID string) *widget.Clickable
 	return btn
 }
 
-// renderObjectContainerSelector renders container selection for objects (optional)
+// renderObjectContainerSelector renders container selection chips for objects.
 func (ga *GioApp) renderObjectContainerSelector(gtx layout.Context) layout.Dimensions {
 	if len(ga.containers) == 0 {
 		return layout.Dimensions{}
 	}
 
-	return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				label := material.Body2(ga.theme.Theme, "Container")
-				label.Color = theme.ColorTextSecondary
-				return label.Layout(gtx)
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					// "(none)" chip
-					noneBtn := ga.getObjectContainerButton("")
-					if noneBtn.Clicked(gtx) {
-						ga.selectedContainerID = nil
-					}
-					children := []layout.FlexChild{
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.Inset{Right: unit.Dp(theme.Spacing1), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return ga.renderFilterChip(gtx, noneBtn, "(none)", ga.selectedContainerID == nil)
-							})
-						}),
-					}
-					for _, c := range ga.containers {
-						c := c
-						btn := ga.getObjectContainerButton(c.ID)
-						if btn.Clicked(gtx) {
-							cid := c.ID
-							ga.selectedContainerID = &cid
-						}
-						active := ga.selectedContainerID != nil && *ga.selectedContainerID == c.ID
-						children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.Inset{Right: unit.Dp(theme.Spacing1), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return ga.renderFilterChip(gtx, btn, c.Name, active)
-							})
-						}))
-					}
-					return layout.Flex{Axis: layout.Horizontal}.Layout(gtx, children...)
-				})
-			}),
-		)
-	})
+	noneBtn := ga.getObjectContainerButton("")
+	if noneBtn.Clicked(gtx) {
+		ga.selectedContainerID = nil
+	}
+	chips := []layout.Widget{
+		func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, noneBtn, "(none)", ga.selectedContainerID == nil)
+		},
+	}
+	for _, c := range ga.containers {
+		c := c
+		btn := ga.getObjectContainerButton(c.ID)
+		if btn.Clicked(gtx) {
+			cid := c.ID
+			ga.selectedContainerID = &cid
+		}
+		active := ga.selectedContainerID != nil && *ga.selectedContainerID == c.ID
+		chips = append(chips, func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, btn, c.Name, active)
+		})
+	}
+	return ga.renderChipSelector(gtx, "Container", chips)
 }
 
 func (ga *GioApp) getObjectContainerButton(containerID string) *widget.Clickable {

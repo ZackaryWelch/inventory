@@ -404,153 +404,58 @@ func (ga *GioApp) renderFormField(gtx layout.Context, label string, editor *widg
 	})
 }
 
-// renderObjectTypeSelector renders object type selection buttons
+// renderObjectTypeSelector renders object type selection chips.
 func (ga *GioApp) renderObjectTypeSelector(gtx layout.Context) layout.Dimensions {
-	return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				label := material.Body2(ga.theme.Theme, "Object Type *")
-				label.Color = theme.ColorTextSecondary
-				return label.Layout(gtx)
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					// Create buttons for each type
-					return layout.Flex{
-						Axis:    layout.Horizontal,
-						Spacing: layout.SpaceEvenly,
-					}.Layout(gtx,
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							return ga.renderTypeButton(gtx, ObjectTypeGeneral)
-						}),
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							return ga.renderTypeButton(gtx, ObjectTypeFood)
-						}),
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							return ga.renderTypeButton(gtx, ObjectTypeBook)
-						}),
-					)
-				})
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return layout.Flex{
-						Axis:    layout.Horizontal,
-						Spacing: layout.SpaceEvenly,
-					}.Layout(gtx,
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							return ga.renderTypeButton(gtx, ObjectTypeVideoGame)
-						}),
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							return ga.renderTypeButton(gtx, ObjectTypeMusic)
-						}),
-						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-							return ga.renderTypeButton(gtx, ObjectTypeBoardGame)
-						}),
-					)
-				})
-			}),
-		)
-	})
-}
-
-// renderTypeButton renders an object type selection button
-func (ga *GioApp) renderTypeButton(gtx layout.Context, objectType string) layout.Dimensions {
-	// Get or create button state
-	if ga.widgetState.collectionTypeButtons[objectType] == nil {
-		ga.widgetState.collectionTypeButtons[objectType] = &widget.Clickable{}
-	}
-	btn := ga.widgetState.collectionTypeButtons[objectType]
-
-	// Handle click
-	if btn.Clicked(gtx) {
-		ga.selectedObjectType = objectType
-	}
-
-	// Render button with appropriate style
-	isSelected := ga.selectedObjectType == objectType
-	return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		if isSelected {
-			return widgets.AccentButton(ga.theme.Theme, btn, objectTypeLabels[objectType])(gtx)
+	chips := make([]layout.Widget, len(objectTypes))
+	for i, ot := range objectTypes {
+		ot := ot
+		if ga.widgetState.collectionTypeButtons[ot] == nil {
+			ga.widgetState.collectionTypeButtons[ot] = &widget.Clickable{}
 		}
-		return widgets.CancelButton(ga.theme.Theme, btn, objectTypeLabels[objectType])(gtx)
-	})
+		btn := ga.widgetState.collectionTypeButtons[ot]
+		if btn.Clicked(gtx) {
+			ga.selectedObjectType = ot
+		}
+		active := ga.selectedObjectType == ot
+		chips[i] = func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, btn, objectTypeLabels[ot], active)
+		}
+	}
+	return ga.renderChipSelector(gtx, "Object Type *", chips)
 }
 
-// renderGroupSelector renders group selection buttons
+// renderGroupSelector renders group selection chips.
 func (ga *GioApp) renderGroupSelector(gtx layout.Context) layout.Dimensions {
-	return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				label := material.Body2(ga.theme.Theme, "Group (Optional)")
-				label.Color = theme.ColorTextSecondary
-				return label.Layout(gtx)
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					// Render "None" button first
-					return layout.Flex{
-						Axis:    layout.Horizontal,
-						Spacing: layout.SpaceStart,
-					}.Layout(gtx,
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return ga.renderGroupButton(gtx, nil, "None")
-						}),
-						// Render group buttons
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return layout.Flex{
-								Axis:    layout.Horizontal,
-								Spacing: layout.SpaceStart,
-							}.Layout(gtx, func() []layout.FlexChild {
-								children := make([]layout.FlexChild, len(ga.groups))
-								for i, group := range ga.groups {
-									grp := group // Capture for closure
-									children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-										return ga.renderGroupButton(gtx, &grp.ID, grp.Name)
-									})
-								}
-								return children
-							}()...)
-						}),
-					)
-				})
-			}),
-		)
-	})
-}
-
-// renderGroupButton renders a group selection button
-func (ga *GioApp) renderGroupButton(gtx layout.Context, groupID *string, label string) layout.Dimensions {
-	// Get or create button state
-	btnKey := "none"
-	if groupID != nil {
-		btnKey = *groupID
+	noneBtn := ga.widgetState.collectionGroupButtons["none"]
+	if noneBtn == nil {
+		noneBtn = &widget.Clickable{}
+		ga.widgetState.collectionGroupButtons["none"] = noneBtn
 	}
-	if ga.widgetState.collectionGroupButtons[btnKey] == nil {
-		ga.widgetState.collectionGroupButtons[btnKey] = &widget.Clickable{}
+	if noneBtn.Clicked(gtx) {
+		ga.selectedGroupID = nil
 	}
-	btn := ga.widgetState.collectionGroupButtons[btnKey]
-
-	// Handle click
-	if btn.Clicked(gtx) {
-		ga.selectedGroupID = groupID
+	chips := []layout.Widget{
+		func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, noneBtn, "None", ga.selectedGroupID == nil)
+		},
 	}
-
-	// Check if selected
-	isSelected := false
-	if ga.selectedGroupID == nil && groupID == nil {
-		isSelected = true
-	} else if ga.selectedGroupID != nil && groupID != nil && *ga.selectedGroupID == *groupID {
-		isSelected = true
-	}
-
-	// Render button with appropriate style
-	return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		if isSelected {
-			return widgets.AccentButton(ga.theme.Theme, btn, label)(gtx)
+	for _, group := range ga.groups {
+		grp := group
+		btn := ga.widgetState.collectionGroupButtons[grp.ID]
+		if btn == nil {
+			btn = &widget.Clickable{}
+			ga.widgetState.collectionGroupButtons[grp.ID] = btn
 		}
-		return widgets.CancelButton(ga.theme.Theme, btn, label)(gtx)
-	})
+		if btn.Clicked(gtx) {
+			gid := grp.ID
+			ga.selectedGroupID = &gid
+		}
+		active := ga.selectedGroupID != nil && *ga.selectedGroupID == grp.ID
+		chips = append(chips, func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, btn, grp.Name, active)
+		})
+	}
+	return ga.renderChipSelector(gtx, "Group (Optional)", chips)
 }
 
 // handleCollectionCreate handles creating a new collection

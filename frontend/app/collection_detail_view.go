@@ -2,11 +2,13 @@ package app
 
 import (
 	"fmt"
+	"image"
 	"sort"
 	"strings"
 
 	"gioui.org/font"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -420,16 +422,6 @@ func (ga *GioApp) ensureObjectItemStates() {
 	}
 }
 
-// containersWithObjects returns the set of container IDs that have at least one object.
-func (ga *GioApp) containersWithObjects() map[string]bool {
-	m := make(map[string]bool)
-	for _, obj := range ga.objects {
-		if obj.ContainerID != "" {
-			m[obj.ContainerID] = true
-		}
-	}
-	return m
-}
 
 // renderContainersList renders the list of containers
 func (ga *GioApp) renderContainersList(gtx layout.Context) layout.Dimensions {
@@ -442,17 +434,12 @@ func (ga *GioApp) renderContainersList(gtx layout.Context) layout.Dimensions {
 		})
 	}
 
-	// Filter containers based on search query and whether they have objects
+	// Filter containers based on search query
 	searchQuery := strings.ToLower(ga.widgetState.containersSearchField.Text())
-	hasObjects := ga.containersWithObjects()
 	filteredContainers := make([]Container, 0)
 	filteredIndices := make([]int, 0)
 
 	for i, container := range ga.containers {
-		// In collection detail split view, only show containers with objects
-		if !hasObjects[container.ID] {
-			continue
-		}
 		if searchQuery == "" ||
 			strings.Contains(strings.ToLower(container.Name), searchQuery) ||
 			strings.Contains(strings.ToLower(container.Type), searchQuery) ||
@@ -544,7 +531,7 @@ func (ga *GioApp) renderContainerCard(gtx layout.Context, container Container, i
 	card := widgets.DefaultCard()
 	return card.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			// Container name and type
+			// Header row (name + type label)
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{
 					Axis:      layout.Horizontal,
@@ -552,24 +539,14 @@ func (ga *GioApp) renderContainerCard(gtx layout.Context, container Container, i
 					Spacing:   layout.SpaceBetween,
 				}.Layout(gtx,
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-						label := material.Body1(ga.theme.Theme, container.Name)
+						label := material.H6(ga.theme.Theme, container.Name)
 						label.Font.Weight = font.Bold
 						return label.Layout(gtx)
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						badge := widgets.Card{
-							BackgroundColor: theme.ColorAccent,
-							CornerRadius:    unit.Dp(theme.RadiusFull),
-							Inset: layout.Inset{
-								Top:    unit.Dp(theme.Spacing1),
-								Bottom: unit.Dp(theme.Spacing1),
-								Left:   unit.Dp(theme.Spacing2),
-								Right:  unit.Dp(theme.Spacing2),
-							},
-						}
-						return badge.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return layout.Inset{Left: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 							label := material.Body2(ga.theme.Theme, containerTypeLabels[container.Type])
-							label.Color = theme.ColorBlack
+							label.Color = theme.ColorAccent
 							return label.Layout(gtx)
 						})
 					}),
@@ -579,7 +556,7 @@ func (ga *GioApp) renderContainerCard(gtx layout.Context, container Container, i
 			// Location
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				if container.Location != "" {
-					return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						label := material.Body2(ga.theme.Theme, container.Location)
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
@@ -600,7 +577,7 @@ func (ga *GioApp) renderContainerCard(gtx layout.Context, container Container, i
 
 			// Action buttons
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Top: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{
 						Axis:    layout.Horizontal,
 						Spacing: layout.SpaceStart,
@@ -1115,6 +1092,72 @@ func (ga *GioApp) getGroupedTextChipButton(key string) *widget.Clickable {
 	btn := new(widget.Clickable)
 	ga.widgetState.groupedTextFilterButtons[key] = btn
 	return btn
+}
+
+// layoutFlowWrap lays out widgets in a horizontal flow that wraps to the next line.
+func layoutFlowWrap(gtx layout.Context, hGap, vGap int, widgets ...layout.Widget) layout.Dimensions {
+	maxWidth := gtx.Constraints.Max.X
+	var x, y, rowHeight int
+
+	type positioned struct {
+		call op.CallOp
+		pos  image.Point
+		size image.Point
+	}
+	var items []positioned
+
+	for _, w := range widgets {
+		macro := op.Record(gtx.Ops)
+		dims := w(gtx)
+		call := macro.Stop()
+
+		if x > 0 && x+dims.Size.X > maxWidth {
+			y += rowHeight + vGap
+			x = 0
+			rowHeight = 0
+		}
+
+		items = append(items, positioned{
+			call: call,
+			pos:  image.Point{X: x, Y: y},
+			size: dims.Size,
+		})
+
+		x += dims.Size.X + hGap
+		if dims.Size.Y > rowHeight {
+			rowHeight = dims.Size.Y
+		}
+	}
+
+	totalHeight := y + rowHeight
+
+	for _, item := range items {
+		stack := op.Offset(item.pos).Push(gtx.Ops)
+		item.call.Add(gtx.Ops)
+		stack.Pop()
+	}
+
+	return layout.Dimensions{Size: image.Point{X: maxWidth, Y: totalHeight}}
+}
+
+// renderChipSelector renders a labelled field with flow-wrapping chip buttons.
+// It is the chip equivalent of renderFormField.
+func (ga *GioApp) renderChipSelector(gtx layout.Context, label string, chips []layout.Widget) layout.Dimensions {
+	chipGap := gtx.Dp(unit.Dp(theme.Spacing1))
+	return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				lbl := material.Body2(ga.theme.Theme, label)
+				lbl.Color = theme.ColorTextSecondary
+				return lbl.Layout(gtx)
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layoutFlowWrap(gtx, chipGap, chipGap, chips...)
+				})
+			}),
+		)
+	})
 }
 
 // renderFilterChip renders a single filter chip button, highlighted when active.

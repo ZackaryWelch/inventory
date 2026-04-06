@@ -22,6 +22,7 @@ type Client struct {
 	BaseURL      string
 	HTTPClient   *http.Client
 	TokenFetcher TokenFetcher
+	OnAuthError  func() // called when the token cannot be obtained or a 401 is received
 }
 
 // NewClient creates a new API client
@@ -59,12 +60,22 @@ func (c *Client) Request(method, endpoint string, body interface{}) (*http.Respo
 	// Get access token from token fetcher
 	accessToken, err := c.TokenFetcher.GetAccessToken()
 	if err != nil {
+		if c.OnAuthError != nil {
+			c.OnAuthError()
+		}
 		return nil, fmt.Errorf("failed to get access token: %w", err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
-	return c.HTTPClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode == http.StatusUnauthorized && c.OnAuthError != nil {
+		c.OnAuthError()
+	}
+	return resp, nil
 }
 
 // Get makes a GET request

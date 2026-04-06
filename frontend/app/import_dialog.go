@@ -2,12 +2,10 @@ package app
 
 import (
 	"fmt"
-	"image"
 	"sort"
 
 	"gioui.org/font"
 	"gioui.org/layout"
-	"gioui.org/op"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -370,53 +368,6 @@ func (ga *GioApp) getImportLocationColButton(col string) *widget.Clickable {
 	return btn
 }
 
-// layoutFlowWrap lays out widgets in a horizontal flow that wraps to the next line.
-func layoutFlowWrap(gtx layout.Context, hGap, vGap int, widgets ...layout.Widget) layout.Dimensions {
-	maxWidth := gtx.Constraints.Max.X
-	var x, y, rowHeight int
-
-	type positioned struct {
-		call op.CallOp
-		pos  image.Point
-		size image.Point
-	}
-	var items []positioned
-
-	for _, w := range widgets {
-		macro := op.Record(gtx.Ops)
-		dims := w(gtx)
-		call := macro.Stop()
-
-		// Wrap to next line if this item doesn't fit
-		if x > 0 && x+dims.Size.X > maxWidth {
-			y += rowHeight + vGap
-			x = 0
-			rowHeight = 0
-		}
-
-		items = append(items, positioned{
-			call: call,
-			pos:  image.Point{X: x, Y: y},
-			size: dims.Size,
-		})
-
-		x += dims.Size.X + hGap
-		if dims.Size.Y > rowHeight {
-			rowHeight = dims.Size.Y
-		}
-	}
-
-	totalHeight := y + rowHeight
-
-	// Draw all items at their computed positions
-	for _, item := range items {
-		stack := op.Offset(item.pos).Push(gtx.Ops)
-		item.call.Add(gtx.Ops)
-		stack.Pop()
-	}
-
-	return layout.Dimensions{Size: image.Point{X: maxWidth, Y: totalHeight}}
-}
 
 // renderImportColumnMapping renders the column mapping section of the import dialog.
 func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimensions {
@@ -425,8 +376,50 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 		return layout.Dimensions{}
 	}
 
-	chipGap := gtx.Dp(unit.Dp(theme.Spacing1))
-	rowGap := gtx.Dp(unit.Dp(theme.Spacing1))
+	// Build name column chips
+	autoBtn := ga.getImportNameColButton("")
+	if autoBtn.Clicked(gtx) {
+		ga.importNameColumn = ""
+	}
+	nameChips := []layout.Widget{
+		func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, autoBtn, "(auto)", ga.importNameColumn == "")
+		},
+	}
+	for _, col := range cols {
+		col := col
+		btn := ga.getImportNameColButton(col)
+		if btn.Clicked(gtx) {
+			ga.importNameColumn = col
+		}
+		active := ga.importNameColumn == col
+		nameChips = append(nameChips, func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, btn, col, active)
+		})
+	}
+
+	// Build location column chips
+	noneBtn := ga.getImportLocationColButton("")
+	if noneBtn.Clicked(gtx) {
+		ga.importLocationColumn = nil
+	}
+	locationChips := []layout.Widget{
+		func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, noneBtn, "(none)", ga.importLocationColumn == nil)
+		},
+	}
+	for _, col := range cols {
+		col := col
+		btn := ga.getImportLocationColButton(col)
+		if btn.Clicked(gtx) {
+			c := col
+			ga.importLocationColumn = &c
+		}
+		active := ga.importLocationColumn != nil && *ga.importLocationColumn == col
+		locationChips = append(locationChips, func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, btn, col, active)
+		})
+	}
 
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		// Section header
@@ -436,88 +429,19 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 			return label.Layout(gtx)
 		}),
 
-		// Name column selector
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						label := material.Body2(ga.theme.Theme, "Name column:")
-						label.Color = theme.ColorTextSecondary
-						return label.Layout(gtx)
-					}),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							autoBtn := ga.getImportNameColButton("")
-							if autoBtn.Clicked(gtx) {
-								ga.importNameColumn = ""
-							}
-							chipWidgets := []layout.Widget{
-								func(gtx layout.Context) layout.Dimensions {
-									return ga.renderFilterChip(gtx, autoBtn, "(auto)", ga.importNameColumn == "")
-								},
-							}
-							for _, col := range cols {
-								col := col
-								btn := ga.getImportNameColButton(col)
-								if btn.Clicked(gtx) {
-									ga.importNameColumn = col
-								}
-								active := ga.importNameColumn == col
-								chipWidgets = append(chipWidgets, func(gtx layout.Context) layout.Dimensions {
-									return ga.renderFilterChip(gtx, btn, col, active)
-								})
-							}
-							return layoutFlowWrap(gtx, chipGap, rowGap, chipWidgets...)
-						})
-					}),
-				)
+				return ga.renderChipSelector(gtx, "Name column:", nameChips)
 			})
 		}),
 
-		// Location column selector
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						label := material.Body2(ga.theme.Theme, "Location column:")
-						label.Color = theme.ColorTextSecondary
-						return label.Layout(gtx)
-					}),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							noneBtn := ga.getImportLocationColButton("")
-							if noneBtn.Clicked(gtx) {
-								ga.importLocationColumn = nil
-							}
-							chipWidgets := []layout.Widget{
-								func(gtx layout.Context) layout.Dimensions {
-									return ga.renderFilterChip(gtx, noneBtn, "(none)", ga.importLocationColumn == nil)
-								},
-							}
-							for _, col := range cols {
-								col := col
-								btn := ga.getImportLocationColButton(col)
-								if btn.Clicked(gtx) {
-									c := col
-									ga.importLocationColumn = &c
-								}
-								active := ga.importLocationColumn != nil && *ga.importLocationColumn == col
-								chipWidgets = append(chipWidgets, func(gtx layout.Context) layout.Dimensions {
-									return ga.renderFilterChip(gtx, btn, col, active)
-								})
-							}
-							return layoutFlowWrap(gtx, chipGap, rowGap, chipWidgets...)
-						})
-					}),
-				)
-			})
+			return ga.renderChipSelector(gtx, "Location column:", locationChips)
 		}),
 
 		// Infer schema checkbox
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{Top: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return material.CheckBox(ga.theme.Theme, &ga.widgetState.importInferSchemaCheck, "Infer property types from data").Layout(gtx)
-			})
+			return material.CheckBox(ga.theme.Theme, &ga.widgetState.importInferSchemaCheck, "Infer property types from data").Layout(gtx)
 		}),
 	)
 }

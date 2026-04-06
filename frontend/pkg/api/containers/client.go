@@ -19,10 +19,9 @@ func NewClient(commonClient *common.Client) *Client {
 	}
 }
 
-// List gets all containers (optionally filtered by collection_id)
+// List gets all containers for a specific collection.
 func (c *Client) List(accountID, collectionID string) ([]types.Container, error) {
-	// Backend uses /containers with optional collection_id query param
-	resp, err := c.common.Get(fmt.Sprintf("/containers?collection_id=%s", collectionID))
+	resp, err := c.common.Get(fmt.Sprintf("/accounts/%s/collections/%s/containers", accountID, collectionID))
 	if err != nil {
 		return nil, err
 	}

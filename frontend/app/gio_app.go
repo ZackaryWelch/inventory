@@ -410,6 +410,12 @@ func NewGioApp() *GioApp {
 		widgetState:       widgetState,
 	}
 
+	// Handle session expiry: any API call that can't obtain a token or receives a 401
+	// will trigger this callback to clear local state and return to the login screen.
+	apiClient.OnAuthError = func() {
+		gioApp.do(gioApp.handleSessionExpired)
+	}
+
 	// Check authentication state on startup
 	gioApp.initializeAuthState()
 

@@ -110,6 +110,22 @@ func (ga *GioApp) renderUserInfoCard(gtx layout.Context) layout.Dimensions {
 	})
 }
 
+// handleSessionExpired is called when an API request fails due to an expired or
+// invalid token. It clears local auth state and returns to the login screen
+// without attempting an Authentik end-session redirect.
+func (ga *GioApp) handleSessionExpired() {
+	if !ga.isSignedIn {
+		return // already handled
+	}
+	ga.authService.ClearToken()
+	ga.currentUser = nil
+	ga.groups = nil
+	ga.collections = nil
+	ga.isSignedIn = false
+	ga.currentView = ViewLoginGio
+	ga.window.Invalidate()
+}
+
 // handleLogout logs out the current user
 func (ga *GioApp) handleLogout() {
 	// Clear token from localStorage
