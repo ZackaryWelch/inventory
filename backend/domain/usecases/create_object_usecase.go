@@ -16,6 +16,7 @@ type CreateObjectRequest struct {
 	Name         string
 	Description  string
 	ObjectType   entities.ObjectType
+	Location     string
 	Quantity     *float64
 	Unit         string
 	Properties   map[string]interface{}
@@ -108,6 +109,7 @@ func (uc *CreateObjectUseCase) Execute(ctx context.Context, req CreateObjectRequ
 		Name:        objectName,
 		Description: objectDesc,
 		ObjectType:  req.ObjectType,
+		Location:    req.Location,
 		Quantity:    req.Quantity,
 		Unit:        req.Unit,
 		Properties:  req.Properties,

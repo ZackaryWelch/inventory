@@ -220,7 +220,7 @@ func TestObjectController_DeleteObject(t *testing.T) {
 		// Create an object with the specific ID so RemoveObject succeeds
 		objectName, _ := entities.NewObjectName("Test Object")
 		objectDesc := entities.NewObjectDescription("")
-		testObject := entities.ReconstructObject(objectID, objectName, objectDesc, entities.ObjectTypeGeneral, nil, "", nil, nil, nil, time.Now(), time.Now())
+		testObject := entities.ReconstructObject(objectID, objectName, objectDesc, entities.ObjectTypeGeneral, "", nil, "", nil, nil, nil, time.Now(), time.Now())
 
 		// Create a container that already holds the object
 		containerName, _ := entities.NewContainerName("Test Container")

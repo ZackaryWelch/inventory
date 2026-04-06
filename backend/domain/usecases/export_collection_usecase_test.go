@@ -78,6 +78,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			objName,
 			entities.NewObjectDescription("A widget"),
 			entities.ObjectTypeGeneral,
+			"",
 			&qty,
 			"pcs",
 			map[string]interface{}{"sku": "SKU-001", "color": "red"},
@@ -135,7 +136,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			objName,
 			entities.NewObjectDescription(""),
 			entities.ObjectTypeGeneral,
-			nil, "",
+			"", nil, "",
 			map[string]interface{}{"sku": "G-42", "price": 9.99},
 			[]string{},
 			nil,
@@ -182,7 +183,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			objName,
 			entities.NewObjectDescription(""),
 			entities.ObjectTypeGeneral,
-			nil, "", map[string]interface{}{}, []string{}, nil,
+			"", nil, "", map[string]interface{}{}, []string{}, nil,
 			time.Now(), time.Now(),
 		)
 
@@ -247,7 +248,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			objName,
 			entities.NewObjectDescription(""),
 			entities.ObjectTypeGeneral,
-			nil, "", map[string]interface{}{}, []string{}, nil,
+			"", nil, "", map[string]interface{}{}, []string{}, nil,
 			time.Now(), time.Now(),
 		)
 

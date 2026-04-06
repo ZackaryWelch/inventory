@@ -99,6 +99,7 @@ type Object struct {
 	name        ObjectName
 	description ObjectDescription
 	objectType  ObjectType
+	location    string                 // Optional physical location
 	quantity    *float64               // Optional quantity
 	unit        string                 // Optional unit (e.g., "kg", "lbs", "pieces")
 	properties  map[string]interface{} // Flexible properties for different object types
@@ -112,6 +113,7 @@ type ObjectProps struct {
 	Name        ObjectName
 	Description ObjectDescription
 	ObjectType  ObjectType
+	Location    string
 	Quantity    *float64
 	Unit        string
 	Properties  map[string]interface{}
@@ -126,6 +128,7 @@ func NewObject(props ObjectProps) (*Object, error) {
 		name:        props.Name,
 		description: props.Description,
 		objectType:  props.ObjectType,
+		location:    props.Location,
 		quantity:    props.Quantity,
 		unit:        props.Unit,
 		properties:  props.Properties,
@@ -136,12 +139,13 @@ func NewObject(props ObjectProps) (*Object, error) {
 	}, nil
 }
 
-func ReconstructObject(id ObjectID, name ObjectName, description ObjectDescription, objectType ObjectType, quantity *float64, unit string, properties map[string]interface{}, tags []string, expiresAt *time.Time, createdAt, updatedAt time.Time) *Object {
+func ReconstructObject(id ObjectID, name ObjectName, description ObjectDescription, objectType ObjectType, location string, quantity *float64, unit string, properties map[string]interface{}, tags []string, expiresAt *time.Time, createdAt, updatedAt time.Time) *Object {
 	return &Object{
 		id:          id,
 		name:        name,
 		description: description,
 		objectType:  objectType,
+		location:    location,
 		quantity:    quantity,
 		unit:        unit,
 		properties:  properties,
@@ -166,6 +170,10 @@ func (o *Object) Description() ObjectDescription {
 
 func (o *Object) ObjectType() ObjectType {
 	return o.objectType
+}
+
+func (o *Object) Location() string {
+	return o.location
 }
 
 func (o *Object) Quantity() *float64 {
@@ -229,6 +237,12 @@ func (o *Object) UpdateName(name ObjectName) error {
 
 func (o *Object) UpdateDescription(description ObjectDescription) error {
 	o.description = description
+	o.updatedAt = time.Now()
+	return nil
+}
+
+func (o *Object) UpdateLocation(location string) error {
+	o.location = location
 	o.updatedAt = time.Now()
 	return nil
 }

@@ -459,7 +459,7 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 	// Collect unique location values from the data
 	uniqueLocations := make(map[string]struct{})
 	for _, row := range req.Data {
-		if v, ok := row[locationCol]; ok {
+		if v, ok := getRowValue(row, locationCol); ok {
 			if loc := strings.TrimSpace(fmt.Sprintf("%v", v)); loc != "" {
 				uniqueLocations[loc] = struct{}{}
 			}
@@ -555,7 +555,7 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 
 		// Resolve target container from location column
 		locValue := ""
-		if v, ok := item[locationCol]; ok {
+		if v, ok := getRowValue(item, locationCol); ok {
 			locValue = strings.TrimSpace(fmt.Sprintf("%v", v))
 		}
 		containerKey := strings.ToLower(locValue)
@@ -697,9 +697,20 @@ func resolveTagsField(item map[string]interface{}, defaultTags []string) []strin
 }
 
 // resolveNameField finds the object name from a data row using explicit nameCol or auto-detection.
+// getRowValue returns the value for a column name using case-insensitive key matching.
+func getRowValue(row map[string]interface{}, col string) (interface{}, bool) {
+	colLower := strings.ToLower(col)
+	for k, v := range row {
+		if strings.ToLower(k) == colLower {
+			return v, true
+		}
+	}
+	return nil, false
+}
+
 func resolveNameField(item map[string]interface{}, nameCol string) (string, bool) {
 	if nameCol != "" {
-		if v, ok := item[nameCol]; ok {
+		if v, ok := getRowValue(item, nameCol); ok {
 			name := strings.TrimSpace(fmt.Sprintf("%v", v))
 			if name != "" {
 				return name, true
@@ -707,8 +718,8 @@ func resolveNameField(item map[string]interface{}, nameCol string) (string, bool
 		}
 	}
 	// Auto-detect common name columns
-	for _, candidate := range []string{"name", "Name", "title", "Title", "item", "Item"} {
-		if v, ok := item[candidate]; ok {
+	for _, candidate := range []string{"name", "title", "item"} {
+		if v, ok := getRowValue(item, candidate); ok {
 			name := strings.TrimSpace(fmt.Sprintf("%v", v))
 			if name != "" {
 				return name, true

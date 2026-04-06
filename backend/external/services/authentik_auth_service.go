@@ -481,7 +481,7 @@ func (s *AuthentikAuthService) CreateGroup(ctx context.Context, userToken, name 
 			slog.Int("status_code", httpResp.StatusCode))
 
 		// Return auth error for 403, validation error for others
-		if httpResp != nil && httpResp.StatusCode == http.StatusForbidden {
+		if httpResp.StatusCode == http.StatusForbidden {
 			return nil, fmt.Errorf("authentication failed: %s", errorDetail)
 		}
 		return nil, fmt.Errorf("failed to create group: %s", errorDetail)
@@ -915,11 +915,4 @@ func (s *AuthentikAuthService) ProxyTokenExchange(ctx context.Context, tokenRequ
 		slog.String("provider_name", client.config.ProviderName))
 
 	return body, resp.StatusCode, nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

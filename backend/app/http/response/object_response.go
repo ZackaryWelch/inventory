@@ -12,6 +12,7 @@ type ObjectResponse struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
 	ObjectType  string                 `json:"object_type"`
+	Location    string                 `json:"location,omitempty"`
 	Quantity    *float64               `json:"quantity,omitempty"`
 	Unit        string                 `json:"unit,omitempty"`
 	Properties  map[string]interface{} `json:"properties"`
@@ -33,6 +34,7 @@ func NewObjectResponse(object entities.Object, containerID string) ObjectRespons
 		Name:        object.Name().String(),
 		Description: object.Description().String(),
 		ObjectType:  object.ObjectType().String(),
+		Location:    object.Location(),
 		Quantity:    object.Quantity(),
 		Unit:        object.Unit(),
 		Properties:  object.Properties(),

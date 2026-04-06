@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -20,6 +21,7 @@ type objectDocument struct {
 	Name        string                 `bson:"name"`
 	Description string                 `bson:"description"`
 	ObjectType  string                 `bson:"object_type"`
+	Location    string                 `bson:"location,omitempty"`
 	Quantity    *float64               `bson:"quantity,omitempty"`
 	Unit        string                 `bson:"unit,omitempty"`
 	Properties  map[string]interface{} `bson:"properties"`
@@ -441,7 +443,7 @@ func (r *MongoContainerRepository) FindByObjectID(ctx context.Context, objectID 
 
 	err := r.collection.FindOne(ctx, bson.M{"objects.id": objectID.String()}).Decode(&doc)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, fmt.Errorf("container not found")
 		}
 		return nil, fmt.Errorf("failed to find container by object ID: %w", err)

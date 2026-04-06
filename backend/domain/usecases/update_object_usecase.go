@@ -14,6 +14,7 @@ type UpdateObjectRequest struct {
 	ObjectID    entities.ObjectID
 	Name        *string
 	Description *string
+	Location    *string
 	Quantity    *float64
 	Unit        *string
 	Properties  map[string]interface{}
@@ -95,6 +96,12 @@ func (uc *UpdateObjectUseCase) Execute(ctx context.Context, req UpdateObjectRequ
 		desc := entities.NewObjectDescription(*req.Description)
 		if err := updatedObject.UpdateDescription(desc); err != nil {
 			return nil, fmt.Errorf("failed to update object description: %w", err)
+		}
+	}
+
+	if req.Location != nil {
+		if err := updatedObject.UpdateLocation(*req.Location); err != nil {
+			return nil, fmt.Errorf("failed to update object location: %w", err)
 		}
 	}
 

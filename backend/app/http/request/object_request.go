@@ -13,6 +13,7 @@ type CreateObjectRequest struct {
 	Name        string                 `json:"name" binding:"required,min=1,max=255"`
 	Description string                 `json:"description,omitempty"`
 	ObjectType  string                 `json:"object_type" binding:"required"`
+	Location    string                 `json:"location,omitempty"`
 	Quantity    *float64               `json:"quantity,omitempty"`
 	Unit        string                 `json:"unit,omitempty"`
 	Properties  map[string]interface{} `json:"properties,omitempty"`
@@ -24,6 +25,7 @@ type UpdateObjectRequest struct {
 	ContainerID string                 `json:"container_id,omitempty"`
 	Name        *string                `json:"name,omitempty"`
 	Description *string                `json:"description,omitempty"`
+	Location    *string                `json:"location,omitempty"`
 	Quantity    *float64               `json:"quantity,omitempty"`
 	Unit        *string                `json:"unit,omitempty"`
 	Properties  map[string]interface{} `json:"properties,omitempty"`

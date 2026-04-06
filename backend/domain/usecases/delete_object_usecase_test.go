@@ -40,6 +40,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			objectName,
 			objectDesc,
 			entities.ObjectTypeGeneral,
+			"", // No location
 			nil, // No quantity
 			"",  // No unit
 			map[string]interface{}{},
@@ -153,6 +154,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			objectName,
 			objectDesc,
 			entities.ObjectTypeGeneral,
+			"", // No location
 			nil, // No quantity
 			"",  // No unit
 			map[string]interface{}{},
@@ -330,6 +332,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			objectName,
 			objectDesc,
 			entities.ObjectTypeGeneral,
+			"", // No location
 			nil, // No quantity
 			"",  // No unit
 			map[string]interface{}{},
@@ -544,6 +547,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			objectName,
 			objectDesc,
 			entities.ObjectTypeGeneral,
+			"", // No location
 			nil, // No quantity
 			"",  // No unit
 			map[string]interface{}{},
