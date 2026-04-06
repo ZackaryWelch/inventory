@@ -82,7 +82,7 @@ func (ds DialogStyle) Layout(gtx layout.Context, th *material.Theme, content lay
 
 	// Handle drag events for moving the dialog
 	for {
-		ev, ok := ds.Dialog.drag.Update(gtx.Metric, gtx.Source, gesture.Axis(gesture.Both))
+		ev, ok := ds.Dialog.drag.Update(gtx.Metric, gtx.Source, gesture.Both)
 		if !ok {
 			break
 		}

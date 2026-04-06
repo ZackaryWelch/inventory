@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"gioui.org/layout"
 	"gioui.org/unit"
@@ -178,6 +179,11 @@ func (ga *GioApp) renderObjectDialog(gtx layout.Context) layout.Dimensions {
 						})
 					}),
 				)
+			}),
+
+			// Schema-defined property fields
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return ga.renderObjectSchemaFields(gtx)
 			}),
 
 			// Buttons
@@ -661,6 +667,7 @@ func (ga *GioApp) handleObjectCreate() {
 	objectType := ga.selectedCollection.ObjectType
 	collectionID := ga.selectedCollection.ID
 	selectedContainerID := ga.selectedContainerID
+	properties := ga.collectObjectProperties()
 
 	go func() {
 		req := types.CreateObjectRequest{
@@ -669,7 +676,7 @@ func (ga *GioApp) handleObjectCreate() {
 			ObjectType:  objectType,
 			Quantity:    quantity,
 			Unit:        unit,
-			Properties:  make(map[string]interface{}),
+			Properties:  properties,
 			Tags:        []string{},
 		}
 
@@ -730,8 +737,12 @@ func (ga *GioApp) handleObjectUpdate() {
 		containerID = ga.selectedObject.ContainerID
 	}
 
-	// Preserve existing properties and tags
+	// Merge schema-defined property editors into existing object properties
 	properties := ga.selectedObject.Properties
+	if properties == nil {
+		properties = make(map[string]interface{})
+	}
+	ga.mergeSchemaProperties(properties)
 	tags := ga.selectedObject.Tags
 
 	oldContainerID := ""
@@ -800,4 +811,101 @@ func (ga *GioApp) handleObjectDelete() {
 	// Close dialog
 	ga.showDeleteObject = false
 	ga.deleteObjectID = ""
+}
+
+// getObjectPropertyEditor returns (or creates) the editor widget for a schema property key.
+func (ga *GioApp) getObjectPropertyEditor(key string) *widget.Editor {
+	if ga.widgetState.objectPropertyEditors == nil {
+		ga.widgetState.objectPropertyEditors = make(map[string]*widget.Editor)
+	}
+	if ed, ok := ga.widgetState.objectPropertyEditors[key]; ok {
+		return ed
+	}
+	ed := new(widget.Editor)
+	ga.widgetState.objectPropertyEditors[key] = ed
+	return ed
+}
+
+// getObjectPropertyBool returns (or creates) the bool widget for a schema bool property.
+func (ga *GioApp) getObjectPropertyBool(key string) *widget.Bool {
+	if ga.widgetState.objectPropertyBools == nil {
+		ga.widgetState.objectPropertyBools = make(map[string]*widget.Bool)
+	}
+	if b, ok := ga.widgetState.objectPropertyBools[key]; ok {
+		return b
+	}
+	b := new(widget.Bool)
+	ga.widgetState.objectPropertyBools[key] = b
+	return b
+}
+
+// collectObjectProperties reads the current schema property editors and returns a properties map.
+func (ga *GioApp) collectObjectProperties() map[string]interface{} {
+	props := make(map[string]interface{})
+	ga.mergeSchemaProperties(props)
+	return props
+}
+
+// mergeSchemaProperties writes schema editor values into the given properties map.
+func (ga *GioApp) mergeSchemaProperties(props map[string]interface{}) {
+	if ga.selectedCollection == nil || ga.selectedCollection.PropertySchema == nil {
+		return
+	}
+	for _, def := range ga.selectedCollection.PropertySchema.Definitions {
+		if def.Type == "bool" {
+			b := ga.getObjectPropertyBool(def.Key)
+			props[def.Key] = b.Value
+		} else {
+			ed := ga.getObjectPropertyEditor(def.Key)
+			val := strings.TrimSpace(ed.Text())
+			if val != "" {
+				props[def.Key] = val
+			}
+		}
+	}
+}
+
+// renderObjectSchemaFields renders dynamic form fields for schema-defined properties.
+func (ga *GioApp) renderObjectSchemaFields(gtx layout.Context) layout.Dimensions {
+	if ga.selectedCollection == nil || ga.selectedCollection.PropertySchema == nil {
+		return layout.Dimensions{}
+	}
+	defs := ga.selectedCollection.PropertySchema.Definitions
+	if len(defs) == 0 {
+		return layout.Dimensions{}
+	}
+
+	children := make([]layout.FlexChild, len(defs))
+	for i, def := range defs {
+		def := def
+		children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			label := def.DisplayName
+			if label == "" {
+				label = def.Key
+			}
+			if def.Required {
+				label += " *"
+			}
+			if def.Type == "bool" {
+				b := ga.getObjectPropertyBool(def.Key)
+				return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return material.CheckBox(ga.theme.Theme, b, label).Layout(gtx)
+				})
+			}
+			placeholder := ""
+			switch def.Type {
+			case "date":
+				placeholder = "YYYY-MM-DD"
+			case "currency":
+				placeholder = "0.00"
+			case "numeric":
+				placeholder = "0"
+			case "url":
+				placeholder = "https://..."
+			}
+			ed := ga.getObjectPropertyEditor(def.Key)
+			return ga.renderFormField(gtx, label, ed, placeholder)
+		})
+	}
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
 }

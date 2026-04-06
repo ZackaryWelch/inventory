@@ -171,11 +171,7 @@ func paintLoginBackground(gtx layout.Context) {
 			A: alpha,
 		}
 
-		func() {
-			defer clip.Rect{Min: rect.Min, Max: rect.Max}.Push(gtx.Ops).Pop()
-			paint.ColorOp{Color: glowColor}.Add(gtx.Ops)
-			paint.PaintOp{}.Add(gtx.Ops)
-		}()
+		paintRect(gtx, rect.Min, rect.Max, glowColor)
 	}
 }
 
@@ -205,11 +201,7 @@ func paintAccentBar(gtx layout.Context, width int) layout.Dimensions {
 			x1 := int(float64(width) * (frac + 1.0/float64(steps)))
 
 			col := lerpColor(theme.ColorPrimary, theme.ColorAccent, float32(frac))
-			func() {
-				defer clip.Rect{Min: image.Pt(x0, 0), Max: image.Pt(x1, barHeight)}.Push(gtx.Ops).Pop()
-				paint.ColorOp{Color: col}.Add(gtx.Ops)
-				paint.PaintOp{}.Add(gtx.Ops)
-			}()
+			paintRect(gtx, image.Pt(x0, 0), image.Pt(x1, barHeight), col)
 		}
 	}()
 
@@ -225,16 +217,18 @@ func paintDivider(gtx layout.Context, col color.NRGBA) layout.Dimensions {
 	width := gtx.Constraints.Max.X
 
 	size := image.Point{X: width, Y: height}
-	defer clip.Rect{Max: size}.Push(gtx.Ops).Pop()
-	paint.ColorOp{Color: col}.Add(gtx.Ops)
-	paint.PaintOp{}.Add(gtx.Ops)
+	paintRect(gtx, image.Pt(0, 0), size, col)
 
 	return layout.Dimensions{Size: size}
 }
 
 // paintRect paints a colored rectangle
-func paintRect(gtx layout.Context, size image.Point, col color.NRGBA) {
-	defer clip.Rect{Max: size}.Push(gtx.Ops).Pop()
+func paintRect(gtx layout.Context, minSize, maxSize image.Point, col color.NRGBA) {
+	rect := clip.Rect{Max: maxSize}
+	if minSize.X > 0 && minSize.Y > 0 {
+		rect.Min = minSize
+	}
+	defer rect.Push(gtx.Ops).Pop()
 	paint.ColorOp{Color: col}.Add(gtx.Ops)
 	paint.PaintOp{}.Add(gtx.Ops)
 }

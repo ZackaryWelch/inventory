@@ -90,12 +90,8 @@ func (ga *GioApp) renderSchemaEditorDialog(gtx layout.Context) layout.Dimensions
 
 	dims, dismissed := dialogStyle.Layout(gtx, ga.theme.Theme, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			// Schema rows list (scrollable, capped height)
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				maxH := gtx.Dp(unit.Dp(420))
-				if gtx.Constraints.Max.Y > maxH {
-					gtx.Constraints.Max.Y = maxH
-				}
+			// Schema rows list (scrollable, fills available dialog space)
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				list := &ga.widgetState.schemaList
 				list.Axis = layout.Vertical
 				return list.Layout(gtx, len(ga.widgetState.schemaRows), func(gtx layout.Context, i int) layout.Dimensions {
@@ -193,7 +189,7 @@ func (ga *GioApp) renderSchemaRow(gtx layout.Context, i int) layout.Dimensions {
 							})
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return widgets.DangerButton(ga.theme.Theme, &row.deleteButton, "✕")(gtx)
+							return widgets.DangerButton(ga.theme.Theme, &row.deleteButton, "X")(gtx)
 						}),
 					)
 				})

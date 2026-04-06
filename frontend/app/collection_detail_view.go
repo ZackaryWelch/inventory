@@ -87,6 +87,13 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 		ga.widgetState.objectDescriptionEditor.SetText("")
 		ga.widgetState.objectQuantityEditor.SetText("")
 		ga.widgetState.objectUnitEditor.SetText("")
+		// Clear schema property editors
+		for _, ed := range ga.widgetState.objectPropertyEditors {
+			ed.SetText("")
+		}
+		for _, b := range ga.widgetState.objectPropertyBools {
+			b.Value = false
+		}
 	}
 
 	// Handle import button
@@ -422,7 +429,6 @@ func (ga *GioApp) ensureObjectItemStates() {
 	}
 }
 
-
 // renderContainersList renders the list of containers
 func (ga *GioApp) renderContainersList(gtx layout.Context) layout.Dimensions {
 	if len(ga.containers) == 0 {
@@ -620,6 +626,30 @@ func (ga *GioApp) renderObjectCard(gtx layout.Context, object Object, index int)
 			ga.selectedContainerID = &cid
 		} else {
 			ga.selectedContainerID = nil
+		}
+		// Populate schema property editors from existing object properties
+		if ga.selectedCollection != nil && ga.selectedCollection.PropertySchema != nil {
+			for _, def := range ga.selectedCollection.PropertySchema.Definitions {
+				if def.Type == "bool" {
+					b := ga.getObjectPropertyBool(def.Key)
+					b.Value = false
+					if val, ok := object.Properties[def.Key]; ok {
+						switch v := val.(type) {
+						case bool:
+							b.Value = v
+						case string:
+							b.Value = strings.EqualFold(v, "true") || v == "1"
+						}
+					}
+				} else {
+					ed := ga.getObjectPropertyEditor(def.Key)
+					if val, ok := object.Properties[def.Key]; ok {
+						ed.SetText(fmt.Sprintf("%v", val))
+					} else {
+						ed.SetText("")
+					}
+				}
+			}
 		}
 	}
 
@@ -1140,7 +1170,7 @@ func layoutFlowWrap(gtx layout.Context, hGap, vGap int, widgets ...layout.Widget
 	return layout.Dimensions{Size: image.Point{X: maxWidth, Y: totalHeight}}
 }
 
-// renderChipSelector renders a labelled field with flow-wrapping chip buttons.
+// renderChipSelector renders a labeled field with flow-wrapping chip buttons.
 // It is the chip equivalent of renderFormField.
 func (ga *GioApp) renderChipSelector(gtx layout.Context, label string, chips []layout.Widget) layout.Dimensions {
 	chipGap := gtx.Dp(unit.Dp(theme.Spacing1))

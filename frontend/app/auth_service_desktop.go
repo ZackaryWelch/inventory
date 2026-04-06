@@ -4,6 +4,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -87,7 +88,7 @@ func (as *AuthService) DesktopLogin() (*oauth2.Token, error) {
 	}
 
 	go func() {
-		if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
+		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			as.logger.Error("OAuth callback server error", "error", err)
 		}
 	}()

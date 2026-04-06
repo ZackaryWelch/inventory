@@ -208,22 +208,20 @@ const (
 // ====================================================================================
 
 const (
-	Spacing0   = 0  // 0
-	Spacing1   = 4  // 0.25rem
-	Spacing2   = 8  // 0.5rem
-	Spacing2_5 = 10 // 0.625rem (custom)
-	Spacing3   = 12 // 0.75rem
-	Spacing4   = 16 // 1rem
-	Spacing4_5 = 18 // 1.125rem
-	Spacing5   = 20 // 1.25rem
-	Spacing6   = 24 // 1.5rem
-	Spacing8   = 32 // 2rem
-	Spacing10  = 40 // 2.5rem
-	Spacing12  = 48 // 3rem
-	Spacing16  = 64 // 4rem
-	Spacing18  = 72 // 4.5rem
-	Spacing20  = 80 // 5rem
-	Spacing24  = 96 // 6rem
+	Spacing0  = 0  // 0
+	Spacing1  = 4  // 0.25rem
+	Spacing2  = 8  // 0.5rem
+	Spacing3  = 12 // 0.75rem
+	Spacing4  = 16 // 1rem
+	Spacing5  = 20 // 1.25rem
+	Spacing6  = 24 // 1.5rem
+	Spacing8  = 32 // 2rem
+	Spacing10 = 40 // 2.5rem
+	Spacing12 = 48 // 3rem
+	Spacing16 = 64 // 4rem
+	Spacing18 = 72 // 4.5rem
+	Spacing20 = 80 // 5rem
+	Spacing24 = 96 // 6rem
 )
 
 // ====================================================================================

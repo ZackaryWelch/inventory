@@ -240,6 +240,9 @@ type WidgetState struct {
 	objectDialogSubmit      widget.Clickable
 	objectDialogCancel      widget.Clickable
 	objectContainerButtons  map[string]*widget.Clickable
+	objectSchemaList        widget.List
+	objectPropertyEditors   map[string]*widget.Editor
+	objectPropertyBools     map[string]*widget.Bool
 
 	// Group members dialog
 	membersDialog       *widgets.Dialog
