@@ -31,7 +31,7 @@ func NewAuthService(config *Config, logger *slog.Logger) *AuthService {
 	oauth2Config := &oauth2.Config{
 		ClientID:    config.ClientID,
 		RedirectURL: config.RedirectURL,
-		Scopes:      []string{"openid", "profile", "email", "groups"},
+		Scopes:      []string{"openid", "profile", "email", "groups", "offline_access"},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  config.AuthURL + "/application/o/authorize/",
 			TokenURL: config.BackendURL + "/auth/token", // Use backend proxy for token exchange

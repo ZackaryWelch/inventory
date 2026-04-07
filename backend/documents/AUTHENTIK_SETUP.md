@@ -37,6 +37,7 @@ Scopes:
   - email
   - profile
   - groups (create if not exists)
+  - offline_access (required for refresh tokens)
   
 Subject mode: Based on the User's hashed ID
 Include claims in id_token: ✓ (checked)
