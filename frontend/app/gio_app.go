@@ -335,12 +335,11 @@ type ObjectItemState struct {
 
 // SchemaRowState holds widget state for a single schema definition row
 type SchemaRowState struct {
-	keyEditor         widget.Editor
-	displayNameEditor widget.Editor
-	requiredCheck     widget.Bool
-	deleteButton      widget.Clickable
-	typeButtons       map[string]*widget.Clickable
-	selectedType      string
+	nameEditor    widget.Editor
+	requiredCheck widget.Bool
+	deleteButton  widget.Clickable
+	typeButtons   map[string]*widget.Clickable
+	selectedType  string
 }
 
 // ViewID represents different views in the application

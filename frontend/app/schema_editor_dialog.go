@@ -3,6 +3,7 @@ package app
 import (
 	"image"
 	"strings"
+	"unicode"
 
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -44,8 +45,12 @@ func (ga *GioApp) openSchemaEditor() {
 				selectedType: def.Type,
 				typeButtons:  make(map[string]*widget.Clickable),
 			}
-			row.keyEditor.SetText(def.Key)
-			row.displayNameEditor.SetText(def.DisplayName)
+			// Use DisplayName if set, otherwise fall back to Key
+			name := def.DisplayName
+			if name == "" {
+				name = def.Key
+			}
+			row.nameEditor.SetText(name)
 			row.requiredCheck.Value = def.Required
 			rows = append(rows, row)
 		}
@@ -171,18 +176,13 @@ func (ga *GioApp) renderSchemaRow(gtx layout.Context, i int) layout.Dimensions {
 	card := widgets.DefaultCard()
 	return card.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			// Line 1: Key | Display Name | Required | Delete
+			// Line 1: Name | Required | Delete
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-						layout.Flexed(0.3, func(gtx layout.Context) layout.Dimensions {
+						layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 							return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return ga.renderFormField(gtx, "Key", &row.keyEditor, "e.g. brand")
-							})
-						}),
-						layout.Flexed(0.4, func(gtx layout.Context) layout.Dimensions {
-							return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return ga.renderFormField(gtx, "Display Name", &row.displayNameEditor, "e.g. Brand Name")
+								return ga.renderFormField(gtx, "Name", &row.nameEditor, "e.g. Brand Name")
 							})
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -319,8 +319,8 @@ func (ga *GioApp) handleSchemaUpdate() {
 
 	defs := make([]types.PropertyDefinitionRequest, 0, len(ga.widgetState.schemaRows))
 	for _, row := range ga.widgetState.schemaRows {
-		key := strings.TrimSpace(row.keyEditor.Text())
-		if key == "" {
+		name := strings.TrimSpace(row.nameEditor.Text())
+		if name == "" {
 			continue
 		}
 		propType := row.selectedType
@@ -328,8 +328,8 @@ func (ga *GioApp) handleSchemaUpdate() {
 			propType = "text"
 		}
 		defs = append(defs, types.PropertyDefinitionRequest{
-			Key:         key,
-			DisplayName: strings.TrimSpace(row.displayNameEditor.Text()),
+			Key:         toSnakeCase(name),
+			DisplayName: name,
 			Type:        propType,
 			Required:    row.requiredCheck.Value,
 		})
@@ -363,4 +363,28 @@ func (ga *GioApp) handleSchemaUpdate() {
 	ga.showSchemaDialog = false
 	ga.widgetState.schemaRows = nil
 	ga.window.Invalidate()
+}
+
+// toSnakeCase converts a display name to a snake_case key.
+// "Brand Name" -> "brand_name", "ISBN" -> "isbn", "brand" -> "brand"
+func toSnakeCase(s string) string {
+	var result strings.Builder
+	for i, r := range s {
+		if unicode.IsUpper(r) {
+			if i > 0 && result.Len() > 0 {
+				prev := rune(s[i-1])
+				if unicode.IsLower(prev) || unicode.IsDigit(prev) {
+					result.WriteRune('_')
+				} else if unicode.IsUpper(prev) && i+1 < len(s) && unicode.IsLower(rune(s[i+1])) {
+					result.WriteRune('_')
+				}
+			}
+			result.WriteRune(unicode.ToLower(r))
+		} else if r == ' ' || r == '-' {
+			result.WriteRune('_')
+		} else {
+			result.WriteRune(r)
+		}
+	}
+	return result.String()
 }
