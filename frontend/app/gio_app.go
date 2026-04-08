@@ -126,6 +126,23 @@ type GioApp struct {
 	// Grouped-text filter state (property key → selected value; empty = "All")
 	activeGroupedTextFilters map[string]string
 
+	// Render caches — invalidated when underlying data changes (see invalidateObjectCaches)
+	cachedGroupedTextValues map[string][]string // collectGroupedTextValues result
+	cachedGroupedTextValid  bool
+	cachedPropertyDefMap    map[string]*PropertyDefinition // key → def lookup
+	cachedPropertyDefValid  bool
+
+	// Filtered list caches — invalidated when search/filter inputs change
+	cachedFilteredObjects     []Object
+	cachedFilteredObjIndices  []int
+	cachedObjSearchQuery      string
+	cachedObjFilters          map[string]string // snapshot of activeGroupedTextFilters
+	cachedObjDataLen          int               // len(ga.objects) when cache was built
+	cachedFilteredContainers  []Container
+	cachedFilteredContIndices []int
+	cachedContSearchQuery     string
+	cachedContDataLen         int
+
 	// Gio-specific fields
 	window *app.Window
 	theme  *theme.NishikiTheme

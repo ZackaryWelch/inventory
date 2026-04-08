@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -81,9 +80,17 @@ func TestGetCollectionObjectsUseCase_Filters(t *testing.T) {
 
 	collection, cid1, _ := buildMultiContainerCollection(userID, []entities.Object{obj1, obj2}, []entities.Object{obj3})
 
+	// Build container pointers for mock returns
+	containerSlice := collection.Containers()
+	containerPtrs := make([]*entities.Container, len(containerSlice))
+	for i := range containerSlice {
+		containerPtrs[i] = &containerSlice[i]
+	}
+
+	// Full setup: auth + single aggregation query
 	setupMocks := func() {
 		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "tok", userID.String()).Return(userGroups, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collection.ID()).Return(collection, nil)
+		mockContainerRepo.EXPECT().GetByCollectionIDWithAccess(gomock.Any(), collection.ID(), userID, gomock.Any()).Return(containerPtrs, nil)
 	}
 
 	t.Run("no filters returns all objects", func(t *testing.T) {
@@ -149,7 +156,8 @@ func TestGetCollectionObjectsUseCase_Filters(t *testing.T) {
 	})
 
 	t.Run("container_id filter restricts to that container", func(t *testing.T) {
-		setupMocks()
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "tok", userID.String()).Return(userGroups, nil)
+		mockContainerRepo.EXPECT().GetByID(gomock.Any(), cid1).Return(containerPtrs[0], nil)
 		resp, err := uc.Execute(context.Background(), GetCollectionObjectsRequest{
 			CollectionID: collection.ID(),
 			UserID:       userID,
@@ -220,29 +228,31 @@ func TestGetCollectionObjectsUseCase_AccessControl(t *testing.T) {
 
 	collection, _, _ := buildMultiContainerCollection(ownerID, nil, nil)
 
-	t.Run("access denied for non-owner without group", func(t *testing.T) {
+	t.Run("access denied for non-owner without group returns empty", func(t *testing.T) {
+		// With $lookup access check, unauthorized users get empty results (no containers match)
 		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "tok", otherID.String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collection.ID()).Return(collection, nil)
+		mockContainerRepo.EXPECT().GetByCollectionIDWithAccess(gomock.Any(), collection.ID(), otherID, gomock.Any()).Return(nil, nil)
 
-		_, err := uc.Execute(context.Background(), GetCollectionObjectsRequest{
+		resp, err := uc.Execute(context.Background(), GetCollectionObjectsRequest{
 			CollectionID: collection.ID(),
 			UserID:       otherID,
 			UserToken:    "tok",
 		})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "access denied")
+		require.NoError(t, err)
+		assert.Empty(t, resp.Objects)
 	})
 
-	t.Run("collection not found", func(t *testing.T) {
+	t.Run("collection not found returns empty", func(t *testing.T) {
+		// With $lookup, non-existent collection also returns empty (no containers match)
 		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "tok", ownerID.String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collection.ID()).Return(nil, errors.New("not found"))
+		mockContainerRepo.EXPECT().GetByCollectionIDWithAccess(gomock.Any(), collection.ID(), ownerID, gomock.Any()).Return(nil, nil)
 
-		_, err := uc.Execute(context.Background(), GetCollectionObjectsRequest{
+		resp, err := uc.Execute(context.Background(), GetCollectionObjectsRequest{
 			CollectionID: collection.ID(),
 			UserID:       ownerID,
 			UserToken:    "tok",
 		})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "not found")
+		require.NoError(t, err)
+		assert.Empty(t, resp.Objects)
 	})
 }

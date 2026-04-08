@@ -11,6 +11,7 @@ import (
 type CollectionRepository interface {
 	Create(ctx context.Context, collection *entities.Collection) error
 	GetByID(ctx context.Context, id entities.CollectionID) (*entities.Collection, error)
+	GetByIDSummary(ctx context.Context, id entities.CollectionID) (*entities.Collection, error)
 	Update(ctx context.Context, collection *entities.Collection) error
 	Delete(ctx context.Context, id entities.CollectionID) error
 	GetByUserID(ctx context.Context, userID entities.UserID) ([]*entities.Collection, error)

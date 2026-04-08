@@ -34,35 +34,19 @@ func NewGetContainersByCollectionUseCase(containerRepo repositories.ContainerRep
 }
 
 func (uc *GetContainersByCollectionUseCase) Execute(ctx context.Context, req GetContainersByCollectionRequest) (*GetContainersByCollectionResponse, error) {
-	// Get the collection to verify access
-	collection, err := uc.collectionRepo.GetByID(ctx, req.CollectionID)
-	if err != nil {
-		return nil, fmt.Errorf("collection not found: %w", err)
-	}
-
-	// Check if user is a member of the group by fetching user's groups from Authentik
+	// Resolve user groups (cached) for access check
 	userGroups, err := uc.authService.GetUserGroups(ctx, req.UserToken, req.UserID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user groups: %w", err)
 	}
 
-	// Check access: user is owner OR user is member of collection's group
-	hasAccess := collection.UserID().Equals(req.UserID)
-	if !hasAccess && collection.GroupID() != nil {
-		for _, group := range userGroups {
-			if group.ID().Equals(*collection.GroupID()) {
-				hasAccess = true
-				break
-			}
-		}
+	groupIDs := make([]entities.GroupID, len(userGroups))
+	for i, g := range userGroups {
+		groupIDs[i] = g.ID()
 	}
 
-	if !hasAccess {
-		return nil, fmt.Errorf("access denied: user does not have access to this collection")
-	}
-
-	// Get containers for collection
-	containers, err := uc.containerRepo.GetByCollectionID(ctx, req.CollectionID)
+	// Single aggregation: fetch containers + validate access via $lookup on collection
+	containers, err := uc.containerRepo.GetByCollectionIDWithAccess(ctx, req.CollectionID, req.UserID, groupIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get containers for collection: %w", err)
 	}

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"gioui.org/font"
 	"gioui.org/layout"
@@ -62,6 +63,7 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 		ga.containers = nil
 		ga.objects = nil
 		ga.activeGroupedTextFilters = nil
+		ga.invalidateObjectCaches()
 		ga.showContainersPanel = false
 		ga.containerViewMode = ""
 		return layout.Dimensions{}
@@ -430,6 +432,34 @@ func (ga *GioApp) ensureObjectItemStates() {
 	}
 }
 
+// getFilteredContainers returns the cached filtered containers list, recomputing only when inputs change.
+func (ga *GioApp) getFilteredContainers() ([]Container, []int) {
+	searchQuery := strings.ToLower(ga.widgetState.containersSearchField.Text())
+	if ga.cachedFilteredContainers != nil &&
+		ga.cachedContSearchQuery == searchQuery &&
+		ga.cachedContDataLen == len(ga.containers) {
+		return ga.cachedFilteredContainers, ga.cachedFilteredContIndices
+	}
+
+	filtered := make([]Container, 0, len(ga.containers))
+	indices := make([]int, 0, len(ga.containers))
+	for i, container := range ga.containers {
+		if searchQuery == "" ||
+			strings.Contains(strings.ToLower(container.Name), searchQuery) ||
+			strings.Contains(strings.ToLower(container.Type), searchQuery) ||
+			strings.Contains(strings.ToLower(container.Location), searchQuery) {
+			filtered = append(filtered, container)
+			indices = append(indices, i)
+		}
+	}
+
+	ga.cachedFilteredContainers = filtered
+	ga.cachedFilteredContIndices = indices
+	ga.cachedContSearchQuery = searchQuery
+	ga.cachedContDataLen = len(ga.containers)
+	return filtered, indices
+}
+
 // renderContainersList renders the list of containers
 func (ga *GioApp) renderContainersList(gtx layout.Context) layout.Dimensions {
 	if len(ga.containers) == 0 {
@@ -441,20 +471,7 @@ func (ga *GioApp) renderContainersList(gtx layout.Context) layout.Dimensions {
 		})
 	}
 
-	// Filter containers based on search query
-	searchQuery := strings.ToLower(ga.widgetState.containersSearchField.Text())
-	filteredContainers := make([]Container, 0)
-	filteredIndices := make([]int, 0)
-
-	for i, container := range ga.containers {
-		if searchQuery == "" ||
-			strings.Contains(strings.ToLower(container.Name), searchQuery) ||
-			strings.Contains(strings.ToLower(container.Type), searchQuery) ||
-			strings.Contains(strings.ToLower(container.Location), searchQuery) {
-			filteredContainers = append(filteredContainers, container)
-			filteredIndices = append(filteredIndices, i)
-		}
-	}
+	filteredContainers, filteredIndices := ga.getFilteredContainers()
 
 	// Render list
 	list := &ga.widgetState.containersList
@@ -468,6 +485,41 @@ func (ga *GioApp) renderContainersList(gtx layout.Context) layout.Dimensions {
 	})
 }
 
+// getFilteredObjects returns the cached filtered objects list, recomputing only when inputs change.
+func (ga *GioApp) getFilteredObjects() ([]Object, []int) {
+	searchQuery := strings.ToLower(ga.widgetState.objectsSearchField.Text())
+	if ga.cachedFilteredObjects != nil &&
+		ga.cachedObjSearchQuery == searchQuery &&
+		ga.cachedObjDataLen == len(ga.objects) &&
+		mapsEqual(ga.cachedObjFilters, ga.activeGroupedTextFilters) {
+		return ga.cachedFilteredObjects, ga.cachedFilteredObjIndices
+	}
+
+	start := time.Now()
+	filtered := make([]Object, 0, len(ga.objects))
+	indices := make([]int, 0, len(ga.objects))
+	for i, object := range ga.objects {
+		if searchQuery != "" &&
+			!strings.Contains(strings.ToLower(object.Name), searchQuery) &&
+			!strings.Contains(strings.ToLower(object.Description), searchQuery) {
+			continue
+		}
+		if !ga.matchesGroupedTextFilters(object) {
+			continue
+		}
+		filtered = append(filtered, object)
+		indices = append(indices, i)
+	}
+
+	ga.cachedFilteredObjects = filtered
+	ga.cachedFilteredObjIndices = indices
+	ga.cachedObjSearchQuery = searchQuery
+	ga.cachedObjDataLen = len(ga.objects)
+	ga.cachedObjFilters = copyStringMap(ga.activeGroupedTextFilters)
+	ga.logger.Info("Recomputed filtered objects", "total", len(ga.objects), "filtered", len(filtered), "elapsed", time.Since(start))
+	return filtered, indices
+}
+
 // renderObjectsList renders the list of objects
 func (ga *GioApp) renderObjectsList(gtx layout.Context) layout.Dimensions {
 	if len(ga.objects) == 0 {
@@ -479,23 +531,7 @@ func (ga *GioApp) renderObjectsList(gtx layout.Context) layout.Dimensions {
 		})
 	}
 
-	// Filter objects based on search query
-	searchQuery := strings.ToLower(ga.widgetState.objectsSearchField.Text())
-	filteredObjects := make([]Object, 0)
-	filteredIndices := make([]int, 0)
-
-	for i, object := range ga.objects {
-		if searchQuery != "" &&
-			!strings.Contains(strings.ToLower(object.Name), searchQuery) &&
-			!strings.Contains(strings.ToLower(object.Description), searchQuery) {
-			continue
-		}
-		if !ga.matchesGroupedTextFilters(object) {
-			continue
-		}
-		filteredObjects = append(filteredObjects, object)
-		filteredIndices = append(filteredIndices, i)
-	}
+	filteredObjects, filteredIndices := ga.getFilteredObjects()
 
 	// Render list
 	list := &ga.widgetState.objectsList
@@ -748,20 +784,13 @@ func (ga *GioApp) renderObjectCard(gtx layout.Context, object Object, index int)
 func (ga *GioApp) renderObjectsGroupedByContainer(gtx layout.Context) layout.Dimensions {
 	ga.ensureObjectItemStates()
 
-	// Build container → objects map
+	// Build container → objects map using cached filtered list
+	_, filteredIndices := ga.getFilteredObjects()
 	containerObjects := make(map[string][]int) // containerID → indices into ga.objects
 	var unassigned []int
-	searchQuery := strings.ToLower(ga.widgetState.objectsSearchField.Text())
 
-	for i, obj := range ga.objects {
-		if searchQuery != "" &&
-			!strings.Contains(strings.ToLower(obj.Name), searchQuery) &&
-			!strings.Contains(strings.ToLower(obj.Description), searchQuery) {
-			continue
-		}
-		if !ga.matchesGroupedTextFilters(obj) {
-			continue
-		}
+	for _, i := range filteredIndices {
+		obj := ga.objects[i]
 		if obj.ContainerID == "" {
 			unassigned = append(unassigned, i)
 		} else {
@@ -871,6 +900,7 @@ func (ga *GioApp) renderObjectsGroupedByContainer(gtx layout.Context) layout.Dim
 // addContainer appends a container to the local state.
 func (ga *GioApp) addContainer(c Container) {
 	ga.containers = append(ga.containers, c)
+	ga.invalidateObjectCaches()
 }
 
 // updateContainer replaces a container in local state by ID.
@@ -878,6 +908,7 @@ func (ga *GioApp) updateContainer(updated Container) {
 	for i, c := range ga.containers {
 		if c.ID == updated.ID {
 			ga.containers[i] = updated
+			ga.invalidateObjectCaches()
 			return
 		}
 	}
@@ -898,11 +929,13 @@ func (ga *GioApp) removeContainer(containerID string) {
 		}
 	}
 	ga.objects = filtered
+	ga.invalidateObjectCaches()
 }
 
 // addObject appends an object to the flat list and the parent container's embedded list.
 func (ga *GioApp) addObject(obj Object) {
 	ga.objects = append(ga.objects, obj)
+	ga.invalidateObjectCaches()
 	if obj.ContainerID != "" {
 		for i, c := range ga.containers {
 			if c.ID == obj.ContainerID {
@@ -921,6 +954,7 @@ func (ga *GioApp) updateObject(updated Object, oldContainerID string) {
 			break
 		}
 	}
+	ga.invalidateObjectCaches()
 	if oldContainerID != updated.ContainerID {
 		ga.removeObjectFromContainer(updated.ID, oldContainerID)
 		if updated.ContainerID != "" {
@@ -954,6 +988,7 @@ func (ga *GioApp) removeObject(objectID, containerID string) {
 			break
 		}
 	}
+	ga.invalidateObjectCaches()
 	ga.removeObjectFromContainer(objectID, containerID)
 }
 
@@ -1019,12 +1054,15 @@ func (ga *GioApp) fetchContainersAndObjects() {
 			ga.containers = containers
 			ga.objects = objects
 			ga.activeGroupedTextFilters = nil
+			ga.invalidateObjectCaches()
 		})
 	}()
 }
 
 // renderObjectProperties renders the key/value properties of an object using schema-aware formatting.
 func (ga *GioApp) renderObjectProperties(gtx layout.Context, props map[string]interface{}, defs []PropertyDefinition) layout.Dimensions {
+	defMap := ga.getPropertyDefMap()
+
 	// Build ordered keys: schema-defined first (in order), then remaining alpha-sorted
 	var keys []string
 	seen := map[string]bool{}
@@ -1049,8 +1087,8 @@ func (ga *GioApp) renderObjectProperties(gtx layout.Context, props map[string]in
 			for _, k := range keys {
 				k := k
 				v := props[k]
-				displayKey := propertyDisplayName(k, defs)
-				displayVal := RenderPropertyValue(k, v, defs)
+				displayKey := propertyDisplayNameFromMap(k, defMap)
+				displayVal := RenderPropertyValueFromMap(k, v, defMap)
 				children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					label := material.Body2(ga.theme.Theme, displayKey+": "+displayVal)
 					label.Color = theme.ColorTextSecondary
@@ -1070,7 +1108,19 @@ func propertyDisplayName(key string, defs []PropertyDefinition) string {
 			return def.DisplayName
 		}
 	}
-	// snake_case → Title Case
+	return snakeToTitleCase(key)
+}
+
+// propertyDisplayNameFromMap is like propertyDisplayName but uses a pre-built map for O(1) lookup.
+func propertyDisplayNameFromMap(key string, defMap map[string]*PropertyDefinition) string {
+	if def, ok := defMap[key]; ok && def.DisplayName != "" {
+		return def.DisplayName
+	}
+	return snakeToTitleCase(key)
+}
+
+// snakeToTitleCase converts snake_case to Title Case.
+func snakeToTitleCase(key string) string {
 	parts := strings.Split(key, "_")
 	for i, p := range parts {
 		if len(p) > 0 {
@@ -1078,6 +1128,72 @@ func propertyDisplayName(key string, defs []PropertyDefinition) string {
 		}
 	}
 	return strings.Join(parts, " ")
+}
+
+// invalidateObjectCaches clears all caches that depend on ga.objects or ga.selectedCollection.
+// Call this whenever objects are loaded, added, edited, or deleted, or when the collection changes.
+func (ga *GioApp) invalidateObjectCaches() {
+	ga.cachedGroupedTextValid = false
+	ga.cachedGroupedTextValues = nil
+	ga.cachedPropertyDefValid = false
+	ga.cachedPropertyDefMap = nil
+	ga.cachedFilteredObjects = nil
+	ga.cachedFilteredObjIndices = nil
+	ga.cachedFilteredContainers = nil
+	ga.cachedFilteredContIndices = nil
+}
+
+// mapsEqual returns true if two string→string maps have identical entries.
+func mapsEqual(a, b map[string]string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, v := range a {
+		if b[k] != v {
+			return false
+		}
+	}
+	return true
+}
+
+// copyStringMap returns a shallow copy of a string→string map.
+func copyStringMap(m map[string]string) map[string]string {
+	if m == nil {
+		return nil
+	}
+	cp := make(map[string]string, len(m))
+	for k, v := range m {
+		cp[k] = v
+	}
+	return cp
+}
+
+// getGroupedTextValues returns the cached grouped text values, recomputing only when invalidated.
+func (ga *GioApp) getGroupedTextValues() map[string][]string {
+	if ga.cachedGroupedTextValid {
+		return ga.cachedGroupedTextValues
+	}
+	start := time.Now()
+	ga.cachedGroupedTextValues = ga.collectGroupedTextValues()
+	ga.cachedGroupedTextValid = true
+	ga.logger.Info("Recomputed grouped text values", "objects", len(ga.objects), "elapsed", time.Since(start))
+	return ga.cachedGroupedTextValues
+}
+
+// getPropertyDefMap returns a cached map from property key to definition.
+func (ga *GioApp) getPropertyDefMap() map[string]*PropertyDefinition {
+	if ga.cachedPropertyDefValid {
+		return ga.cachedPropertyDefMap
+	}
+	ga.cachedPropertyDefMap = make(map[string]*PropertyDefinition)
+	if ga.selectedCollection != nil && ga.selectedCollection.PropertySchema != nil {
+		for i := range ga.selectedCollection.PropertySchema.Definitions {
+			def := &ga.selectedCollection.PropertySchema.Definitions[i]
+			ga.cachedPropertyDefMap[def.Key] = def
+		}
+	}
+	ga.cachedPropertyDefValid = true
+	return ga.cachedPropertyDefMap
 }
 
 // collectGroupedTextValues returns unique values per grouped_text property key.
@@ -1232,7 +1348,7 @@ func (ga *GioApp) renderFilterChip(gtx layout.Context, btn *widget.Clickable, la
 
 // renderGroupedTextFilters renders a filter bar of chips for each grouped_text property.
 func (ga *GioApp) renderGroupedTextFilters(gtx layout.Context) layout.Dimensions {
-	values := ga.collectGroupedTextValues()
+	values := ga.getGroupedTextValues()
 	if len(values) == 0 {
 		return layout.Dimensions{}
 	}

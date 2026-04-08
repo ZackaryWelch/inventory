@@ -83,6 +83,20 @@ func (r *MongoCollectionRepository) GetByID(ctx context.Context, id entities.Col
 	return r.documentToCollection(ctx, &doc)
 }
 
+func (r *MongoCollectionRepository) GetByIDSummary(ctx context.Context, id entities.CollectionID) (*entities.Collection, error) {
+	var doc collectionDocument
+
+	err := r.collection.FindOne(ctx, bson.M{"_id": id.String()}).Decode(&doc)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, fmt.Errorf("collection not found")
+		}
+		return nil, fmt.Errorf("failed to get collection: %w", err)
+	}
+
+	return documentToCollectionSummary(&doc)
+}
+
 func (r *MongoCollectionRepository) Update(ctx context.Context, collection *entities.Collection) error {
 	doc := collectionToDocument(collection)
 

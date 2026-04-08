@@ -321,6 +321,58 @@ func (r *MongoContainerRepository) GetContainersWithExpiredFood(ctx context.Cont
 	return containers, nil
 }
 
+func (r *MongoContainerRepository) GetByCollectionIDWithAccess(ctx context.Context, collectionID entities.CollectionID, userID entities.UserID, groupIDs []entities.GroupID) ([]*entities.Container, error) {
+	groupIDStrings := make([]string, len(groupIDs))
+	for i, gid := range groupIDs {
+		groupIDStrings[i] = gid.String()
+	}
+
+	accessOr := bson.A{
+		bson.M{"_collection.user_id": userID.String()},
+	}
+	if len(groupIDStrings) > 0 {
+		accessOr = append(accessOr, bson.M{"_collection.group_id": bson.M{"$in": groupIDStrings}})
+	}
+
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{"collection_id": collectionID.String()}}},
+		{{Key: "$lookup", Value: bson.M{
+			"from":         "collections",
+			"localField":   "collection_id",
+			"foreignField": "_id",
+			"as":           "_collection",
+		}}},
+		{{Key: "$unwind", Value: "$_collection"}},
+		{{Key: "$match", Value: bson.M{"$or": accessOr}}},
+		{{Key: "$project", Value: bson.M{"_collection": 0}}},
+	}
+
+	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get containers with access check: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var containers []*entities.Container
+	for cursor.Next(ctx) {
+		var doc containerDocument
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, fmt.Errorf("failed to decode container: %w", err)
+		}
+		container, err := documentToContainer(&doc)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert container: %w", err)
+		}
+		containers = append(containers, container)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+
+	return containers, nil
+}
+
 func (r *MongoContainerRepository) AddObject(ctx context.Context, containerID entities.ContainerID, object entities.Object) error {
 	doc := objectToDocument(object)
 	filter := bson.M{"_id": containerID.String()}

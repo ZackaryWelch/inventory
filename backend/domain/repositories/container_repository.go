@@ -23,4 +23,5 @@ type ContainerRepository interface {
 	FindByObjectID(ctx context.Context, objectID entities.ObjectID) (*entities.Container, error)
 	AddObject(ctx context.Context, containerID entities.ContainerID, object entities.Object) error
 	RemoveObject(ctx context.Context, containerID entities.ContainerID, objectID entities.ObjectID) error
+	GetByCollectionIDWithAccess(ctx context.Context, collectionID entities.CollectionID, userID entities.UserID, groupIDs []entities.GroupID) ([]*entities.Container, error)
 }

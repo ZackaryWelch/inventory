@@ -44,47 +44,37 @@ func NewGetCollectionObjectsUseCase(collectionRepo repositories.CollectionReposi
 }
 
 func (uc *GetCollectionObjectsUseCase) Execute(ctx context.Context, req GetCollectionObjectsRequest) (*GetCollectionObjectsResponse, error) {
-	// Check user access to collection
+	// Resolve user groups (cached) for access check
 	userGroups, err := uc.authService.GetUserGroups(ctx, req.UserToken, req.UserID.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user groups: %w", err)
 	}
 
-	collection, err := uc.collectionRepo.GetByID(ctx, req.CollectionID)
-	if err != nil {
-		return nil, fmt.Errorf("collection not found: %w", err)
+	groupIDs := make([]entities.GroupID, len(userGroups))
+	for i, g := range userGroups {
+		groupIDs[i] = g.ID()
 	}
 
-	// Check access: user is owner OR user is member of collection's group
-	hasAccess := collection.UserID().Equals(req.UserID)
-	if !hasAccess && collection.GroupID() != nil {
-		for _, group := range userGroups {
-			if group.ID().Equals(*collection.GroupID()) {
-				hasAccess = true
-				break
-			}
-		}
-	}
-
-	if !hasAccess {
-		return nil, fmt.Errorf("access denied: user does not have access to this collection")
-	}
-
-	// Collect objects — optionally restricted to a single container.
-	var allObjects []ObjectWithContainerID
+	// Single aggregation: fetch containers + validate access via $lookup on collection
+	var containers []*entities.Container
 	if req.ContainerID != nil {
-		c, err := collection.GetContainer(*req.ContainerID)
+		c, err := uc.containerRepo.GetByID(ctx, *req.ContainerID)
 		if err != nil {
 			return nil, fmt.Errorf("container not found: %w", err)
 		}
+		containers = []*entities.Container{c}
+	} else {
+		containers, err = uc.containerRepo.GetByCollectionIDWithAccess(ctx, req.CollectionID, req.UserID, groupIDs)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get containers: %w", err)
+		}
+	}
+
+	// Collect objects from containers
+	var allObjects []ObjectWithContainerID
+	for _, c := range containers {
 		for _, obj := range c.Objects() {
 			allObjects = append(allObjects, ObjectWithContainerID{Object: obj, ContainerID: c.ID()})
-		}
-	} else {
-		for _, c := range collection.Containers() {
-			for _, obj := range c.Objects() {
-				allObjects = append(allObjects, ObjectWithContainerID{Object: obj, ContainerID: c.ID()})
-			}
 		}
 	}
 
