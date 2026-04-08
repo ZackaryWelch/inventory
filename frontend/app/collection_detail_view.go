@@ -5,6 +5,7 @@ import (
 	"image"
 	"sort"
 	"strings"
+	"sync"
 
 	"gioui.org/font"
 	"gioui.org/layout"
@@ -986,15 +987,31 @@ func (ga *GioApp) fetchContainersAndObjects() {
 	go func() {
 		ga.logger.Info("Fetching containers and objects", "collection_id", collectionID)
 
-		containers, err := ga.containersClient.List(userID, collectionID)
-		if err != nil {
-			ga.logger.Error("Failed to fetch containers", "error", err)
+		var (
+			containers []Container
+			objects    []Object
+			contErr    error
+			objErr     error
+		)
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			containers, contErr = ga.containersClient.List(userID, collectionID)
+		}()
+		go func() {
+			defer wg.Done()
+			objects, objErr = ga.objectsClient.ListByCollection(userID, collectionID)
+		}()
+		wg.Wait()
+
+		if contErr != nil {
+			ga.logger.Error("Failed to fetch containers", "error", contErr)
 			return
 		}
-
-		objects, err := ga.objectsClient.ListByCollection(userID, collectionID)
-		if err != nil {
-			ga.logger.Error("Failed to fetch objects", "error", err)
+		if objErr != nil {
+			ga.logger.Error("Failed to fetch objects", "error", objErr)
 			return
 		}
 

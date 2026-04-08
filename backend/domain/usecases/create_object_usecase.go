@@ -120,14 +120,9 @@ func (uc *CreateObjectUseCase) Execute(ctx context.Context, req CreateObjectRequ
 		return nil, fmt.Errorf("failed to create object entity: %w", err)
 	}
 
-	// Add object to container
-	if err := container.AddObject(*object); err != nil {
+	// Atomically add object to container using $push
+	if err := uc.containerRepo.AddObject(ctx, container.ID(), *object); err != nil {
 		return nil, fmt.Errorf("failed to add object to container: %w", err)
-	}
-
-	// Save updated container
-	if err := uc.containerRepo.Update(ctx, container); err != nil {
-		return nil, fmt.Errorf("failed to save container: %w", err)
 	}
 
 	return &CreateObjectResponse{

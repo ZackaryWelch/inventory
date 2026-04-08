@@ -147,6 +147,105 @@ func (r *MongoCollectionRepository) GetByUserID(ctx context.Context, userID enti
 	return collections, nil
 }
 
+func (r *MongoCollectionRepository) GetByUserIDSummary(ctx context.Context, userID entities.UserID) ([]*entities.Collection, error) {
+	filter := bson.M{"user_id": userID.String()}
+
+	cursor, err := r.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get collections by user ID: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var collections []*entities.Collection
+	for cursor.Next(ctx) {
+		var doc collectionDocument
+		if err := cursor.Decode(&doc); err != nil {
+			return nil, fmt.Errorf("failed to decode collection: %w", err)
+		}
+
+		collection, err := documentToCollectionSummary(&doc)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert collection: %w", err)
+		}
+
+		collections = append(collections, collection)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("cursor error: %w", err)
+	}
+
+	return collections, nil
+}
+
+// documentToCollectionSummary converts a collection document to an entity without loading containers.
+// Use this for list endpoints where container data is not needed.
+func documentToCollectionSummary(doc *collectionDocument) (*entities.Collection, error) {
+	id, err := entities.CollectionIDFromString(doc.ID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid collection ID: %w", err)
+	}
+
+	userID, err := entities.UserIDFromString(doc.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	var groupID *entities.GroupID
+	if doc.GroupID != nil {
+		gid, err := entities.GroupIDFromString(*doc.GroupID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid group ID: %w", err)
+		}
+		groupID = &gid
+	}
+
+	name, err := entities.NewCollectionName(doc.Name)
+	if err != nil {
+		return nil, fmt.Errorf("invalid collection name: %w", err)
+	}
+
+	var categoryID *entities.CategoryID
+	if doc.CategoryID != nil {
+		cid, err := entities.CategoryIDFromHex(*doc.CategoryID)
+		if err == nil {
+			categoryID = &cid
+		}
+	}
+
+	var propertySchema *entities.PropertySchema
+	if doc.PropertySchema != nil {
+		schema := &entities.PropertySchema{
+			Definitions: make([]entities.PropertyDefinition, len(doc.PropertySchema.Definitions)),
+		}
+		for i, def := range doc.PropertySchema.Definitions {
+			schema.Definitions[i] = entities.PropertyDefinition{
+				Key:          def.Key,
+				DisplayName:  def.DisplayName,
+				Type:         entities.PropertyType(def.Type),
+				Required:     def.Required,
+				CurrencyCode: def.CurrencyCode,
+			}
+		}
+		propertySchema = schema
+	}
+
+	return entities.ReconstructCollection(
+		id,
+		userID,
+		groupID,
+		name,
+		categoryID,
+		entities.ObjectType(doc.ObjectType),
+		[]entities.Container{},
+		doc.Tags,
+		doc.Location,
+		propertySchema,
+		doc.CreatedAt,
+		doc.UpdatedAt,
+	), nil
+}
+
 func (r *MongoCollectionRepository) GetByGroupID(ctx context.Context, groupID entities.GroupID) ([]*entities.Collection, error) {
 	filter := bson.M{"group_id": groupID.String()}
 

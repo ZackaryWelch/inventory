@@ -99,14 +99,8 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			Times(1)
 
 		mockContainerRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, c *entities.Container) error {
-				// Verify object was added
-				objects := c.Objects()
-				require.Len(t, objects, 1)
-				assert.Equal(t, "Test Object", objects[0].Name().String())
-				return nil
-			}).
+			AddObject(gomock.Any(), containerID, gomock.Any()).
+			Return(nil).
 			Times(1)
 
 		resp, err := useCase.Execute(context.Background(), req)
@@ -200,7 +194,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			Times(1)
 
 		mockContainerRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
+			AddObject(gomock.Any(), containerID, gomock.Any()).
 			Return(nil).
 			Times(1)
 
@@ -577,7 +571,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 			Times(1)
 
 		mockContainerRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
+			AddObject(gomock.Any(), containerID, gomock.Any()).
 			Return(errors.New("database connection failed")).
 			Times(1)
 
@@ -585,6 +579,6 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, resp)
-		assert.Contains(t, err.Error(), "failed to save container")
+		assert.Contains(t, err.Error(), "failed to add object to container")
 	})
 }

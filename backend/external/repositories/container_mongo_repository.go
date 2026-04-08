@@ -321,6 +321,35 @@ func (r *MongoContainerRepository) GetContainersWithExpiredFood(ctx context.Cont
 	return containers, nil
 }
 
+func (r *MongoContainerRepository) AddObject(ctx context.Context, containerID entities.ContainerID, object entities.Object) error {
+	doc := objectToDocument(object)
+	filter := bson.M{"_id": containerID.String()}
+	update := bson.M{"$push": bson.M{"objects": doc}}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to add object to container: %w", err)
+	}
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("container not found")
+	}
+	return nil
+}
+
+func (r *MongoContainerRepository) RemoveObject(ctx context.Context, containerID entities.ContainerID, objectID entities.ObjectID) error {
+	filter := bson.M{"_id": containerID.String()}
+	update := bson.M{"$pull": bson.M{"objects": bson.M{"id": objectID.String()}}}
+
+	result, err := r.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to remove object from container: %w", err)
+	}
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("container not found")
+	}
+	return nil
+}
+
 func containerToDocument(container *entities.Container) *containerDocument {
 	objects := make([]objectDocument, len(container.Objects()))
 	for i, object := range container.Objects() {

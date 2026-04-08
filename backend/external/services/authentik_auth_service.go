@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -40,12 +41,19 @@ type clientProvider struct {
 	verifier *oidc.IDTokenVerifier
 }
 
+type groupCacheEntry struct {
+	groups    []*entities.Group
+	expiresAt time.Time
+}
+
 type AuthentikAuthService struct {
-	config     config.AuthConfig
-	clients    map[string]*clientProvider // client_id -> provider/verifier
-	logger     *slog.Logger
-	httpClient *http.Client
-	apiConfig  *api.Configuration
+	config       config.AuthConfig
+	clients      map[string]*clientProvider // client_id -> provider/verifier
+	logger       *slog.Logger
+	httpClient   *http.Client
+	apiConfig    *api.Configuration
+	groupCache   map[string]*groupCacheEntry
+	groupCacheMu sync.RWMutex
 }
 
 func NewAuthentikAuthService(config config.AuthConfig, logger *slog.Logger) (*AuthentikAuthService, error) {
@@ -115,6 +123,7 @@ func NewAuthentikAuthService(config config.AuthConfig, logger *slog.Logger) (*Au
 		logger:     logger,
 		httpClient: httpClient,
 		apiConfig:  apiConfig,
+		groupCache: make(map[string]*groupCacheEntry),
 	}, nil
 }
 
@@ -303,10 +312,20 @@ type AuthentikUsersResponse struct {
 	Count   int             `json:"count"`
 }
 
-// GetUserGroups fetches groups the user is a member of using JWT token claims and Authentik API with API token
+// GetUserGroups fetches groups the user is a member of using JWT token claims and Authentik API with API token.
+// Results are cached per user for 60 seconds to eliminate repeated API calls on hot paths.
 func (s *AuthentikAuthService) GetUserGroups(ctx context.Context, userToken, userID string) ([]*entities.Group, error) {
 	s.logger.Debug("Extracting user groups from JWT token",
 		slog.String("user_id", userID))
+
+	// Check cache first (read lock)
+	s.groupCacheMu.RLock()
+	if entry, ok := s.groupCache[userID]; ok && time.Now().Before(entry.expiresAt) {
+		s.groupCacheMu.RUnlock()
+		s.logger.Debug("Returning cached user groups", slog.String("user_id", userID))
+		return entry.groups, nil
+	}
+	s.groupCacheMu.RUnlock()
 
 	// Parse token without validation (already validated by auth middleware)
 	rawClaims, err := s.ParseTokenClaims(userToken)
@@ -381,6 +400,14 @@ func (s *AuthentikAuthService) GetUserGroups(ctx context.Context, userToken, use
 	s.logger.Debug("Successfully processed user groups",
 		slog.String("user_id", userID),
 		slog.Int("group_count", len(groups)))
+
+	// Populate cache (write lock)
+	s.groupCacheMu.Lock()
+	s.groupCache[userID] = &groupCacheEntry{
+		groups:    groups,
+		expiresAt: time.Now().Add(60 * time.Second),
+	}
+	s.groupCacheMu.Unlock()
 
 	return groups, nil
 }

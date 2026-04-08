@@ -21,4 +21,6 @@ type ContainerRepository interface {
 	Exists(ctx context.Context, id entities.ContainerID) (bool, error)
 	GetContainersWithExpiredFood(ctx context.Context, groupID entities.GroupID) ([]*entities.Container, error)
 	FindByObjectID(ctx context.Context, objectID entities.ObjectID) (*entities.Container, error)
+	AddObject(ctx context.Context, containerID entities.ContainerID, object entities.Object) error
+	RemoveObject(ctx context.Context, containerID entities.ContainerID, objectID entities.ObjectID) error
 }

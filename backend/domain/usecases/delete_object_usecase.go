@@ -73,14 +73,9 @@ func (uc *DeleteObjectUseCase) Execute(ctx context.Context, req DeleteObjectRequ
 		return nil, fmt.Errorf("access denied: user does not have access to this collection")
 	}
 
-	// Remove object from container
-	if err := container.RemoveObject(req.ObjectID); err != nil {
+	// Atomically remove object from container using $pull
+	if err := uc.containerRepo.RemoveObject(ctx, container.ID(), req.ObjectID); err != nil {
 		return nil, fmt.Errorf("failed to remove object from container: %w", err)
-	}
-
-	// Save updated container
-	if err := uc.containerRepo.Update(ctx, container); err != nil {
-		return nil, fmt.Errorf("failed to save container: %w", err)
 	}
 
 	return &DeleteObjectResponse{

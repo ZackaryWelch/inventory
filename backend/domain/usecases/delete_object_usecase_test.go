@@ -40,7 +40,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			objectName,
 			objectDesc,
 			entities.ObjectTypeGeneral,
-			"", // No location
+			"",  // No location
 			nil, // No quantity
 			"",  // No unit
 			map[string]interface{}{},
@@ -111,13 +111,8 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			Times(1)
 
 		mockContainerRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, c *entities.Container) error {
-				// Verify object was removed
-				_, err := c.GetObject(objectID)
-				assert.Error(t, err) // Object should not be found
-				return nil
-			}).
+			RemoveObject(gomock.Any(), containerID, objectID).
+			Return(nil).
 			Times(1)
 
 		resp, err := useCase.Execute(context.Background(), req)
@@ -154,7 +149,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			objectName,
 			objectDesc,
 			entities.ObjectTypeGeneral,
-			"", // No location
+			"",  // No location
 			nil, // No quantity
 			"",  // No unit
 			map[string]interface{}{},
@@ -225,7 +220,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			Times(1)
 
 		mockContainerRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
+			RemoveObject(gomock.Any(), containerID, objectID).
 			Return(nil).
 			Times(1)
 
@@ -332,7 +327,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			objectName,
 			objectDesc,
 			entities.ObjectTypeGeneral,
-			"", // No location
+			"",  // No location
 			nil, // No quantity
 			"",  // No unit
 			map[string]interface{}{},
@@ -409,7 +404,8 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		assert.Contains(t, err.Error(), "access denied")
 	})
 
-	t.Run("error - object not found in container", func(t *testing.T) {
+	t.Run("success - remove non-existent object is idempotent", func(t *testing.T) {
+		// $pull is idempotent: removing a non-existent object succeeds silently
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 		containerID := entities.NewContainerID()
@@ -475,11 +471,16 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			Return(collection, nil).
 			Times(1)
 
+		mockContainerRepo.EXPECT().
+			RemoveObject(gomock.Any(), containerID, objectID).
+			Return(nil).
+			Times(1)
+
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
-		assert.Nil(t, resp)
-		assert.Contains(t, err.Error(), "failed to remove object from container")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		assert.True(t, resp.Success)
 	})
 
 	t.Run("error - auth service failure", func(t *testing.T) {
@@ -547,7 +548,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			objectName,
 			objectDesc,
 			entities.ObjectTypeGeneral,
-			"", // No location
+			"",  // No location
 			nil, // No quantity
 			"",  // No unit
 			map[string]interface{}{},
@@ -618,7 +619,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			Times(1)
 
 		mockContainerRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
+			RemoveObject(gomock.Any(), containerID, objectID).
 			Return(errors.New("database connection failed")).
 			Times(1)
 
@@ -626,6 +627,6 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Nil(t, resp)
-		assert.Contains(t, err.Error(), "failed to save container")
+		assert.Contains(t, err.Error(), "failed to remove object from container")
 	})
 }

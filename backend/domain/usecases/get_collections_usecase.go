@@ -47,8 +47,8 @@ func (uc *GetCollectionsUseCase) Execute(ctx context.Context, req GetCollections
 		return &GetCollectionsResponse{Collections: []*entities.Collection{collection}}, nil
 	}
 
-	// Get all collections for user
-	collections, err := uc.collectionRepo.GetByUserID(ctx, req.UserID)
+	// Get all collections for user (summary: no container data, avoids N+1 queries)
+	collections, err := uc.collectionRepo.GetByUserIDSummary(ctx, req.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get collections: %w", err)
 	}

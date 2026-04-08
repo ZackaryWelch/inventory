@@ -14,6 +14,7 @@ type CollectionRepository interface {
 	Update(ctx context.Context, collection *entities.Collection) error
 	Delete(ctx context.Context, id entities.CollectionID) error
 	GetByUserID(ctx context.Context, userID entities.UserID) ([]*entities.Collection, error)
+	GetByUserIDSummary(ctx context.Context, userID entities.UserID) ([]*entities.Collection, error)
 	GetByGroupID(ctx context.Context, groupID entities.GroupID) ([]*entities.Collection, error)
 	List(ctx context.Context, limit, offset int) ([]*entities.Collection, error)
 	Exists(ctx context.Context, id entities.CollectionID) (bool, error)

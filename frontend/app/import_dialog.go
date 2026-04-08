@@ -368,7 +368,6 @@ func (ga *GioApp) getImportLocationColButton(col string) *widget.Clickable {
 	return btn
 }
 
-
 // renderImportColumnMapping renders the column mapping section of the import dialog.
 func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimensions {
 	cols := importColumns(ga.importData.Data)

@@ -87,7 +87,7 @@ func TestObjectController_CreateObject(t *testing.T) {
 		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
 		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
 		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
-		mockContainerRepo.EXPECT().Update(gomock.Any(), testContainer).Return(nil)
+		mockContainerRepo.EXPECT().AddObject(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/objects", requestBody)
 		req.SetPathValue("id", testUser.ID().String())
@@ -255,7 +255,7 @@ func TestObjectController_DeleteObject(t *testing.T) {
 		mockContainerRepo.EXPECT().GetByID(gomock.Any(), gomock.Any()).Return(testContainer, nil)
 		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
 		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
-		mockContainerRepo.EXPECT().Update(gomock.Any(), testContainer).Return(nil)
+		mockContainerRepo.EXPECT().RemoveObject(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 		req := newTestRequest(http.MethodDelete, "/accounts/"+testUser.ID().String()+"/objects/"+objectID.String()+"?container_id="+containerID.String(), nil)
 		req.SetPathValue("id", testUser.ID().String())

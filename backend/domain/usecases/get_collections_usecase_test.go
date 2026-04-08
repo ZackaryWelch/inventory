@@ -57,7 +57,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 
 		// Mock expectations
 		mockCollectionRepo.EXPECT().
-			GetByUserID(gomock.Any(), userID).
+			GetByUserIDSummary(gomock.Any(), userID).
 			Return(collections, nil).
 			Times(1)
 
@@ -179,7 +179,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 
 		// Mock expectations
 		mockCollectionRepo.EXPECT().
-			GetByUserID(gomock.Any(), userID).
+			GetByUserIDSummary(gomock.Any(), userID).
 			Return([]*entities.Collection{}, nil).
 			Times(1)
 
@@ -360,7 +360,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 
 		// Mock repository returns error
 		mockCollectionRepo.EXPECT().
-			GetByUserID(gomock.Any(), userID).
+			GetByUserIDSummary(gomock.Any(), userID).
 			Return(nil, errors.New("database connection failed")).
 			Times(1)
 

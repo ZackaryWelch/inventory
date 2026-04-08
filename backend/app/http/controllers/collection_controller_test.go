@@ -177,9 +177,9 @@ func TestCollectionController_GetCollections(t *testing.T) {
 			collections = append(collections, collection)
 		}
 
-		// GetCollectionsUseCase calls GetByUserID (no GetUserGroups in simple path)
+		// GetCollectionsUseCase calls GetByUserIDSummary (no GetUserGroups in simple path)
 		mockCollectionRepo.EXPECT().
-			GetByUserID(gomock.Any(), testUser.ID()).
+			GetByUserIDSummary(gomock.Any(), testUser.ID()).
 			Return(collections, nil).
 			Times(1)
 
@@ -214,9 +214,9 @@ func TestCollectionController_GetCollections(t *testing.T) {
 	t.Run("error - database failure", func(t *testing.T) {
 		testUser := randomUser()
 
-		// GetCollectionsUseCase calls GetByUserID which returns error
+		// GetCollectionsUseCase calls GetByUserIDSummary which returns error
 		mockCollectionRepo.EXPECT().
-			GetByUserID(gomock.Any(), testUser.ID()).
+			GetByUserIDSummary(gomock.Any(), testUser.ID()).
 			Return(nil, errors.New("database connection failed")).
 			Times(1)
 
