@@ -1,9 +1,11 @@
 package app
 
 import (
+	"image"
 	"strings"
 
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -25,12 +27,12 @@ var propertyTypes = []string{
 
 var propertyTypeLabels = map[string]string{
 	"text":         "Text",
-	"currency":     "Cur$",
+	"currency":     "Currency",
 	"date":         "Date",
-	"bool":         "Bool",
+	"bool":         "Boolean",
 	"url":          "URL",
-	"numeric":      "Num",
-	"grouped_text": "Grpd",
+	"numeric":      "Numeric",
+	"grouped_text": "Grouped",
 }
 
 // openSchemaEditor initializes schema editor state and opens the dialog.
@@ -197,50 +199,115 @@ func (ga *GioApp) renderSchemaRow(gtx layout.Context, i int) layout.Dimensions {
 
 			// Line 2: Type selector chips
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				typeChildren := []layout.FlexChild{
+				chipGap := gtx.Dp(unit.Dp(theme.Spacing1))
+				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Start}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						label := material.Body2(ga.theme.Theme, "Type:")
-						label.Color = theme.ColorTextSecondary
-						return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return layout.Inset{Right: unit.Dp(theme.Spacing2), Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							label := material.Body2(ga.theme.Theme, "Type:")
+							label.Color = theme.ColorTextSecondary
 							return label.Layout(gtx)
 						})
 					}),
-				}
-				typeChildren = append(typeChildren, ga.renderPropertyTypeButtons(gtx, row)...)
-				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx, typeChildren...)
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						return ga.renderPropertyTypeChips(gtx, row, chipGap)
+					}),
+				)
 			}),
 		)
 	})
 }
 
-// renderPropertyTypeButtons returns flex children for each property type chip.
-func (ga *GioApp) renderPropertyTypeButtons(gtx layout.Context, row *SchemaRowState) []layout.FlexChild {
+// renderPropertyTypeChips renders property type chips in a flow-wrap layout.
+func (ga *GioApp) renderPropertyTypeChips(gtx layout.Context, row *SchemaRowState, gap int) layout.Dimensions {
 	if row.typeButtons == nil {
 		row.typeButtons = make(map[string]*widget.Clickable)
 	}
-	children := make([]layout.FlexChild, len(propertyTypes))
-	for j, pt := range propertyTypes {
-		pt := pt
+
+	// Process clicks before layout
+	for _, pt := range propertyTypes {
 		if row.typeButtons[pt] == nil {
 			row.typeButtons[pt] = &widget.Clickable{}
 		}
-		btn := row.typeButtons[pt]
-		// Check click before layout (Gio immediate-mode pattern)
-		if btn.Clicked(gtx) {
+		if row.typeButtons[pt].Clicked(gtx) {
 			row.selectedType = pt
 		}
+	}
+
+	maxWidth := gtx.Constraints.Max.X
+	var x, y, rowHeight int
+
+	type positioned struct {
+		call op.CallOp
+		pos  image.Point
+		size image.Point
+	}
+	var items []positioned
+
+	chipInset := layout.Inset{
+		Top:    unit.Dp(theme.Spacing1),
+		Bottom: unit.Dp(theme.Spacing1),
+		Left:   unit.Dp(theme.Spacing2),
+		Right:  unit.Dp(theme.Spacing2),
+	}
+
+	for _, pt := range propertyTypes {
+		btn := row.typeButtons[pt]
 		isSelected := row.selectedType == pt
 		label := propertyTypeLabels[pt]
-		children[j] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				if isSelected {
-					return widgets.AccentButton(ga.theme.Theme, btn, label)(gtx)
-				}
-				return widgets.CancelButton(ga.theme.Theme, btn, label)(gtx)
-			})
+
+		// Shrink-wrap: don't let buttons expand to fill width
+		cgtx := gtx
+		cgtx.Constraints.Min.X = 0
+
+		macro := op.Record(gtx.Ops)
+		var b widgets.Button
+		if isSelected {
+			b = widgets.Button{
+				Text:            label,
+				BackgroundColor: theme.ColorAccent,
+				TextColor:       theme.ColorBlack,
+				CornerRadius:    unit.Dp(theme.RadiusFull),
+				Inset:           chipInset,
+			}
+		} else {
+			b = widgets.Button{
+				Text:            label,
+				BackgroundColor: theme.ColorSurfaceAlt,
+				TextColor:       theme.ColorTextPrimary,
+				CornerRadius:    unit.Dp(theme.RadiusFull),
+				Inset:           chipInset,
+			}
+		}
+		dims := b.Layout(cgtx, ga.theme.Theme, btn)
+		call := macro.Stop()
+
+		if x > 0 && x+dims.Size.X > maxWidth {
+			y += rowHeight + gap
+			x = 0
+			rowHeight = 0
+		}
+
+		items = append(items, positioned{
+			call: call,
+			pos:  image.Point{X: x, Y: y},
+			size: dims.Size,
 		})
+
+		x += dims.Size.X + gap
+		if dims.Size.Y > rowHeight {
+			rowHeight = dims.Size.Y
+		}
 	}
-	return children
+
+	totalHeight := y + rowHeight
+
+	for _, item := range items {
+		stack := op.Offset(item.pos).Push(gtx.Ops)
+		item.call.Add(gtx.Ops)
+		stack.Pop()
+	}
+
+	return layout.Dimensions{Size: image.Point{X: maxWidth, Y: totalHeight}}
 }
 
 // handleSchemaUpdate builds and saves the schema to the backend.

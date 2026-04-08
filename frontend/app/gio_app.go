@@ -73,6 +73,9 @@ type GioApp struct {
 	isSignedIn         bool
 	logger             *slog.Logger
 
+	// Login error message shown on the login screen after auth failures
+	loginErrorMsg string
+
 	// Dialog state
 	showGroupDialog           bool
 	groupDialogMode           string // "create" or "edit"
@@ -355,12 +358,25 @@ const (
 	ViewSearchGio
 )
 
-// do schedules a state mutation from a goroutine. The function runs on the
-// main event loop and the window is automatically invalidated afterward.
-// This is the idiomatic Gio pattern for async → UI communication.
+// do schedules a state mutation from a goroutine. The mutation is applied
+// inside the next FrameEvent handler, before rendering, so the frame always
+// sees fresh state. Invalidate wakes the blocked window.Event() call.
 func (ga *GioApp) do(fn func()) {
 	ga.ops <- fn
 	ga.window.Invalidate()
+}
+
+// drainOps applies all pending state mutations queued via do().
+// Called at the start of each frame so rendering always sees up-to-date state.
+func (ga *GioApp) drainOps() {
+	for {
+		select {
+		case fn := <-ga.ops:
+			fn()
+		default:
+			return
+		}
+	}
 }
 
 // NewGioApp creates a new Gio-based application instance
@@ -452,20 +468,12 @@ func (ga *GioApp) Run() error {
 	}()
 
 	for {
-		// Process any pending state mutations from goroutines
-		select {
-		case fn := <-ga.ops:
-			fn()
-		default:
-			// No operations pending, continue to window event
-		}
-
-		// Handle window events
 		e := ga.window.Event()
 		switch e := e.(type) {
 		case app.DestroyEvent:
 			return e.Err
 		case app.FrameEvent:
+			ga.drainOps()
 			gtx := app.NewContext(&ops, e)
 			ga.render(gtx)
 			e.Frame(gtx.Ops)
@@ -599,6 +607,7 @@ func (ga *GioApp) initializeAuthState() {
 			ga.logger.Warn("Token refresh failed, showing login", "error", err)
 			ga.authService.ClearToken()
 			ga.isSignedIn = false
+			ga.loginErrorMsg = "Your session has expired. Please sign in again."
 			ga.currentView = ViewLoginGio
 		} else {
 			ga.logger.Info("Token refreshed successfully, signing in user")
@@ -631,6 +640,7 @@ func (ga *GioApp) handleAuthCallback() {
 		if err != nil {
 			ga.logger.Error("Authentication callback failed", "error", err)
 			ga.isSignedIn = false
+			ga.loginErrorMsg = "Sign in failed. Please try again."
 			ga.currentView = ViewLoginGio
 			ga.window.Invalidate()
 			return

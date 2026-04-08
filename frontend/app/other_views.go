@@ -122,6 +122,7 @@ func (ga *GioApp) handleSessionExpired() {
 	ga.groups = nil
 	ga.collections = nil
 	ga.isSignedIn = false
+	ga.loginErrorMsg = "Your session has expired. Please sign in again."
 	ga.currentView = ViewLoginGio
 	ga.window.Invalidate()
 }

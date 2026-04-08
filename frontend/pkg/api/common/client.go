@@ -2,7 +2,7 @@ package common
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"net/http"
@@ -104,14 +104,14 @@ func DecodeResponse[T any](resp *http.Response) (*T, error) {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		var errResp types.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
+		if err := json.UnmarshalRead(resp.Body, &errResp); err != nil {
 			return nil, fmt.Errorf("API error: status %d", resp.StatusCode)
 		}
 		return nil, fmt.Errorf("API error: %s (code: %d)", errResp.Message, resp.StatusCode)
 	}
 
 	var result T
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.UnmarshalRead(resp.Body, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -124,14 +124,14 @@ func DecodeResponseList[T any](resp *http.Response) ([]T, error) {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		var errResp types.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
+		if err := json.UnmarshalRead(resp.Body, &errResp); err != nil {
 			return nil, fmt.Errorf("API error: status %d", resp.StatusCode)
 		}
 		return nil, fmt.Errorf("API error: %s (code: %d)", errResp.Message, resp.StatusCode)
 	}
 
 	var result []T
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.UnmarshalRead(resp.Body, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
@@ -144,7 +144,7 @@ func CheckResponse(resp *http.Response) error {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		var errResp types.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
+		if err := json.UnmarshalRead(resp.Body, &errResp); err != nil {
 			return fmt.Errorf("API error: status %d", resp.StatusCode)
 		}
 		return fmt.Errorf("API error: %s (code: %d)", errResp.Message, resp.StatusCode)

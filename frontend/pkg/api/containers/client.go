@@ -19,9 +19,9 @@ func NewClient(commonClient *common.Client) *Client {
 	}
 }
 
-// List gets all containers for a specific collection.
+// List gets all containers for a specific collection (without embedded objects).
 func (c *Client) List(accountID, collectionID string) ([]types.Container, error) {
-	resp, err := c.common.Get(fmt.Sprintf("/accounts/%s/collections/%s/containers", accountID, collectionID))
+	resp, err := c.common.Get(fmt.Sprintf("/accounts/%s/collections/%s/containers?exclude_objects=true", accountID, collectionID))
 	if err != nil {
 		return nil, err
 	}

@@ -25,6 +25,7 @@ func (ga *GioApp) renderLoginViewSimple(gtx layout.Context) layout.Dimensions {
 	// Handle login button click
 	if ga.widgetState.loginButton.Clicked(gtx) {
 		ga.logger.Info("Login button clicked")
+		ga.loginErrorMsg = ""
 		ga.handleLogin()
 	}
 
@@ -102,6 +103,24 @@ func (ga *GioApp) renderLoginViewSimple(gtx layout.Context) layout.Dimensions {
 									Right:  unit.Dp(theme.Spacing10),
 								}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 									return paintDivider(gtx, theme.ColorBorder)
+								})
+							}),
+
+							// Error message (if any)
+							layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+								if ga.loginErrorMsg == "" {
+									return layout.Dimensions{}
+								}
+								return layout.Inset{
+									Bottom: unit.Dp(theme.Spacing4),
+									Left:   unit.Dp(theme.Spacing4),
+									Right:  unit.Dp(theme.Spacing4),
+								}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									gtx.Constraints.Min.X = gtx.Constraints.Max.X
+									l := material.Body2(ga.theme.Theme, ga.loginErrorMsg)
+									l.Color = theme.ColorDanger
+									l.Alignment = text.Middle
+									return l.Layout(gtx)
 								})
 							}),
 

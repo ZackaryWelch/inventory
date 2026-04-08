@@ -15,6 +15,7 @@ type ContainerResponse struct {
 	CategoryID          *string          `json:"category_id,omitempty"`
 	GroupID             *string          `json:"group_id,omitempty"`
 	Objects             []ObjectResponse `json:"objects"`
+	ObjectCount         int              `json:"object_count"`
 	Location            string           `json:"location"`
 	Width               *float64         `json:"width,omitempty"`
 	Depth               *float64         `json:"depth,omitempty"`
@@ -64,6 +65,52 @@ func NewContainerResponse(container *entities.Container) ContainerResponse {
 		CategoryID:          categoryID,
 		GroupID:             groupID,
 		Objects:             objects,
+		ObjectCount:         len(objects),
+		Location:            container.Location(),
+		Width:               container.Width(),
+		Depth:               container.Depth(),
+		Rows:                container.Rows(),
+		Capacity:            container.Capacity(),
+		UsedCapacity:        &usedCapacity,
+		CapacityUtilization: container.GetCapacityUtilization(),
+		CreatedAt:           container.CreatedAt(),
+		UpdatedAt:           container.UpdatedAt(),
+	}
+}
+
+// NewContainerSummaryResponse builds a ContainerResponse without embedding objects.
+// Use this for list endpoints where objects are fetched separately.
+func NewContainerSummaryResponse(container *entities.Container) ContainerResponse {
+	var categoryID *string
+	if container.CategoryID() != nil {
+		id := container.CategoryID().String()
+		categoryID = &id
+	}
+
+	var parentContainerID *string
+	if container.ParentContainerID() != nil {
+		id := container.ParentContainerID().String()
+		parentContainerID = &id
+	}
+
+	var groupID *string
+	if container.GroupID() != nil {
+		id := container.GroupID().String()
+		groupID = &id
+	}
+
+	usedCapacity := container.CalculateUsedCapacity()
+
+	return ContainerResponse{
+		ID:                  container.ID().String(),
+		CollectionID:        container.CollectionID().String(),
+		Name:                container.Name().String(),
+		Type:                string(container.ContainerType()),
+		ParentContainerID:   parentContainerID,
+		CategoryID:          categoryID,
+		GroupID:             groupID,
+		Objects:             nil,
+		ObjectCount:         len(container.Objects()),
 		Location:            container.Location(),
 		Width:               container.Width(),
 		Depth:               container.Depth(),
@@ -80,6 +127,16 @@ func NewContainerListResponse(containers []*entities.Container) ContainerListRes
 	containerResponses := make([]ContainerResponse, len(containers))
 	for i, container := range containers {
 		containerResponses[i] = NewContainerResponse(container)
+	}
+
+	return ContainerListResponse(containerResponses)
+}
+
+// NewContainerSummaryListResponse builds a list without embedding objects.
+func NewContainerSummaryListResponse(containers []*entities.Container) ContainerListResponse {
+	containerResponses := make([]ContainerResponse, len(containers))
+	for i, container := range containers {
+		containerResponses[i] = NewContainerSummaryResponse(container)
 	}
 
 	return ContainerListResponse(containerResponses)

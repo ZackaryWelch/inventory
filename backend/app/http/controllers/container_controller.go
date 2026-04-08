@@ -221,7 +221,11 @@ func (ctrl *ContainerController) GetContainers(w http.ResponseWriter, r *http.Re
 			slog.String("user_id", user.ID().String()),
 			slog.Int("container_count", len(resp.Containers)))
 
-		httputil.JSON(w, http.StatusOK, response.NewContainerListResponse(resp.Containers))
+		if r.URL.Query().Get("exclude_objects") == "true" {
+			httputil.JSON(w, http.StatusOK, response.NewContainerSummaryListResponse(resp.Containers))
+		} else {
+			httputil.JSON(w, http.StatusOK, response.NewContainerListResponse(resp.Containers))
+		}
 		return
 	}
 

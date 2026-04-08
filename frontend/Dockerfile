@@ -6,13 +6,13 @@ COPY frontend/ ./
 COPY backend/ ../backend/
 
 # Build WASM binary
-RUN GOOS=js GOARCH=wasm go build -o gio-web/app.wasm ./cmd/gio-webmain
+RUN GOOS=js GOARCH=wasm GOEXPERIMENT=jsonv2 go build -o gio-web/app.wasm ./cmd/gio-webmain
 
 # Copy wasm_exec.js from Go installation
 RUN cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" gio-web/
 
 # Build the serve binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o nishiki-frontend ./cmd/serve
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOEXPERIMENT=jsonv2 go build -o nishiki-frontend ./cmd/serve
 
 FROM debian:trixie-slim
 

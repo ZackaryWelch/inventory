@@ -1,7 +1,7 @@
 package objects
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 
 	"github.com/nishiki/frontend/pkg/api/common"
@@ -103,7 +103,7 @@ func (c *Client) ListByCollection(accountID, collectionID string) ([]types.Objec
 
 	defer resp.Body.Close()
 	var result objectListResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.UnmarshalRead(resp.Body, &result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 

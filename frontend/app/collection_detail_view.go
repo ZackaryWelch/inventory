@@ -50,6 +50,17 @@ var containerTypeLabels = map[string]string{
 
 // renderCollectionDetailView renders the collection detail view with containers and objects
 func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensions {
+	renderStart := time.Now()
+	defer func() {
+		elapsed := time.Since(renderStart)
+		if elapsed > 5*time.Millisecond {
+			ga.logger.Info("renderCollectionDetailView slow frame",
+				"elapsed", elapsed,
+				"objects", len(ga.objects),
+				"containers", len(ga.containers))
+		}
+	}()
+
 	if ga.selectedCollection == nil {
 		// Navigate back to collections if no collection is selected
 		ga.currentView = ViewCollectionsGio
@@ -610,7 +621,7 @@ func (ga *GioApp) renderContainerCard(gtx layout.Context, container Container, i
 
 			// Object count
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				objectCount := len(container.Objects)
+				objectCount := container.ObjectCount
 				return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					label := material.Body2(ga.theme.Theme, fmt.Sprintf("%d objects", objectCount))
 					label.Color = theme.ColorTextSecondary
@@ -1020,6 +1031,7 @@ func (ga *GioApp) fetchContainersAndObjects() {
 	userID := ga.currentUser.ID
 
 	go func() {
+		fetchStart := time.Now()
 		ga.logger.Info("Fetching containers and objects", "collection_id", collectionID)
 
 		var (
@@ -1027,19 +1039,30 @@ func (ga *GioApp) fetchContainersAndObjects() {
 			objects    []Object
 			contErr    error
 			objErr     error
+			contTime   time.Duration
+			objTime    time.Duration
 		)
 
 		var wg sync.WaitGroup
 		wg.Add(2)
 		go func() {
 			defer wg.Done()
+			start := time.Now()
 			containers, contErr = ga.containersClient.List(userID, collectionID)
+			contTime = time.Since(start)
 		}()
 		go func() {
 			defer wg.Done()
+			start := time.Now()
 			objects, objErr = ga.objectsClient.ListByCollection(userID, collectionID)
+			objTime = time.Since(start)
 		}()
 		wg.Wait()
+
+		ga.logger.Info("Fetch complete",
+			"containers", len(containers), "containers_time", contTime,
+			"objects", len(objects), "objects_time", objTime,
+			"total_time", time.Since(fetchStart))
 
 		if contErr != nil {
 			ga.logger.Error("Failed to fetch containers", "error", contErr)
@@ -1050,11 +1073,15 @@ func (ga *GioApp) fetchContainersAndObjects() {
 			return
 		}
 
+		ga.logger.Info("Queuing state update via ga.do()")
+		doStart := time.Now()
 		ga.do(func() {
+			ga.logger.Info("ga.do() callback executing", "wait", time.Since(doStart))
 			ga.containers = containers
 			ga.objects = objects
 			ga.activeGroupedTextFilters = nil
 			ga.invalidateObjectCaches()
+			ga.logger.Info("State updated", "objects", len(ga.objects), "containers", len(ga.containers))
 		})
 	}()
 }
@@ -1270,8 +1297,12 @@ func layoutFlowWrap(gtx layout.Context, hGap, vGap int, widgets ...layout.Widget
 	var items []positioned
 
 	for _, w := range widgets {
+		// Use min width 0 so widgets shrink-wrap their content instead of
+		// expanding to fill the full available width.
+		wgtx := gtx
+		wgtx.Constraints.Min.X = 0
 		macro := op.Record(gtx.Ops)
-		dims := w(gtx)
+		dims := w(wgtx)
 		call := macro.Stop()
 
 		if x > 0 && x+dims.Size.X > maxWidth {
@@ -1380,45 +1411,54 @@ func (ga *GioApp) renderGroupedTextFilters(gtx layout.Context) layout.Dimensions
 
 		rows = append(rows, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Inset{Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				// Label
-				var children []layout.FlexChild
-				children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Body2(ga.theme.Theme, displayName+":")
-						label.Color = theme.ColorTextSecondary
-						return label.Layout(gtx)
-					})
-				}))
-
-				// "All" chip
+				// Process all clicks before layout
 				allKey := propKey + "||"
 				allBtn := ga.getGroupedTextChipButton(allKey)
 				if allBtn.Clicked(gtx) {
 					ga.activeGroupedTextFilters[propKey] = ""
 				}
-				children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ga.renderFilterChip(gtx, allBtn, "All", activeVal == "")
-					})
-				}))
-
-				// Value chips
 				for _, val := range vals {
-					val := val
 					chipKey := propKey + "||" + val
 					btn := ga.getGroupedTextChipButton(chipKey)
 					if btn.Clicked(gtx) {
 						ga.activeGroupedTextFilters[propKey] = val
 					}
-					isActive := activeVal == val
-					children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return ga.renderFilterChip(gtx, btn, val, isActive)
-						})
-					}))
 				}
 
-				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx, children...)
+				chipGap := gtx.Dp(unit.Dp(theme.Spacing1))
+
+				return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Start}.Layout(gtx,
+					// Label
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return layout.Inset{Right: unit.Dp(theme.Spacing2), Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							label := material.Body2(ga.theme.Theme, displayName+":")
+							label.Color = theme.ColorTextSecondary
+							return label.Layout(gtx)
+						})
+					}),
+					// Flow-wrapping chips
+					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+						var chips []layout.Widget
+
+						// "All" chip
+						chips = append(chips, func(gtx layout.Context) layout.Dimensions {
+							return ga.renderFilterChip(gtx, allBtn, "All", activeVal == "")
+						})
+
+						// Value chips
+						for _, val := range vals {
+							val := val
+							chipKey := propKey + "||" + val
+							btn := ga.getGroupedTextChipButton(chipKey)
+							isActive := activeVal == val
+							chips = append(chips, func(gtx layout.Context) layout.Dimensions {
+								return ga.renderFilterChip(gtx, btn, val, isActive)
+							})
+						}
+
+						return layoutFlowWrap(gtx, chipGap, chipGap, chips...)
+					}),
+				)
 			})
 		}))
 	}

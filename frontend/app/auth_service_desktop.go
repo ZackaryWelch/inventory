@@ -33,17 +33,8 @@ type TokenStorage struct{}
 
 // NewAuthService creates a desktop authentication service.
 func NewAuthService(config *Config, logger *slog.Logger) *AuthService {
-	oauth2Config := &oauth2.Config{
-		ClientID:    config.ClientID,
-		RedirectURL: config.RedirectURL,
-		Scopes:      []string{"openid", "profile", "email", "groups", "offline_access"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  config.AuthURL + "/application/o/authorize/",
-			TokenURL: config.BackendURL + "/auth/token",
-		},
-	}
 	return &AuthService{
-		config:      oauth2Config,
+		config:      newOAuth2Config(config),
 		redirectURL: config.RedirectURL,
 		logger:      logger,
 	}

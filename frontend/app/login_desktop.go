@@ -9,6 +9,9 @@ func (ga *GioApp) handleLogin() {
 		token, err := ga.authService.DesktopLogin()
 		if err != nil {
 			ga.logger.Error("Desktop login failed", "error", err)
+			ga.do(func() {
+				ga.loginErrorMsg = "Sign in failed. Please try again."
+			})
 			return
 		}
 		ga.logger.Info("Desktop login successful", "expires", token.Expiry)

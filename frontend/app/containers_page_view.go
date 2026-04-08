@@ -264,7 +264,7 @@ func (ga *GioApp) renderContainersPageCard(gtx layout.Context, container Contain
 					return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle, Spacing: layout.SpaceBetween}.Layout(gtx,
 							layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-								label := material.Body2(ga.theme.Theme, fmt.Sprintf("%d objects", len(container.Objects)))
+								label := material.Body2(ga.theme.Theme, fmt.Sprintf("%d objects", container.ObjectCount))
 								label.Color = theme.ColorTextSecondary
 								return label.Layout(gtx)
 							}),

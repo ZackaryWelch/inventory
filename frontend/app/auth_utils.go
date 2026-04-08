@@ -6,7 +6,22 @@ import (
 	"encoding/base64"
 	"fmt"
 	"time"
+
+	"golang.org/x/oauth2"
 )
+
+func newOAuth2Config(config *Config) *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:    config.ClientID,
+		RedirectURL: config.RedirectURL,
+		Scopes:      []string{"openid", "profile", "email", "groups", "offline_access"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:   config.AuthURL + "/application/o/authorize/",
+			TokenURL:  config.BackendURL + "/auth/token",
+			AuthStyle: oauth2.AuthStyleInParams,
+		},
+	}
+}
 
 func generateRandomString(length int) string {
 	bytes := make([]byte, length)
