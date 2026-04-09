@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,38 +28,12 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create collection without containers
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		existingCollection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{}, // Empty
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		collection := NewTestCollection(ColID(collectionID), ColUserID(userID))
 
-		req := DeleteCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       userID,
-		}
+		req := DeleteCollectionRequest{CollectionID: collectionID, UserID: userID}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(existingCollection, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			Delete(gomock.Any(), collectionID).
-			Return(nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
+		mockCollectionRepo.EXPECT().Delete(gomock.Any(), collectionID).Return(nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -74,50 +47,14 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create container
-		containerName, _ := entities.NewContainerName("Test Container")
-		container, _ := entities.NewContainer(entities.ContainerProps{
-			CollectionID: collectionID,
-			Name:         containerName,
-		})
+		ctr := NewTestContainer(CtrCollectionID(collectionID))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(userID), ColContainers(*ctr))
 
-		// Create collection with container
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		existingCollection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{*container},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		req := DeleteCollectionRequest{CollectionID: collectionID, UserID: userID, Force: true}
 
-		req := DeleteCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       userID,
-			Force:        true,
-		}
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(existingCollection, nil).
-			Times(1)
-
-		mockContainerRepo.EXPECT().
-			DeleteByCollectionID(gomock.Any(), collectionID).
-			Return(int64(1), nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			Delete(gomock.Any(), collectionID).
-			Return(nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
+		mockContainerRepo.EXPECT().DeleteByCollectionID(gomock.Any(), collectionID).Return(int64(1), nil)
+		mockCollectionRepo.EXPECT().Delete(gomock.Any(), collectionID).Return(nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -131,39 +68,12 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create container
-		containerName, _ := entities.NewContainerName("Test Container")
-		container, _ := entities.NewContainer(entities.ContainerProps{
-			CollectionID: collectionID,
-			Name:         containerName,
-		})
+		ctr := NewTestContainer(CtrCollectionID(collectionID))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(userID), ColContainers(*ctr))
 
-		// Create collection with container
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		existingCollection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{*container},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		req := DeleteCollectionRequest{CollectionID: collectionID, UserID: userID}
 
-		req := DeleteCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       userID,
-		}
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(existingCollection, nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -176,16 +86,9 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		req := DeleteCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       userID,
-		}
+		req := DeleteCollectionRequest{CollectionID: collectionID, UserID: userID}
 
-		// Mock repository returns error
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(nil, errors.New("collection not found")).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(nil, errors.New("collection not found"))
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -196,36 +99,14 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 
 	t.Run("error - access denied (not owner)", func(t *testing.T) {
 		ownerID := entities.NewUserID()
-		differentUserID := entities.NewUserID()
+		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create collection owned by different user
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		existingCollection := entities.ReconstructCollection(
-			collectionID,
-			ownerID, // Different owner
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		collection := NewTestCollection(ColID(collectionID), ColUserID(ownerID))
 
-		req := DeleteCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       differentUserID, // Different user trying to delete
-		}
+		req := DeleteCollectionRequest{CollectionID: collectionID, UserID: userID}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(existingCollection, nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -238,38 +119,12 @@ func TestDeleteCollectionUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create empty collection
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		existingCollection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		collection := NewTestCollection(ColID(collectionID), ColUserID(userID))
 
-		req := DeleteCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       userID,
-		}
+		req := DeleteCollectionRequest{CollectionID: collectionID, UserID: userID}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(existingCollection, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			Delete(gomock.Any(), collectionID).
-			Return(errors.New("database connection failed")).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
+		mockCollectionRepo.EXPECT().Delete(gomock.Any(), collectionID).Return(errors.New("database connection failed"))
 
 		resp, err := useCase.Execute(context.Background(), req)
 

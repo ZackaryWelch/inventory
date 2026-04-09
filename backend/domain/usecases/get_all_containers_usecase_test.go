@@ -3,10 +3,10 @@ package usecases
 import (
 	"context"
 	"errors"
-	"strings"
 	"testing"
-	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
 	"github.com/nishiki/backend/domain/entities"
@@ -14,217 +14,89 @@ import (
 )
 
 func TestGetAllContainersUseCase_Execute(t *testing.T) {
-	// Create mock controller
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// Create mock dependencies
 	mockContainerRepo := mocks.NewMockContainerRepository(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 
-	// Create use case
 	useCase := NewGetAllContainersUseCase(mockContainerRepo, mockAuthService)
 
-	// Test data
 	ctx := context.Background()
 	userID, _ := entities.UserIDFromString("test-user-123")
 	userToken := "test-jwt-token"
 
-	// Create test groups
 	groupID1, _ := entities.GroupIDFromString("group-1")
-	groupName1, _ := entities.NewGroupName("Test Group 1")
-	groupDesc1 := entities.NewGroupDescription("Test Group 1 Description")
-	group1 := entities.ReconstructGroup(groupID1, groupName1, groupDesc1, time.Now(), time.Now())
-
 	groupID2, _ := entities.GroupIDFromString("group-2")
-	groupName2, _ := entities.NewGroupName("Test Group 2")
-	groupDesc2 := entities.NewGroupDescription("Test Group 2 Description")
-	group2 := entities.ReconstructGroup(groupID2, groupName2, groupDesc2, time.Now(), time.Now())
+	group1 := NewTestGroup(GrpID(groupID1), GrpName("Test Group 1"))
+	group2 := NewTestGroup(GrpID(groupID2), GrpName("Test Group 2"))
 
-	// Create test containers
 	containerID1, _ := entities.ContainerIDFromString("container-1")
-	containerName1, _ := entities.NewContainerName("Test Container 1")
-	container1 := entities.ReconstructContainer(containerID1, entities.NewCollectionID(), containerName1, entities.ContainerTypeGeneral, nil, nil, &groupID1, []entities.Object{}, "", nil, nil, nil, nil, time.Now(), time.Now())
-
 	containerID2, _ := entities.ContainerIDFromString("container-2")
-	containerName2, _ := entities.NewContainerName("Test Container 2")
-	container2 := entities.ReconstructContainer(containerID2, entities.NewCollectionID(), containerName2, entities.ContainerTypeGeneral, nil, nil, &groupID1, []entities.Object{}, "", nil, nil, nil, nil, time.Now(), time.Now())
-
 	containerID3, _ := entities.ContainerIDFromString("container-3")
-	containerName3, _ := entities.NewContainerName("Test Container 3")
-	container3 := entities.ReconstructContainer(containerID3, entities.NewCollectionID(), containerName3, entities.ContainerTypeGeneral, nil, nil, &groupID2, []entities.Object{}, "", nil, nil, nil, nil, time.Now(), time.Now())
+	container1 := NewTestContainer(CtrID(containerID1), CtrName("Test Container 1"), CtrGroupID(&groupID1))
+	container2 := NewTestContainer(CtrID(containerID2), CtrName("Test Container 2"), CtrGroupID(&groupID1))
+	container3 := NewTestContainer(CtrID(containerID3), CtrName("Test Container 3"), CtrGroupID(&groupID2))
 
 	t.Run("Success - Returns containers from all user groups", func(t *testing.T) {
-		// Mock auth service to return user groups
-		mockAuthService.EXPECT().
-			GetUserGroups(ctx, userToken, userID.String()).
-			Return([]*entities.Group{group1, group2}, nil)
+		mockAuthService.EXPECT().GetUserGroups(ctx, userToken, userID.String()).Return([]*entities.Group{group1, group2}, nil)
+		mockContainerRepo.EXPECT().GetByGroupID(ctx, groupID1).Return([]*entities.Container{container1, container2}, nil)
+		mockContainerRepo.EXPECT().GetByGroupID(ctx, groupID2).Return([]*entities.Container{container3}, nil)
 
-		// Mock container repo to return containers for each group
-		mockContainerRepo.EXPECT().
-			GetByGroupID(ctx, groupID1).
-			Return([]*entities.Container{container1, container2}, nil)
+		resp, err := useCase.Execute(ctx, GetAllContainersRequest{UserID: userID, UserToken: userToken})
 
-		mockContainerRepo.EXPECT().
-			GetByGroupID(ctx, groupID2).
-			Return([]*entities.Container{container3}, nil)
+		require.NoError(t, err)
+		assert.Len(t, resp.Containers, 3)
 
-		// Execute use case
-		req := GetAllContainersRequest{
-			UserID:    userID,
-			UserToken: userToken,
-		}
-
-		resp, err := useCase.Execute(ctx, req)
-
-		// Verify results
-		if err != nil {
-			t.Fatalf("Expected no error, got: %v", err)
-		}
-
-		if len(resp.Containers) != 3 {
-			t.Errorf("Expected 3 containers, got %d", len(resp.Containers))
-		}
-
-		// Check that all containers are present
 		containerIDs := make(map[string]bool)
-		for _, container := range resp.Containers {
-			containerIDs[container.ID().String()] = true
+		for _, c := range resp.Containers {
+			containerIDs[c.ID().String()] = true
 		}
-
-		expectedIDs := []string{containerID1.String(), containerID2.String(), containerID3.String()}
-		for _, expectedID := range expectedIDs {
-			if !containerIDs[expectedID] {
-				t.Errorf("Expected container ID %s not found in results", expectedID)
-			}
+		for _, id := range []string{containerID1.String(), containerID2.String(), containerID3.String()} {
+			assert.True(t, containerIDs[id], "Expected container ID %s not found", id)
 		}
 	})
 
 	t.Run("Success - No groups means no containers", func(t *testing.T) {
-		// Mock auth service to return empty groups (user has no nishiki groups)
-		mockAuthService.EXPECT().
-			GetUserGroups(ctx, userToken, userID.String()).
-			Return([]*entities.Group{}, nil)
+		mockAuthService.EXPECT().GetUserGroups(ctx, userToken, userID.String()).Return([]*entities.Group{}, nil)
 
-		// Execute use case
-		req := GetAllContainersRequest{
-			UserID:    userID,
-			UserToken: userToken,
-		}
+		resp, err := useCase.Execute(ctx, GetAllContainersRequest{UserID: userID, UserToken: userToken})
 
-		resp, err := useCase.Execute(ctx, req)
-
-		// Verify results
-		if err != nil {
-			t.Fatalf("Expected no error, got: %v", err)
-		}
-
-		if len(resp.Containers) != 0 {
-			t.Errorf("Expected 0 containers, got %d", len(resp.Containers))
-		}
+		require.NoError(t, err)
+		assert.Len(t, resp.Containers, 0)
 	})
 
 	t.Run("Success - Group with no containers", func(t *testing.T) {
-		// Mock auth service to return user groups
-		mockAuthService.EXPECT().
-			GetUserGroups(ctx, userToken, userID.String()).
-			Return([]*entities.Group{group1}, nil)
+		mockAuthService.EXPECT().GetUserGroups(ctx, userToken, userID.String()).Return([]*entities.Group{group1}, nil)
+		mockContainerRepo.EXPECT().GetByGroupID(ctx, groupID1).Return([]*entities.Container{}, nil)
 
-		// Mock container repo to return empty containers for the group
-		mockContainerRepo.EXPECT().
-			GetByGroupID(ctx, groupID1).
-			Return([]*entities.Container{}, nil)
+		resp, err := useCase.Execute(ctx, GetAllContainersRequest{UserID: userID, UserToken: userToken})
 
-		// Execute use case
-		req := GetAllContainersRequest{
-			UserID:    userID,
-			UserToken: userToken,
-		}
-
-		resp, err := useCase.Execute(ctx, req)
-
-		// Verify results
-		if err != nil {
-			t.Fatalf("Expected no error, got: %v", err)
-		}
-
-		if len(resp.Containers) != 0 {
-			t.Errorf("Expected 0 containers, got %d", len(resp.Containers))
-		}
+		require.NoError(t, err)
+		assert.Len(t, resp.Containers, 0)
 	})
 
 	t.Run("Error - Auth service fails to get user groups", func(t *testing.T) {
-		// Mock auth service to return error
-		mockAuthService.EXPECT().
-			GetUserGroups(ctx, userToken, userID.String()).
-			Return(nil, errors.New("failed to get groups"))
+		mockAuthService.EXPECT().GetUserGroups(ctx, userToken, userID.String()).Return(nil, errors.New("failed to get groups"))
 
-		// Execute use case
-		req := GetAllContainersRequest{
-			UserID:    userID,
-			UserToken: userToken,
-		}
+		resp, err := useCase.Execute(ctx, GetAllContainersRequest{UserID: userID, UserToken: userToken})
 
-		resp, err := useCase.Execute(ctx, req)
-
-		// Verify error
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-
-		if resp != nil {
-			t.Error("Expected nil response on error")
-		}
-
-		expectedError := "failed to get user groups"
-		if !contains(err.Error(), expectedError) {
-			t.Errorf("Expected error to contain '%s', got: %v", expectedError, err)
-		}
+		require.Error(t, err)
+		assert.Nil(t, resp)
+		assert.Contains(t, err.Error(), "failed to get user groups")
 	})
 
 	t.Run("Partial Success - Container repo error for one group", func(t *testing.T) {
-		// Mock auth service to return user groups
-		mockAuthService.EXPECT().
-			GetUserGroups(ctx, userToken, userID.String()).
-			Return([]*entities.Group{group1, group2}, nil)
+		mockAuthService.EXPECT().GetUserGroups(ctx, userToken, userID.String()).Return([]*entities.Group{group1, group2}, nil)
+		mockContainerRepo.EXPECT().GetByGroupID(ctx, groupID1).Return([]*entities.Container{container1, container2}, nil)
+		mockContainerRepo.EXPECT().GetByGroupID(ctx, groupID2).Return(nil, errors.New("database connection failed"))
 
-		// Mock container repo - first group succeeds, second group fails
-		mockContainerRepo.EXPECT().
-			GetByGroupID(ctx, groupID1).
-			Return([]*entities.Container{container1, container2}, nil)
+		resp, err := useCase.Execute(ctx, GetAllContainersRequest{UserID: userID, UserToken: userToken})
 
-		mockContainerRepo.EXPECT().
-			GetByGroupID(ctx, groupID2).
-			Return(nil, errors.New("database connection failed"))
-
-		// Execute use case
-		req := GetAllContainersRequest{
-			UserID:    userID,
-			UserToken: userToken,
-		}
-
-		resp, err := useCase.Execute(ctx, req)
-
-		// Verify results - should succeed with partial data
-		if err != nil {
-			t.Fatalf("Expected no error, got: %v", err)
-		}
-
-		// Should only get containers from group1 (group2 failed)
-		if len(resp.Containers) != 2 {
-			t.Errorf("Expected 2 containers (from successful group), got %d", len(resp.Containers))
-		}
-
-		// Verify we got the right containers
-		for _, container := range resp.Containers {
-			if container.GroupID() == nil || !container.GroupID().Equals(groupID1) {
-				t.Errorf("Expected container from group1, got container from group %v", container.GroupID())
-			}
+		require.NoError(t, err)
+		assert.Len(t, resp.Containers, 2)
+		for _, c := range resp.Containers {
+			assert.True(t, c.GroupID() != nil && c.GroupID().Equals(groupID1))
 		}
 	})
-}
-
-// Helper function to check if a string contains a substring
-func contains(s, substr string) bool {
-	return strings.Contains(s, substr)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	fake "github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
@@ -24,31 +23,20 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 
 		mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 		mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
 		useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
-		userID := entities.NewUserID()
 
+		userID := entities.NewUserID()
 		req := CreateCollectionRequest{
-			UserID:     userID,
-			GroupID:    nil,
-			Name:       "My Food Collection",
-			ObjectType: entities.ObjectTypeFood,
-			Tags:       []string{"pantry", "kitchen"},
-			Location:   "Kitchen",
-			UserToken:  "test-token",
+			UserID: userID, Name: "My Food Collection", ObjectType: entities.ObjectTypeFood,
+			Tags: []string{"pantry", "kitchen"}, Location: "Kitchen", UserToken: "test-token",
 		}
 
-		// Expect repository to save collection
-		mockCollectionRepo.EXPECT().
-			Create(gomock.Any(), gomock.Any()).
-			Return(nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		assert.NotNil(t, resp.Collection)
 		assert.Equal(t, "My Food Collection", resp.Collection.Name().String())
 		assert.Equal(t, entities.ObjectTypeFood, resp.Collection.ObjectType())
 		assert.Equal(t, userID, resp.Collection.UserID())
@@ -61,41 +49,22 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 
 		mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 		mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
 		useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
+
 		userID := entities.NewUserID()
 		groupID := entities.NewGroupID()
-
-		// Create test group
-		groupName, _ := entities.NewGroupName("Test Group")
-		groupDesc := entities.NewGroupDescription("Test group description")
-		testGroup := entities.ReconstructGroup(groupID, groupName, groupDesc, time.Now(), time.Now())
+		testGroup := NewTestGroup(GrpID(groupID))
 
 		req := CreateCollectionRequest{
-			UserID:     userID,
-			GroupID:    &groupID,
-			Name:       "Shared Collection",
-			ObjectType: entities.ObjectTypeGeneral,
-			Tags:       []string{"shared"},
-			Location:   "Office",
-			UserToken:  "test-token",
+			UserID: userID, GroupID: &groupID, Name: "Shared Collection",
+			ObjectType: entities.ObjectTypeGeneral, Tags: []string{"shared"}, Location: "Office", UserToken: "test-token",
 		}
 
-		// Expect auth service to return user's groups
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{testGroup}, nil).
-			Times(1)
-
-		// Expect repository to save collection
-		mockCollectionRepo.EXPECT().
-			Create(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, collection *entities.Collection) error {
-				// Verify the group ID was set
-				require.NotNil(t, collection.GroupID())
-				return nil
-			}).
-			Times(1)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{testGroup}, nil)
+		mockCollectionRepo.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, collection *entities.Collection) error {
+			require.NotNil(t, collection.GroupID())
+			return nil
+		})
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -110,21 +79,11 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 
 		mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 		mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
 		useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
-		userID := entities.NewUserID()
 
-		req := CreateCollectionRequest{
-			UserID:     userID,
-			GroupID:    nil,
-			Name:       "", // Empty name is invalid
-			ObjectType: entities.ObjectTypeGeneral,
-			Tags:       []string{},
-			Location:   "",
-			UserToken:  "test-token",
-		}
-
-		resp, err := useCase.Execute(context.Background(), req)
+		resp, err := useCase.Execute(context.Background(), CreateCollectionRequest{
+			UserID: entities.NewUserID(), Name: "", ObjectType: entities.ObjectTypeGeneral, UserToken: "test-token",
+		})
 
 		assert.Error(t, err)
 		assert.Nil(t, resp)
@@ -137,40 +96,20 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 
 		mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 		mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
 		useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
+
 		userID := entities.NewUserID()
 		groupID, _ := entities.GroupIDFromString("group-123")
 		differentGroupID, _ := entities.GroupIDFromString("group-456")
 
-		// Create test group with different ID
-		groupName, _ := entities.NewGroupName("Different Group")
-		groupDesc := entities.NewGroupDescription("Different group description")
-		testGroup := entities.ReconstructGroup(
-			differentGroupID,
-			groupName,
-			groupDesc,
-			time.Now(),
-			time.Now(),
-		)
+		differentGroup := NewTestGroup(GrpID(differentGroupID), GrpName("Different Group"))
 
-		req := CreateCollectionRequest{
-			UserID:     userID,
-			GroupID:    &groupID, // Requesting access to groupID
-			Name:       "Shared Collection",
-			ObjectType: entities.ObjectTypeGeneral,
-			Tags:       []string{},
-			Location:   "",
-			UserToken:  "test-token",
-		}
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{differentGroup}, nil)
 
-		// Auth service returns different group (user is not member of requested group)
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{testGroup}, nil).
-			Times(1)
-
-		resp, err := useCase.Execute(context.Background(), req)
+		resp, err := useCase.Execute(context.Background(), CreateCollectionRequest{
+			UserID: userID, GroupID: &groupID, Name: "Shared Collection",
+			ObjectType: entities.ObjectTypeGeneral, UserToken: "test-token",
+		})
 
 		assert.Error(t, err)
 		assert.Nil(t, resp)
@@ -183,28 +122,17 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 
 		mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 		mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
 		useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
+
 		userID := entities.NewUserID()
 		groupID := entities.NewGroupID()
 
-		req := CreateCollectionRequest{
-			UserID:     userID,
-			GroupID:    &groupID,
-			Name:       "Shared Collection",
-			ObjectType: entities.ObjectTypeGeneral,
-			Tags:       []string{},
-			Location:   "",
-			UserToken:  "test-token",
-		}
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return(nil, errors.New("auth service unavailable"))
 
-		// Auth service returns error
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return(nil, errors.New("auth service unavailable")).
-			Times(1)
-
-		resp, err := useCase.Execute(context.Background(), req)
+		resp, err := useCase.Execute(context.Background(), CreateCollectionRequest{
+			UserID: userID, GroupID: &groupID, Name: "Shared Collection",
+			ObjectType: entities.ObjectTypeGeneral, UserToken: "test-token",
+		})
 
 		assert.Error(t, err)
 		assert.Nil(t, resp)
@@ -217,27 +145,14 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 
 		mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 		mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
 		useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
-		userID := entities.NewUserID()
 
-		req := CreateCollectionRequest{
-			UserID:     userID,
-			GroupID:    nil,
-			Name:       "My Collection",
-			ObjectType: entities.ObjectTypeGeneral,
-			Tags:       []string{},
-			Location:   "",
-			UserToken:  "test-token",
-		}
+		mockCollectionRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(errors.New("database connection failed"))
 
-		// Repository returns error
-		mockCollectionRepo.EXPECT().
-			Create(gomock.Any(), gomock.Any()).
-			Return(errors.New("database connection failed")).
-			Times(1)
-
-		resp, err := useCase.Execute(context.Background(), req)
+		resp, err := useCase.Execute(context.Background(), CreateCollectionRequest{
+			UserID: entities.NewUserID(), Name: "My Collection",
+			ObjectType: entities.ObjectTypeGeneral, UserToken: "test-token",
+		})
 
 		assert.Error(t, err)
 		assert.Nil(t, resp)
@@ -246,41 +161,20 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 
 	t.Run("success - create collection with all object types", func(t *testing.T) {
 		userID := entities.NewUserID()
-		objectTypes := []entities.ObjectType{
-			entities.ObjectTypeFood,
-			entities.ObjectTypeBook,
-			entities.ObjectTypeVideoGame,
-			entities.ObjectTypeMusic,
-			entities.ObjectTypeBoardGame,
-			entities.ObjectTypeGeneral,
-		}
-
-		for _, objType := range objectTypes {
+		for _, objType := range entities.AllObjectTypes {
 			t.Run(string(objType), func(t *testing.T) {
 				mockCtrl := gomock.NewController(t)
 				defer mockCtrl.Finish()
 
 				mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 				mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
 				useCase := NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
 
-				req := CreateCollectionRequest{
-					UserID:     userID,
-					GroupID:    nil,
-					Name:       fake.ProductName(),
-					ObjectType: objType,
-					Tags:       []string{},
-					Location:   "",
-					UserToken:  "test-token",
-				}
+				mockCollectionRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 
-				mockCollectionRepo.EXPECT().
-					Create(gomock.Any(), gomock.Any()).
-					Return(nil).
-					Times(1)
-
-				resp, err := useCase.Execute(context.Background(), req)
+				resp, err := useCase.Execute(context.Background(), CreateCollectionRequest{
+					UserID: userID, Name: fake.ProductName(), ObjectType: objType, UserToken: "test-token",
+				})
 
 				require.NoError(t, err)
 				require.NotNil(t, resp)

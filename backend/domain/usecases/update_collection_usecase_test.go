@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,46 +28,18 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create existing collection
-		collectionName, _ := entities.NewCollectionName("Old Name")
-		existingCollection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		existing := NewTestCollection(ColID(collectionID), ColUserID(userID), ColName("Old Name"))
 
 		newName := "New Collection Name"
 		req := UpdateCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       userID,
-			Name:         &newName,
-			Tags:         []string{},
-			Location:     nil,
-			UserToken:    "test-token",
+			CollectionID: collectionID, UserID: userID, Name: &newName, Tags: []string{}, UserToken: "test-token",
 		}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(existingCollection, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, collection *entities.Collection) error {
-				assert.Equal(t, "New Collection Name", collection.Name().String())
-				return nil
-			}).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(existing, nil)
+		mockCollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, c *entities.Collection) error {
+			assert.Equal(t, "New Collection Name", c.Name().String())
+			return nil
+		})
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -81,46 +52,18 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create existing collection
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		existingCollection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{"old-tag"},
-			"Old Location",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		existing := NewTestCollection(ColID(collectionID), ColUserID(userID), ColTags("old-tag"), ColLocation("Old Location"))
 
 		newLocation := "New Location"
 		req := UpdateCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       userID,
-			Name:         nil,
-			Tags:         []string{"new-tag", "updated"},
-			Location:     &newLocation,
-			UserToken:    "test-token",
+			CollectionID: collectionID, UserID: userID, Tags: []string{"new-tag", "updated"}, Location: &newLocation, UserToken: "test-token",
 		}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(existingCollection, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, collection *entities.Collection) error {
-				assert.Equal(t, "New Location", collection.Location())
-				return nil
-			}).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(existing, nil)
+		mockCollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, c *entities.Collection) error {
+			assert.Equal(t, "New Location", c.Location())
+			return nil
+		})
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -133,42 +76,14 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create existing collection
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		existingCollection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{"old-tag"},
-			"Location",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		existing := NewTestCollection(ColID(collectionID), ColUserID(userID), ColTags("old-tag"), ColLocation("Location"))
 
 		req := UpdateCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       userID,
-			Name:         nil,
-			Tags:         []string{"new-tag"},
-			Location:     nil,
-			UserToken:    "test-token",
+			CollectionID: collectionID, UserID: userID, Tags: []string{"new-tag"}, UserToken: "test-token",
 		}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(existingCollection, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
-			Return(nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(existing, nil)
+		mockCollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -182,19 +97,10 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 
 		newName := "New Name"
 		req := UpdateCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       userID,
-			Name:         &newName,
-			Tags:         []string{},
-			Location:     nil,
-			UserToken:    "test-token",
+			CollectionID: collectionID, UserID: userID, Name: &newName, Tags: []string{}, UserToken: "test-token",
 		}
 
-		// Mock repository returns error
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(nil, errors.New("collection not found")).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(nil, errors.New("collection not found"))
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -205,41 +111,17 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 
 	t.Run("error - access denied (not owner)", func(t *testing.T) {
 		ownerID := entities.NewUserID()
-		differentUserID := entities.NewUserID()
+		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create collection owned by different user
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		existingCollection := entities.ReconstructCollection(
-			collectionID,
-			ownerID, // Different owner
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		existing := NewTestCollection(ColID(collectionID), ColUserID(ownerID))
 
 		newName := "New Name"
 		req := UpdateCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       differentUserID, // Different user trying to update
-			Name:         &newName,
-			Tags:         []string{},
-			Location:     nil,
-			UserToken:    "test-token",
+			CollectionID: collectionID, UserID: userID, Name: &newName, Tags: []string{}, UserToken: "test-token",
 		}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(existingCollection, nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(existing, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -252,38 +134,14 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create existing collection
-		collectionName, _ := entities.NewCollectionName("Old Name")
-		existingCollection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		existing := NewTestCollection(ColID(collectionID), ColUserID(userID), ColName("Old Name"))
 
-		emptyName := "" // Invalid empty name
+		emptyName := ""
 		req := UpdateCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       userID,
-			Name:         &emptyName,
-			Tags:         []string{},
-			Location:     nil,
-			UserToken:    "test-token",
+			CollectionID: collectionID, UserID: userID, Name: &emptyName, Tags: []string{}, UserToken: "test-token",
 		}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(existingCollection, nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(existing, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -296,43 +154,15 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create existing collection
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		existingCollection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		existing := NewTestCollection(ColID(collectionID), ColUserID(userID))
 
 		newName := "New Name"
 		req := UpdateCollectionRequest{
-			CollectionID: collectionID,
-			UserID:       userID,
-			Name:         &newName,
-			Tags:         []string{},
-			Location:     nil,
-			UserToken:    "test-token",
+			CollectionID: collectionID, UserID: userID, Name: &newName, Tags: []string{}, UserToken: "test-token",
 		}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(existingCollection, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
-			Return(errors.New("database connection failed")).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(existing, nil)
+		mockCollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(errors.New("database connection failed"))
 
 		resp, err := useCase.Execute(context.Background(), req)
 

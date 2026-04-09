@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,61 +31,9 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
 
-		// Create test object
-		objectName, _ := entities.NewObjectName("Test Object")
-		objectDesc := entities.NewObjectDescription("Test object description")
-		testObject := entities.ReconstructObject(
-			objectID,
-			objectName,
-			objectDesc,
-			entities.ObjectTypeGeneral,
-			"",  // No location
-			nil, // No quantity
-			"",  // No unit
-			map[string]entities.TypedValue{},
-			[]string{},
-			"",  // No image URL
-			nil, // No expiration
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test container with object
-		containerName, _ := entities.NewContainerName("Test Container")
-		container := entities.ReconstructContainer(
-			containerID,
-			collectionID,
-			containerName,
-			entities.ContainerTypeGeneral,
-			nil, // No parent container
-			nil, // No category
-			nil, // No group
-			[]entities.Object{*testObject},
-			"",
-			nil, // No width
-			nil, // No depth
-			nil, // No rows
-			nil, // No capacity
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test collection
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		obj := NewTestObject(ObjID(objectID))
+		container := NewTestContainer(CtrID(containerID), CtrCollectionID(collectionID), CtrObjects(*obj))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(userID))
 
 		req := DeleteObjectRequest{
 			ContainerID: &containerID,
@@ -95,26 +42,10 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
-		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
-			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
-
-		mockContainerRepo.EXPECT().
-			RemoveObject(gomock.Any(), containerID, objectID).
-			Return(nil).
-			Times(1)
+		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(container, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
+		mockContainerRepo.EXPECT().RemoveObject(gomock.Any(), containerID, objectID).Return(nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -129,74 +60,12 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		collectionID := entities.NewCollectionID()
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
-		ownerID := entities.NewUserID() // Different owner
+		ownerID := entities.NewUserID()
 
-		// Create test group
-		groupName, _ := entities.NewGroupName("Test Group")
-		groupDesc := entities.NewGroupDescription("Test group description")
-		testGroup := entities.ReconstructGroup(
-			groupID,
-			groupName,
-			groupDesc,
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test object
-		objectName, _ := entities.NewObjectName("Test Object")
-		objectDesc := entities.NewObjectDescription("Test object description")
-		testObject := entities.ReconstructObject(
-			objectID,
-			objectName,
-			objectDesc,
-			entities.ObjectTypeGeneral,
-			"",  // No location
-			nil, // No quantity
-			"",  // No unit
-			map[string]entities.TypedValue{},
-			[]string{},
-			"",  // No image URL
-			nil, // No expiration
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test container with object
-		containerName, _ := entities.NewContainerName("Test Container")
-		container := entities.ReconstructContainer(
-			containerID,
-			collectionID,
-			containerName,
-			entities.ContainerTypeGeneral,
-			nil, // No parent container
-			nil, // No category
-			nil, // No group
-			[]entities.Object{*testObject},
-			"",
-			nil, // No width
-			nil, // No depth
-			nil, // No rows
-			nil, // No capacity
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create collection in group
-		collectionName, _ := entities.NewCollectionName("Group Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			ownerID,
-			&groupID,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		testGroup := NewTestGroup(GrpID(groupID))
+		obj := NewTestObject(ObjID(objectID))
+		container := NewTestContainer(CtrID(containerID), CtrCollectionID(collectionID), CtrObjects(*obj))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(ownerID), ColGroupID(&groupID))
 
 		req := DeleteObjectRequest{
 			ContainerID: &containerID,
@@ -205,26 +74,10 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
-		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
-			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{testGroup}, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
-
-		mockContainerRepo.EXPECT().
-			RemoveObject(gomock.Any(), containerID, objectID).
-			Return(nil).
-			Times(1)
+		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(container, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{testGroup}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
+		mockContainerRepo.EXPECT().RemoveObject(gomock.Any(), containerID, objectID).Return(nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -245,11 +98,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			UserToken:   "test-token",
 		}
 
-		// Mock repository returns error
-		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
-			Return(nil, errors.New("container not found")).
-			Times(1)
+		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(nil, errors.New("container not found"))
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -264,25 +113,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
 
-		// Create test container
-		containerName, _ := entities.NewContainerName("Test Container")
-		container := entities.ReconstructContainer(
-			containerID,
-			collectionID,
-			containerName,
-			entities.ContainerTypeGeneral,
-			nil, // No parent container
-			nil, // No category
-			nil, // No group
-			[]entities.Object{},
-			"",
-			nil, // No width
-			nil, // No depth
-			nil, // No rows
-			nil, // No capacity
-			time.Now(),
-			time.Now(),
-		)
+		container := NewTestContainer(CtrID(containerID), CtrCollectionID(collectionID))
 
 		req := DeleteObjectRequest{
 			ContainerID: &containerID,
@@ -291,21 +122,9 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
-		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
-			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(nil, errors.New("collection not found")).
-			Times(1)
+		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(container, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(nil, errors.New("collection not found"))
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -316,66 +135,14 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 
 	t.Run("error - access denied", func(t *testing.T) {
 		userID := entities.NewUserID()
-		ownerID := entities.NewUserID() // Different owner
+		ownerID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
 
-		// Create test object
-		objectName, _ := entities.NewObjectName("Test Object")
-		objectDesc := entities.NewObjectDescription("Test object description")
-		testObject := entities.ReconstructObject(
-			objectID,
-			objectName,
-			objectDesc,
-			entities.ObjectTypeGeneral,
-			"",  // No location
-			nil, // No quantity
-			"",  // No unit
-			map[string]entities.TypedValue{},
-			[]string{},
-			"",  // No image URL
-			nil, // No expiration
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test container with object
-		containerName, _ := entities.NewContainerName("Test Container")
-		container := entities.ReconstructContainer(
-			containerID,
-			collectionID,
-			containerName,
-			entities.ContainerTypeGeneral,
-			nil, // No parent container
-			nil, // No category
-			nil, // No group
-			[]entities.Object{*testObject},
-			"",
-			nil, // No width
-			nil, // No depth
-			nil, // No rows
-			nil, // No capacity
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create collection owned by different user, no group
-		collectionName, _ := entities.NewCollectionName("Private Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			ownerID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		obj := NewTestObject(ObjID(objectID))
+		container := NewTestContainer(CtrID(containerID), CtrCollectionID(collectionID), CtrObjects(*obj))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(ownerID))
 
 		req := DeleteObjectRequest{
 			ContainerID: &containerID,
@@ -384,21 +151,9 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
-		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
-			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
+		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(container, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -408,48 +163,13 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 	})
 
 	t.Run("success - remove non-existent object is idempotent", func(t *testing.T) {
-		// $pull is idempotent: removing a non-existent object succeeds silently
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
 
-		// Create test container without the object
-		containerName, _ := entities.NewContainerName("Test Container")
-		container := entities.ReconstructContainer(
-			containerID,
-			collectionID,
-			containerName,
-			entities.ContainerTypeGeneral,
-			nil,                 // No parent container
-			nil,                 // No category
-			nil,                 // No group
-			[]entities.Object{}, // Empty
-			"",
-			nil, // No width
-			nil, // No depth
-			nil, // No rows
-			nil, // No capacity
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test collection
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		container := NewTestContainer(CtrID(containerID), CtrCollectionID(collectionID))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(userID))
 
 		req := DeleteObjectRequest{
 			ContainerID: &containerID,
@@ -458,26 +178,10 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
-		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
-			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
-
-		mockContainerRepo.EXPECT().
-			RemoveObject(gomock.Any(), containerID, objectID).
-			Return(nil).
-			Times(1)
+		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(container, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
+		mockContainerRepo.EXPECT().RemoveObject(gomock.Any(), containerID, objectID).Return(nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -492,25 +196,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
 
-		// Create test container
-		containerName, _ := entities.NewContainerName("Test Container")
-		container := entities.ReconstructContainer(
-			containerID,
-			collectionID,
-			containerName,
-			entities.ContainerTypeGeneral,
-			nil, // No parent container
-			nil, // No category
-			nil, // No group
-			[]entities.Object{},
-			"",
-			nil, // No width
-			nil, // No depth
-			nil, // No rows
-			nil, // No capacity
-			time.Now(),
-			time.Now(),
-		)
+		container := NewTestContainer(CtrID(containerID), CtrCollectionID(collectionID))
 
 		req := DeleteObjectRequest{
 			ContainerID: &containerID,
@@ -519,16 +205,8 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
-		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
-			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return(nil, errors.New("auth service unavailable")).
-			Times(1)
+		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(container, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return(nil, errors.New("auth service unavailable"))
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -543,61 +221,9 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
 
-		// Create test object
-		objectName, _ := entities.NewObjectName("Test Object")
-		objectDesc := entities.NewObjectDescription("Test object description")
-		testObject := entities.ReconstructObject(
-			objectID,
-			objectName,
-			objectDesc,
-			entities.ObjectTypeGeneral,
-			"",  // No location
-			nil, // No quantity
-			"",  // No unit
-			map[string]entities.TypedValue{},
-			[]string{},
-			"",  // No image URL
-			nil, // No expiration
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test container with object
-		containerName, _ := entities.NewContainerName("Test Container")
-		container := entities.ReconstructContainer(
-			containerID,
-			collectionID,
-			containerName,
-			entities.ContainerTypeGeneral,
-			nil, // No parent container
-			nil, // No category
-			nil, // No group
-			[]entities.Object{*testObject},
-			"",
-			nil, // No width
-			nil, // No depth
-			nil, // No rows
-			nil, // No capacity
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test collection
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		obj := NewTestObject(ObjID(objectID))
+		container := NewTestContainer(CtrID(containerID), CtrCollectionID(collectionID), CtrObjects(*obj))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(userID))
 
 		req := DeleteObjectRequest{
 			ContainerID: &containerID,
@@ -606,26 +232,10 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
-		mockContainerRepo.EXPECT().
-			GetByID(gomock.Any(), containerID).
-			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
-
-		mockContainerRepo.EXPECT().
-			RemoveObject(gomock.Any(), containerID, objectID).
-			Return(errors.New("database connection failed")).
-			Times(1)
+		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(container, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
+		mockContainerRepo.EXPECT().RemoveObject(gomock.Any(), containerID, objectID).Return(errors.New("database connection failed"))
 
 		resp, err := useCase.Execute(context.Background(), req)
 

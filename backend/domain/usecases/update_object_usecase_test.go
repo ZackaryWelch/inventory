@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,99 +31,28 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
 
-		// Create test object
-		objectName, _ := entities.NewObjectName("Old Name")
-		objectDesc := entities.NewObjectDescription("Test Object Description")
-		testObject := entities.ReconstructObject(
-			objectID,
-			objectName,
-			objectDesc,
-			entities.ObjectTypeGeneral,
-			"",
-			nil,
-			"",
-			map[string]entities.TypedValue{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test container with object
-		containerName, _ := entities.NewContainerName("Test Container")
-		container := entities.ReconstructContainer(
-			containerID,
-			collectionID,
-			containerName,
-			entities.ContainerTypeGeneral,
-			nil,
-			nil,
-			nil,
-			[]entities.Object{*testObject},
-			"",
-			nil,
-			nil,
-			nil,
-			nil,
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test collection
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		obj := NewTestObject(ObjID(objectID), ObjName("Old Name"))
+		container := NewTestContainer(CtrID(containerID), CtrCollectionID(collectionID), CtrObjects(*obj))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(userID))
 
 		newName := "New Object Name"
 		req := UpdateObjectRequest{
 			ContainerID: &containerID,
 			ObjectID:    objectID,
 			Name:        &newName,
-			Properties:  nil,
-			Tags:        nil,
 			UserID:      userID,
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
-		mockContainerRepo.EXPECT().
-			FindByObjectID(gomock.Any(), objectID).
-			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
-
-		mockContainerRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, c *entities.Container) error {
-				// Verify object name was updated
-				obj, err := c.GetObject(objectID)
-				require.NoError(t, err)
-				assert.Equal(t, "New Object Name", obj.Name().String())
-				return nil
-			}).
-			Times(1)
+		mockContainerRepo.EXPECT().FindByObjectID(gomock.Any(), objectID).Return(container, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
+		mockContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, c *entities.Container) error {
+			obj, err := c.GetObject(objectID)
+			require.NoError(t, err)
+			assert.Equal(t, "New Object Name", obj.Name().String())
+			return nil
+		})
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -139,92 +67,23 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
 
-		// Create test object
-		objectName, _ := entities.NewObjectName("Test Object")
-		objectDesc := entities.NewObjectDescription("Test Object Description")
-		testObject := entities.ReconstructObject(
-			objectID,
-			objectName,
-			objectDesc,
-			entities.ObjectTypeGeneral,
-			"",
-			nil,
-			"",
-			map[string]entities.TypedValue{"old": {Val: "value"}},
-			[]string{"old-tag"},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test container with object
-		containerName, _ := entities.NewContainerName("Test Container")
-		container := entities.ReconstructContainer(
-			containerID,
-			collectionID,
-			containerName,
-			entities.ContainerTypeGeneral,
-			nil,
-			nil,
-			nil,
-			[]entities.Object{*testObject},
-			"",
-			nil,
-			nil,
-			nil,
-			nil,
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test collection
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		obj := NewTestObject(ObjID(objectID), ObjProps(Props("old", "value")), ObjTags("old-tag"))
+		container := NewTestContainer(CtrID(containerID), CtrCollectionID(collectionID), CtrObjects(*obj))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(userID))
 
 		req := UpdateObjectRequest{
 			ContainerID: &containerID,
 			ObjectID:    objectID,
-			Name:        nil,
-			Properties:  map[string]entities.TypedValue{"new": {Val: "property"}, "count": {Val: 42}},
+			Properties:  Props("new", "property", "count", entities.TypedValue{Val: 42}),
 			Tags:        []string{"new-tag", "updated"},
 			UserID:      userID,
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
-		mockContainerRepo.EXPECT().
-			FindByObjectID(gomock.Any(), objectID).
-			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
-
-		mockContainerRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
-			Return(nil).
-			Times(1)
+		mockContainerRepo.EXPECT().FindByObjectID(gomock.Any(), objectID).Return(container, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
+		mockContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -242,17 +101,11 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 			ContainerID: &containerID,
 			ObjectID:    objectID,
 			Name:        &newName,
-			Properties:  nil,
-			Tags:        nil,
 			UserID:      userID,
 			UserToken:   "test-token",
 		}
 
-		// Mock repository returns error
-		mockContainerRepo.EXPECT().
-			FindByObjectID(gomock.Any(), objectID).
-			Return(nil, errors.New("object not found")).
-			Times(1)
+		mockContainerRepo.EXPECT().FindByObjectID(gomock.Any(), objectID).Return(nil, errors.New("object not found"))
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -267,69 +120,21 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
 
-		// Create test container without the object
-		containerName, _ := entities.NewContainerName("Test Container")
-		container := entities.ReconstructContainer(
-			containerID,
-			collectionID,
-			containerName,
-			entities.ContainerTypeGeneral,
-			nil,
-			nil,
-			nil,
-			[]entities.Object{}, // Empty
-			"",
-			nil,
-			nil,
-			nil,
-			nil,
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test collection
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		container := NewTestContainer(CtrID(containerID), CtrCollectionID(collectionID))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(userID))
 
 		newName := "New Name"
 		req := UpdateObjectRequest{
 			ContainerID: &containerID,
 			ObjectID:    objectID,
 			Name:        &newName,
-			Properties:  nil,
-			Tags:        nil,
 			UserID:      userID,
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
-		mockContainerRepo.EXPECT().
-			FindByObjectID(gomock.Any(), objectID).
-			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
+		mockContainerRepo.EXPECT().FindByObjectID(gomock.Any(), objectID).Return(container, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -340,93 +145,27 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 	t.Run("error - access denied", func(t *testing.T) {
 		userID := entities.NewUserID()
-		ownerID := entities.NewUserID() // Different owner
+		ownerID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
 
-		// Create test object
-		objectName, _ := entities.NewObjectName("Test Object")
-		objectDesc := entities.NewObjectDescription("Test Object Description")
-		testObject := entities.ReconstructObject(
-			objectID,
-			objectName,
-			objectDesc,
-			entities.ObjectTypeGeneral,
-			"",
-			nil,
-			"",
-			map[string]entities.TypedValue{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test container
-		containerName, _ := entities.NewContainerName("Test Container")
-		container := entities.ReconstructContainer(
-			containerID,
-			collectionID,
-			containerName,
-			entities.ContainerTypeGeneral,
-			nil,
-			nil,
-			nil,
-			[]entities.Object{*testObject},
-			"",
-			nil,
-			nil,
-			nil,
-			nil,
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create collection owned by different user, no group
-		collectionName, _ := entities.NewCollectionName("Private Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			ownerID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		obj := NewTestObject(ObjID(objectID))
+		container := NewTestContainer(CtrID(containerID), CtrCollectionID(collectionID), CtrObjects(*obj))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(ownerID))
 
 		newName := "New Name"
 		req := UpdateObjectRequest{
 			ContainerID: &containerID,
 			ObjectID:    objectID,
 			Name:        &newName,
-			Properties:  nil,
-			Tags:        nil,
 			UserID:      userID,
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
-		mockContainerRepo.EXPECT().
-			FindByObjectID(gomock.Any(), objectID).
-			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
+		mockContainerRepo.EXPECT().FindByObjectID(gomock.Any(), objectID).Return(container, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -441,88 +180,22 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 		containerID := entities.NewContainerID()
 		objectID := entities.NewObjectID()
 
-		// Create test object
-		objectName, _ := entities.NewObjectName("Test Object")
-		objectDesc := entities.NewObjectDescription("Test Object Description")
-		testObject := entities.ReconstructObject(
-			objectID,
-			objectName,
-			objectDesc,
-			entities.ObjectTypeGeneral,
-			"",
-			nil,
-			"",
-			map[string]entities.TypedValue{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		obj := NewTestObject(ObjID(objectID))
+		container := NewTestContainer(CtrID(containerID), CtrCollectionID(collectionID), CtrObjects(*obj))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(userID))
 
-		// Create test container with object
-		containerName, _ := entities.NewContainerName("Test Container")
-		container := entities.ReconstructContainer(
-			containerID,
-			collectionID,
-			containerName,
-			entities.ContainerTypeGeneral,
-			nil,
-			nil,
-			nil,
-			[]entities.Object{*testObject},
-			"",
-			nil,
-			nil,
-			nil,
-			nil,
-			time.Now(),
-			time.Now(),
-		)
-
-		// Create test collection
-		collectionName, _ := entities.NewCollectionName("Test Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
-
-		emptyName := "" // Invalid
+		emptyName := ""
 		req := UpdateObjectRequest{
 			ContainerID: &containerID,
 			ObjectID:    objectID,
 			Name:        &emptyName,
-			Properties:  nil,
-			Tags:        nil,
 			UserID:      userID,
 			UserToken:   "test-token",
 		}
 
-		// Mock expectations
-		mockContainerRepo.EXPECT().
-			FindByObjectID(gomock.Any(), objectID).
-			Return(container, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
-
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
+		mockContainerRepo.EXPECT().FindByObjectID(gomock.Any(), objectID).Return(container, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{}, nil)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 

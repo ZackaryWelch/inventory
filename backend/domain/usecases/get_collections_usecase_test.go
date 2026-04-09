@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,38 +27,15 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 	t.Run("success - get all user collections", func(t *testing.T) {
 		userID := entities.NewUserID()
 
-		// Create test collections
-		collections := []*entities.Collection{}
-		for i := 0; i < 3; i++ {
-			collectionName, _ := entities.NewCollectionName("Collection " + string(rune(i+'A')))
-			collection := entities.ReconstructCollection(
-				entities.NewCollectionID(),
-				userID,
-				nil,
-				collectionName,
-				nil,
-				entities.ObjectTypeGeneral,
-				[]entities.Container{},
-				[]string{},
-				"",
-				nil,
-				time.Now(),
-				time.Now(),
-			)
-			collections = append(collections, collection)
+		collections := []*entities.Collection{
+			NewTestCollection(ColUserID(userID), ColName("Collection A")),
+			NewTestCollection(ColUserID(userID), ColName("Collection B")),
+			NewTestCollection(ColUserID(userID), ColName("Collection C")),
 		}
 
-		req := GetCollectionsRequest{
-			UserID:       userID,
-			CollectionID: nil,
-			UserToken:    "test-token",
-		}
+		req := GetCollectionsRequest{UserID: userID, UserToken: "test-token"}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByUserIDSummary(gomock.Any(), userID).
-			Return(collections, nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByUserIDSummary(gomock.Any(), userID).Return(collections, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -72,34 +48,11 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create test collection
-		collectionName, _ := entities.NewCollectionName("My Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			userID,
-			nil,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		collection := NewTestCollection(ColID(collectionID), ColUserID(userID), ColName("My Collection"))
 
-		req := GetCollectionsRequest{
-			UserID:       userID,
-			CollectionID: &collectionID,
-			UserToken:    "test-token",
-		}
+		req := GetCollectionsRequest{UserID: userID, CollectionID: &collectionID, UserToken: "test-token"}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -113,52 +66,15 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		groupID := entities.NewGroupID()
 		collectionID := entities.NewCollectionID()
-		ownerID := entities.NewUserID() // Different owner
+		ownerID := entities.NewUserID()
 
-		// Create test group
-		groupName, _ := entities.NewGroupName("Test Group")
-		groupDesc := entities.NewGroupDescription("Test Group Description")
-		testGroup := entities.ReconstructGroup(
-			groupID,
-			groupName,
-			groupDesc,
-			time.Now(),
-			time.Now(),
-		)
+		testGroup := NewTestGroup(GrpID(groupID))
+		collection := NewTestCollection(ColID(collectionID), ColUserID(ownerID), ColGroupID(&groupID), ColName("Shared Collection"))
 
-		// Create collection owned by different user but in user's group
-		collectionName, _ := entities.NewCollectionName("Shared Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			ownerID,
-			&groupID,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		req := GetCollectionsRequest{UserID: userID, CollectionID: &collectionID, UserToken: "test-token"}
 
-		req := GetCollectionsRequest{
-			UserID:       userID,
-			CollectionID: &collectionID,
-			UserToken:    "test-token",
-		}
-
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{testGroup}, nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{testGroup}, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -171,17 +87,9 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 	t.Run("success - get empty collection list", func(t *testing.T) {
 		userID := entities.NewUserID()
 
-		req := GetCollectionsRequest{
-			UserID:       userID,
-			CollectionID: nil,
-			UserToken:    "test-token",
-		}
+		req := GetCollectionsRequest{UserID: userID, UserToken: "test-token"}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByUserIDSummary(gomock.Any(), userID).
-			Return([]*entities.Collection{}, nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByUserIDSummary(gomock.Any(), userID).Return([]*entities.Collection{}, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -194,17 +102,9 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 		userID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		req := GetCollectionsRequest{
-			UserID:       userID,
-			CollectionID: &collectionID,
-			UserToken:    "test-token",
-		}
+		req := GetCollectionsRequest{UserID: userID, CollectionID: &collectionID, UserToken: "test-token"}
 
-		// Mock repository returns error
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(nil, errors.New("collection not found")).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(nil, errors.New("collection not found"))
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -215,37 +115,14 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 
 	t.Run("error - access denied to collection", func(t *testing.T) {
 		userID := entities.NewUserID()
-		ownerID := entities.NewUserID() // Different owner
+		ownerID := entities.NewUserID()
 		collectionID := entities.NewCollectionID()
 
-		// Create collection owned by different user, no group
-		collectionName, _ := entities.NewCollectionName("Private Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			ownerID,
-			nil, // No group
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		collection := NewTestCollection(ColID(collectionID), ColUserID(ownerID), ColName("Private Collection"))
 
-		req := GetCollectionsRequest{
-			UserID:       userID,
-			CollectionID: &collectionID,
-			UserToken:    "test-token",
-		}
+		req := GetCollectionsRequest{UserID: userID, CollectionID: &collectionID, UserToken: "test-token"}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -260,40 +137,12 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 		groupID := entities.NewGroupID()
 		collectionID := entities.NewCollectionID()
 
-		// Create collection in a group
-		collectionName, _ := entities.NewCollectionName("Group Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			ownerID,
-			&groupID,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		collection := NewTestCollection(ColID(collectionID), ColUserID(ownerID), ColGroupID(&groupID))
 
-		req := GetCollectionsRequest{
-			UserID:       userID,
-			CollectionID: &collectionID,
-			UserToken:    "test-token",
-		}
+		req := GetCollectionsRequest{UserID: userID, CollectionID: &collectionID, UserToken: "test-token"}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
-
-		// User is not in any groups
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return([]*entities.Group{}, nil).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return([]*entities.Group{}, nil)
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -308,39 +157,12 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 		groupID := entities.NewGroupID()
 		collectionID := entities.NewCollectionID()
 
-		// Create collection in a group
-		collectionName, _ := entities.NewCollectionName("Group Collection")
-		collection := entities.ReconstructCollection(
-			collectionID,
-			ownerID,
-			&groupID,
-			collectionName,
-			nil,
-			entities.ObjectTypeGeneral,
-			[]entities.Container{},
-			[]string{},
-			"",
-			nil,
-			time.Now(),
-			time.Now(),
-		)
+		collection := NewTestCollection(ColID(collectionID), ColUserID(ownerID), ColGroupID(&groupID))
 
-		req := GetCollectionsRequest{
-			UserID:       userID,
-			CollectionID: &collectionID,
-			UserToken:    "test-token",
-		}
+		req := GetCollectionsRequest{UserID: userID, CollectionID: &collectionID, UserToken: "test-token"}
 
-		// Mock expectations
-		mockCollectionRepo.EXPECT().
-			GetByID(gomock.Any(), collectionID).
-			Return(collection, nil).
-			Times(1)
-
-		mockAuthService.EXPECT().
-			GetUserGroups(gomock.Any(), "test-token", userID.String()).
-			Return(nil, errors.New("auth service unavailable")).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(collection, nil)
+		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", userID.String()).Return(nil, errors.New("auth service unavailable"))
 
 		resp, err := useCase.Execute(context.Background(), req)
 
@@ -352,17 +174,9 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 	t.Run("error - repository failure getting all collections", func(t *testing.T) {
 		userID := entities.NewUserID()
 
-		req := GetCollectionsRequest{
-			UserID:       userID,
-			CollectionID: nil,
-			UserToken:    "test-token",
-		}
+		req := GetCollectionsRequest{UserID: userID, UserToken: "test-token"}
 
-		// Mock repository returns error
-		mockCollectionRepo.EXPECT().
-			GetByUserIDSummary(gomock.Any(), userID).
-			Return(nil, errors.New("database connection failed")).
-			Times(1)
+		mockCollectionRepo.EXPECT().GetByUserIDSummary(gomock.Any(), userID).Return(nil, errors.New("database connection failed"))
 
 		resp, err := useCase.Execute(context.Background(), req)
 

@@ -90,6 +90,16 @@ const (
 	ObjectTypeGeneral   ObjectType = "general"
 )
 
+// AllObjectTypes contains every valid ObjectType value.
+var AllObjectTypes = []ObjectType{
+	ObjectTypeFood,
+	ObjectTypeBook,
+	ObjectTypeVideoGame,
+	ObjectTypeMusic,
+	ObjectTypeBoardGame,
+	ObjectTypeGeneral,
+}
+
 func (ot ObjectType) String() string {
 	return string(ot)
 }
