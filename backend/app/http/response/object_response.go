@@ -25,6 +25,7 @@ type ObjectResponse struct {
 	Unit        string                        `json:"unit,omitempty"`
 	Properties  map[string]TypedValueResponse `json:"properties"`
 	Tags        []string                      `json:"tags"`
+	ImageURL    string                        `json:"image_url,omitempty"`
 	ExpiresAt   *time.Time                    `json:"expires_at,omitempty"`
 	CreatedAt   time.Time                     `json:"created_at"`
 	UpdatedAt   time.Time                     `json:"updated_at"`
@@ -57,6 +58,7 @@ func NewObjectResponse(object entities.Object, containerID string) ObjectRespons
 		Unit:        object.Unit(),
 		Properties:  props,
 		Tags:        object.Tags(),
+		ImageURL:    object.ImageURL(),
 		ExpiresAt:   object.ExpiresAt(),
 		CreatedAt:   object.CreatedAt(),
 		UpdatedAt:   object.UpdatedAt(),

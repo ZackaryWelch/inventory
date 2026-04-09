@@ -117,7 +117,7 @@ func (c *MCPContext) groupUC() *usecases.GroupUseCase {
 }
 
 func (c *MCPContext) bulkImportCollectionUC() *usecases.BulkImportCollectionUseCase {
-	return usecases.NewBulkImportCollectionUseCase(c.Container.CollectionRepo, c.Container.ContainerRepo, c.Container.AuthService, c.Container.GetConfig().Import.ReservedColumns)
+	return usecases.NewBulkImportCollectionUseCase(c.Container.CollectionRepo, c.Container.ContainerRepo, c.Container.AuthService, c.Container.GetConfig().Import.ReservedColumns, c.Container.ImageSearchService)
 }
 
 func (c *MCPContext) updatePropertySchemaUC() *usecases.UpdatePropertySchemaUseCase {

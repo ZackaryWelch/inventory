@@ -115,6 +115,13 @@ func Setup(appContainer *container.Container) http.Handler {
 	mux.HandleFunc("PUT /accounts/{id}/objects/{object_id}", withAuth(objectController.UpdateObject))
 	mux.HandleFunc("DELETE /accounts/{id}/objects/{object_id}", withAuth(objectController.DeleteObject))
 
+	// Serve cached images (no auth required — URLs are unguessable hashes)
+	imagesCacheDir := appContainer.GetConfig().Images.CacheDir
+	if imagesCacheDir == "" {
+		imagesCacheDir = "./image_cache"
+	}
+	mux.Handle("GET /images/", http.StripPrefix("/images/", http.FileServer(http.Dir(imagesCacheDir))))
+
 	// Apply global middleware
 	return globalMiddleware(mux)
 }

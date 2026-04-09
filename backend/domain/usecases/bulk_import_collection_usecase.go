@@ -46,10 +46,11 @@ type CapacityWarning struct {
 }
 
 type BulkImportCollectionUseCase struct {
-	collectionRepo repositories.CollectionRepository
-	containerRepo  repositories.ContainerRepository
-	authService    services.AuthService
-	typeInference  *services.TypeInferenceService
+	collectionRepo     repositories.CollectionRepository
+	containerRepo      repositories.ContainerRepository
+	authService        services.AuthService
+	typeInference      *services.TypeInferenceService
+	imageSearchService services.ImageSearchService
 }
 
 // NewBulkImportCollectionUseCase creates the use case.
@@ -60,12 +61,14 @@ func NewBulkImportCollectionUseCase(
 	containerRepo repositories.ContainerRepository,
 	authService services.AuthService,
 	reservedColumns []string,
+	imageSearchService services.ImageSearchService,
 ) *BulkImportCollectionUseCase {
 	return &BulkImportCollectionUseCase{
-		collectionRepo: collectionRepo,
-		containerRepo:  containerRepo,
-		authService:    authService,
-		typeInference:  services.NewTypeInferenceService(reservedColumns),
+		collectionRepo:     collectionRepo,
+		containerRepo:      containerRepo,
+		authService:        authService,
+		typeInference:      services.NewTypeInferenceService(reservedColumns),
+		imageSearchService: imageSearchService,
 	}
 }
 
@@ -272,6 +275,8 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 			continue
 		}
 
+		uc.searchObjectImage(ctx, newObject)
+
 		// Add object to container
 		if err := targetContainer.AddObject(*newObject); err != nil {
 			errors = append(errors, fmt.Sprintf("failed to add object '%s' to container: %v", name, err))
@@ -377,6 +382,8 @@ func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.
 			failed++
 			continue
 		}
+
+		uc.searchObjectImage(ctx, newObject)
 
 		// Get the target container for this assignment
 		container, exists := containerMap[assignment.ContainerID.String()]
@@ -611,6 +618,8 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 			continue
 		}
 
+		uc.searchObjectImage(ctx, newObject)
+
 		if err := container.AddObject(*newObject); err != nil {
 			errors = append(errors, fmt.Sprintf("failed to add object '%s' to container: %v", name, err))
 			failed++
@@ -712,6 +721,22 @@ func getRowValue(row map[string]interface{}, col string) (interface{}, bool) {
 		}
 	}
 	return nil, false
+}
+
+// searchObjectImage searches for an image for the given object and returns the
+// serving URL. Returns empty string on failure or when image search is disabled.
+func (uc *BulkImportCollectionUseCase) searchObjectImage(ctx context.Context, object *entities.Object) {
+	if uc.imageSearchService == nil {
+		return
+	}
+	imageURL, err := uc.imageSearchService.SearchAndCache(ctx, object.Name().String(), object.ObjectType(), object.Properties())
+	if err != nil {
+		log.Printf("[ImageSearch] Failed for '%s': %v", object.Name().String(), err)
+		return
+	}
+	if imageURL != "" {
+		object.UpdateImageURL(imageURL)
+	}
 }
 
 func resolveNameField(item map[string]interface{}, nameCol string) (string, bool) {

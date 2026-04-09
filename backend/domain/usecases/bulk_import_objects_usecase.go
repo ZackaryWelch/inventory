@@ -31,16 +31,18 @@ type BulkImportObjectsResponse struct {
 }
 
 type BulkImportObjectsUseCase struct {
-	containerRepo  repositories.ContainerRepository
-	collectionRepo repositories.CollectionRepository
-	authService    services.AuthService
+	containerRepo      repositories.ContainerRepository
+	collectionRepo     repositories.CollectionRepository
+	authService        services.AuthService
+	imageSearchService services.ImageSearchService
 }
 
-func NewBulkImportObjectsUseCase(containerRepo repositories.ContainerRepository, collectionRepo repositories.CollectionRepository, authService services.AuthService) *BulkImportObjectsUseCase {
+func NewBulkImportObjectsUseCase(containerRepo repositories.ContainerRepository, collectionRepo repositories.CollectionRepository, authService services.AuthService, imageSearchService services.ImageSearchService) *BulkImportObjectsUseCase {
 	return &BulkImportObjectsUseCase{
-		containerRepo:  containerRepo,
-		collectionRepo: collectionRepo,
-		authService:    authService,
+		containerRepo:      containerRepo,
+		collectionRepo:     collectionRepo,
+		authService:        authService,
+		imageSearchService: imageSearchService,
 	}
 }
 
@@ -102,6 +104,16 @@ func (uc *BulkImportObjectsUseCase) Execute(ctx context.Context, req BulkImportO
 			response.Failed++
 			response.Errors = append(response.Errors, fmt.Sprintf("Item %d: %s", i+1, err.Error()))
 			continue
+		}
+
+		// Search for an image
+		if uc.imageSearchService != nil {
+			imageURL, searchErr := uc.imageSearchService.SearchAndCache(ctx, object.Name().String(), object.ObjectType(), object.Properties())
+			if searchErr != nil {
+				fmt.Printf("[ImageSearch] Failed for '%s': %v\n", object.Name().String(), searchErr)
+			} else if imageURL != "" {
+				object.UpdateImageURL(imageURL)
+			}
 		}
 
 		// Add to container

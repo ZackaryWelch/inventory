@@ -26,6 +26,7 @@ type objectDocument struct {
 	Unit        string                         `bson:"unit,omitempty"`
 	Properties  map[string]entities.TypedValue `bson:"properties"`
 	Tags        []string                       `bson:"tags"`
+	ImageURL    string                         `bson:"image_url,omitempty"`
 	ExpiresAt   *time.Time                     `bson:"expires_at,omitempty"`
 	CreatedAt   time.Time                      `bson:"created_at"`
 	UpdatedAt   time.Time                      `bson:"updated_at"`

@@ -28,7 +28,8 @@ type Container struct {
 	CategoryRepo   repositories.CategoryRepository
 	CollectionRepo repositories.CollectionRepository
 
-	AuthService services.AuthService
+	AuthService        services.AuthService
+	ImageSearchService services.ImageSearchService
 }
 
 func NewContainer(cfg *config.Config) (*Container, error) {
@@ -129,6 +130,15 @@ func (c *Container) setupServices() error {
 	c.AuthService, err = extServices.NewAuthentikAuthService(c.config.Auth, c.logger)
 	if err != nil {
 		return fmt.Errorf("failed to create auth service: %w", err)
+	}
+
+	if c.config.Images.Enabled {
+		c.ImageSearchService, err = extServices.NewGoogleImageSearchService(c.config.Images, c.logger)
+		if err != nil {
+			return fmt.Errorf("failed to create image search service: %w", err)
+		}
+		c.logger.Info("Image search service initialized",
+			slog.String("cache_dir", c.config.Images.CacheDir))
 	}
 
 	c.logger.Info("Services initialized successfully")

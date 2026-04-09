@@ -104,6 +104,7 @@ type Object struct {
 	unit        string                // Optional unit (e.g., "kg", "lbs", "pieces")
 	properties  map[string]TypedValue // Flexible properties for different object types
 	tags        []string
+	imageURL    string     // URL to cached image (served by backend)
 	expiresAt   *time.Time // Optional expiration date (e.g., for food items)
 	createdAt   time.Time
 	updatedAt   time.Time
@@ -118,6 +119,7 @@ type ObjectProps struct {
 	Unit        string
 	Properties  map[string]TypedValue
 	Tags        []string
+	ImageURL    string
 	ExpiresAt   *time.Time
 }
 
@@ -133,13 +135,14 @@ func NewObject(props ObjectProps) (*Object, error) {
 		unit:        props.Unit,
 		properties:  props.Properties,
 		tags:        props.Tags,
+		imageURL:    props.ImageURL,
 		expiresAt:   props.ExpiresAt,
 		createdAt:   now,
 		updatedAt:   now,
 	}, nil
 }
 
-func ReconstructObject(id ObjectID, name ObjectName, description ObjectDescription, objectType ObjectType, location string, quantity *float64, unit string, properties map[string]TypedValue, tags []string, expiresAt *time.Time, createdAt, updatedAt time.Time) *Object {
+func ReconstructObject(id ObjectID, name ObjectName, description ObjectDescription, objectType ObjectType, location string, quantity *float64, unit string, properties map[string]TypedValue, tags []string, imageURL string, expiresAt *time.Time, createdAt, updatedAt time.Time) *Object {
 	return &Object{
 		id:          id,
 		name:        name,
@@ -150,6 +153,7 @@ func ReconstructObject(id ObjectID, name ObjectName, description ObjectDescripti
 		unit:        unit,
 		properties:  properties,
 		tags:        tags,
+		imageURL:    imageURL,
 		expiresAt:   expiresAt,
 		createdAt:   createdAt,
 		updatedAt:   updatedAt,
@@ -182,6 +186,10 @@ func (o *Object) Quantity() *float64 {
 
 func (o *Object) Unit() string {
 	return o.unit
+}
+
+func (o *Object) ImageURL() string {
+	return o.imageURL
 }
 
 func (o *Object) Properties() map[string]TypedValue {
@@ -255,6 +263,12 @@ func (o *Object) UpdateQuantity(quantity *float64) error {
 
 func (o *Object) UpdateUnit(unit string) error {
 	o.unit = unit
+	o.updatedAt = time.Now()
+	return nil
+}
+
+func (o *Object) UpdateImageURL(imageURL string) error {
+	o.imageURL = imageURL
 	o.updatedAt = time.Now()
 	return nil
 }

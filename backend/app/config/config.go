@@ -13,6 +13,7 @@ type Config struct {
 	Auth     AuthConfig     `toml:"auth" mapstructure:"auth"`
 	Logging  LoggingConfig  `toml:"logging" mapstructure:"logging"`
 	Import   ImportConfig   `toml:"import" mapstructure:"import"`
+	Images   ImagesConfig   `toml:"images" mapstructure:"images"`
 }
 
 type ServerConfig struct {
@@ -96,6 +97,14 @@ type LoggingConfig struct {
 	SeqAPIKey   string `toml:"seq_api_key" mapstructure:"seq_api_key"`
 }
 
+// ImagesConfig controls image search and caching during import.
+type ImagesConfig struct {
+	Enabled              bool   `toml:"enabled" mapstructure:"enabled"`
+	GoogleAPIKey         string `toml:"google_api_key" mapstructure:"google_api_key"`
+	GoogleSearchEngineID string `toml:"google_search_engine_id" mapstructure:"google_search_engine_id"`
+	CacheDir             string `toml:"cache_dir" mapstructure:"cache_dir"`
+}
+
 // ImportConfig controls bulk-import behaviour.
 type ImportConfig struct {
 	// ReservedColumns lists snake_case column names that map to Object fields
@@ -168,6 +177,12 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("auth.allow_self_signed", false)
 	v.SetDefault("auth.api_token", "")
 	v.SetDefault("auth.clients", []OAuthClient{})
+
+	// Images defaults
+	v.SetDefault("images.enabled", false)
+	v.SetDefault("images.google_api_key", "")
+	v.SetDefault("images.google_search_engine_id", "")
+	v.SetDefault("images.cache_dir", "./image_cache")
 
 	// Import defaults
 	v.SetDefault("import.reserved_columns", []string{

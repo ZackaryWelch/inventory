@@ -36,8 +36,8 @@ func TestObjectController_CreateObject(t *testing.T) {
 	updateObjectUC := usecases.NewUpdateObjectUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
 	deleteObjectUC := usecases.NewDeleteObjectUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
 	getCollectionObjectsUC := usecases.NewGetCollectionObjectsUseCase(mockCollectionRepo, mockContainerRepo, mockAuthService)
-	bulkImportUC := usecases.NewBulkImportObjectsUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
-	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(mockCollectionRepo, mockContainerRepo, mockAuthService, nil)
+	bulkImportUC := usecases.NewBulkImportObjectsUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService, nil)
+	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(mockCollectionRepo, mockContainerRepo, mockAuthService, nil, nil)
 
 	controller := &ObjectController{
 		createObjectUC:         createObjectUC,
@@ -220,7 +220,7 @@ func TestObjectController_DeleteObject(t *testing.T) {
 		// Create an object with the specific ID so RemoveObject succeeds
 		objectName, _ := entities.NewObjectName("Test Object")
 		objectDesc := entities.NewObjectDescription("")
-		testObject := entities.ReconstructObject(objectID, objectName, objectDesc, entities.ObjectTypeGeneral, "", nil, "", nil, nil, nil, time.Now(), time.Now())
+		testObject := entities.ReconstructObject(objectID, objectName, objectDesc, entities.ObjectTypeGeneral, "", nil, "", nil, nil, "", nil, time.Now(), time.Now())
 
 		// Create a container that already holds the object
 		containerName, _ := entities.NewContainerName("Test Container")
@@ -318,7 +318,7 @@ func TestObjectController_BulkImport(t *testing.T) {
 	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
-	bulkImportUC := usecases.NewBulkImportObjectsUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
+	bulkImportUC := usecases.NewBulkImportObjectsUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService, nil)
 
 	controller := &ObjectController{
 		bulkImportUC: bulkImportUC,

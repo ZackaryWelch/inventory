@@ -83,6 +83,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			"pcs",
 			map[string]entities.TypedValue{"sku": {Val: "SKU-001"}, "color": {Val: "red"}},
 			[]string{"sale", "new"},
+			"",
 			&exp,
 			time.Now(), time.Now(),
 		)
@@ -139,6 +140,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			"", nil, "",
 			map[string]entities.TypedValue{"sku": {Val: "G-42"}, "price": {Val: 9.99}},
 			[]string{},
+			"",
 			nil,
 			time.Now(), time.Now(),
 		)
@@ -183,7 +185,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			objName,
 			entities.NewObjectDescription(""),
 			entities.ObjectTypeGeneral,
-			"", nil, "", map[string]entities.TypedValue{}, []string{}, nil,
+			"", nil, "", map[string]entities.TypedValue{}, []string{}, "", nil,
 			time.Now(), time.Now(),
 		)
 
@@ -248,7 +250,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			objName,
 			entities.NewObjectDescription(""),
 			entities.ObjectTypeGeneral,
-			"", nil, "", map[string]entities.TypedValue{}, []string{}, nil,
+			"", nil, "", map[string]entities.TypedValue{}, []string{}, "", nil,
 			time.Now(), time.Now(),
 		)
 

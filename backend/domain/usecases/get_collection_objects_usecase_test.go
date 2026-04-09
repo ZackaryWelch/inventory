@@ -53,7 +53,7 @@ func newSimpleObject(name string, tags []string, props map[string]entities.Typed
 	objName, _ := entities.NewObjectName(name)
 	obj := entities.ReconstructObject(
 		entities.NewObjectID(), objName, entities.NewObjectDescription(""),
-		entities.ObjectTypeGeneral, "", nil, "", props, tags, nil,
+		entities.ObjectTypeGeneral, "", nil, "", props, tags, "", nil,
 		time.Now(), time.Now(),
 	)
 	return *obj

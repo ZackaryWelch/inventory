@@ -107,7 +107,7 @@ func TestBulkImportToCollection_ElectronicSuppliesCSV(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
 	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(
-		mockCollectionRepo, mockContainerRepo, mockAuthService, nil,
+		mockCollectionRepo, mockContainerRepo, mockAuthService, nil, nil,
 	)
 	controller := &ObjectController{
 		bulkImportCollectionUC: bulkImportCollectionUC,
@@ -268,7 +268,7 @@ func TestBulkImportToCollection_LibibBooksCSV(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
 	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(
-		mockCollectionRepo, mockContainerRepo, mockAuthService, nil,
+		mockCollectionRepo, mockContainerRepo, mockAuthService, nil, nil,
 	)
 	controller := &ObjectController{
 		bulkImportCollectionUC: bulkImportCollectionUC,
@@ -373,7 +373,7 @@ func TestBulkImportToCollection_LibibVideoGamesCSV(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
 	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(
-		mockCollectionRepo, mockContainerRepo, mockAuthService, nil,
+		mockCollectionRepo, mockContainerRepo, mockAuthService, nil, nil,
 	)
 	controller := &ObjectController{
 		bulkImportCollectionUC: bulkImportCollectionUC,
@@ -438,7 +438,7 @@ func TestBulkImportToCollection_LibibMusicCSV(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
 	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(
-		mockCollectionRepo, mockContainerRepo, mockAuthService, nil,
+		mockCollectionRepo, mockContainerRepo, mockAuthService, nil, nil,
 	)
 	controller := &ObjectController{
 		bulkImportCollectionUC: bulkImportCollectionUC,
@@ -512,7 +512,7 @@ func TestBulkImport_ElectronicSuppliesCSV(t *testing.T) {
 	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
-	bulkImportUC := usecases.NewBulkImportObjectsUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
+	bulkImportUC := usecases.NewBulkImportObjectsUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService, nil)
 	controller := &ObjectController{
 		bulkImportUC: bulkImportUC,
 		logger:       logger,
@@ -593,7 +593,7 @@ func TestBulkImportToCollection_ValidationErrors(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(mockCtrl)
 
 	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(
-		mockCollectionRepo, mockContainerRepo, mockAuthService, nil,
+		mockCollectionRepo, mockContainerRepo, mockAuthService, nil, nil,
 	)
 	controller := &ObjectController{
 		bulkImportCollectionUC: bulkImportCollectionUC,

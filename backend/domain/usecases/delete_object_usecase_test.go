@@ -45,6 +45,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			"",  // No unit
 			map[string]entities.TypedValue{},
 			[]string{},
+			"",  // No image URL
 			nil, // No expiration
 			time.Now(),
 			time.Now(),
@@ -154,6 +155,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			"",  // No unit
 			map[string]entities.TypedValue{},
 			[]string{},
+			"",  // No image URL
 			nil, // No expiration
 			time.Now(),
 			time.Now(),
@@ -332,6 +334,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			"",  // No unit
 			map[string]entities.TypedValue{},
 			[]string{},
+			"",  // No image URL
 			nil, // No expiration
 			time.Now(),
 			time.Now(),
@@ -553,6 +556,7 @@ func TestDeleteObjectUseCase_Execute(t *testing.T) {
 			"",  // No unit
 			map[string]entities.TypedValue{},
 			[]string{},
+			"",  // No image URL
 			nil, // No expiration
 			time.Now(),
 			time.Now(),
