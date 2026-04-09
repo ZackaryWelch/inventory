@@ -74,6 +74,9 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 		ga.containers = nil
 		ga.objects = nil
 		ga.activeGroupedTextFilters = nil
+		ga.objectSortField = ""
+		ga.objectSortDir = ""
+		ga.objectGroupByField = ""
 		ga.invalidateObjectCaches()
 		ga.showContainersPanel = false
 		ga.containerViewMode = ""
@@ -161,8 +164,8 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 						Left:   unit.Dp(theme.Spacing4),
 						Right:  unit.Dp(theme.Spacing4),
 					}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						if ga.showContainersPanel && ga.containerViewMode == "grouped" {
-							// Grouped mode: objects grouped under container headers
+						if ga.showContainersPanel && ga.containerViewMode == "grouped" && ga.objectGroupByField == "" {
+							// Grouped mode: objects grouped under container headers (legacy, when no explicit group-by selected)
 							return ga.renderObjectsGroupedByContainer(gtx)
 						}
 						if ga.showContainersPanel && ga.containerViewMode == "split" {
@@ -408,6 +411,11 @@ func (ga *GioApp) renderObjectsColumn(gtx layout.Context) layout.Dimensions {
 			return ga.renderContainerViewModeToggle(gtx)
 		}),
 
+		// Sort/Group controls
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return ga.renderSortGroupControls(gtx)
+		}),
+
 		// Grouped-text filter chips
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return ga.renderGroupedTextFilters(gtx)
@@ -424,6 +432,9 @@ func (ga *GioApp) renderObjectsColumn(gtx layout.Context) layout.Dimensions {
 
 		// Objects list
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			if ga.objectGroupByField != "" {
+				return ga.renderObjectsGroupedByField(gtx)
+			}
 			return ga.renderObjectsList(gtx)
 		}),
 	)
@@ -502,6 +513,9 @@ func (ga *GioApp) getFilteredObjects() ([]Object, []int) {
 	if ga.cachedFilteredObjects != nil &&
 		ga.cachedObjSearchQuery == searchQuery &&
 		ga.cachedObjDataLen == len(ga.objects) &&
+		ga.cachedObjSortField == ga.objectSortField &&
+		ga.cachedObjSortDir == ga.objectSortDir &&
+		ga.cachedObjGroupField == ga.objectGroupByField &&
 		mapsEqual(ga.cachedObjFilters, ga.activeGroupedTextFilters) {
 		return ga.cachedFilteredObjects, ga.cachedFilteredObjIndices
 	}
@@ -522,13 +536,77 @@ func (ga *GioApp) getFilteredObjects() ([]Object, []int) {
 		indices = append(indices, i)
 	}
 
+	// Sort if a sort field is selected
+	if ga.objectSortField != "" {
+		ga.sortObjects(filtered, indices)
+	}
+
 	ga.cachedFilteredObjects = filtered
 	ga.cachedFilteredObjIndices = indices
 	ga.cachedObjSearchQuery = searchQuery
 	ga.cachedObjDataLen = len(ga.objects)
+	ga.cachedObjSortField = ga.objectSortField
+	ga.cachedObjSortDir = ga.objectSortDir
+	ga.cachedObjGroupField = ga.objectGroupByField
 	ga.cachedObjFilters = copyStringMap(ga.activeGroupedTextFilters)
 	ga.logger.Info("Recomputed filtered objects", "total", len(ga.objects), "filtered", len(filtered), "elapsed", time.Since(start))
 	return filtered, indices
+}
+
+// sortObjects sorts the filtered/indices slices in place according to objectSortField/objectSortDir.
+func (ga *GioApp) sortObjects(filtered []Object, indices []int) {
+	desc := ga.objectSortDir == "desc"
+	defMap := ga.getPropertyDefMap()
+
+	sort.Sort(&objectSorter{
+		objects:   filtered,
+		indices:   indices,
+		field:     ga.objectSortField,
+		desc:      desc,
+		defMap:    defMap,
+		locFn:     ga.getObjectEffectiveLocation,
+	})
+}
+
+// objectSorter implements sort.Interface for paired object + index slices.
+type objectSorter struct {
+	objects []Object
+	indices []int
+	field   string
+	desc    bool
+	defMap  map[string]*PropertyDefinition
+	locFn   func(Object) string
+}
+
+func (s *objectSorter) Len() int { return len(s.objects) }
+
+func (s *objectSorter) Swap(i, j int) {
+	s.objects[i], s.objects[j] = s.objects[j], s.objects[i]
+	s.indices[i], s.indices[j] = s.indices[j], s.indices[i]
+}
+
+func (s *objectSorter) Less(i, j int) bool {
+	a := s.sortKey(s.objects[i])
+	b := s.sortKey(s.objects[j])
+	if s.desc {
+		return strings.ToLower(a) > strings.ToLower(b)
+	}
+	return strings.ToLower(a) < strings.ToLower(b)
+}
+
+func (s *objectSorter) sortKey(obj Object) string {
+	switch s.field {
+	case "name":
+		return obj.Name
+	case "location":
+		return s.locFn(obj)
+	default:
+		// Schema property key
+		if tv, ok := obj.Properties[s.field]; ok {
+			return RenderPropertyValueFromMap(s.field, tv, s.defMap)
+		}
+		return ""
+	}
 }
 
 // renderObjectsList renders the list of objects
@@ -730,6 +808,19 @@ func (ga *GioApp) renderObjectCard(gtx layout.Context, object Object, index int)
 				return layout.Dimensions{}
 			}),
 
+			// Location
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				loc := ga.getObjectEffectiveLocation(object)
+				if loc != "" {
+					return layout.Inset{Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						label := material.Body2(ga.theme.Theme, loc)
+						label.Color = theme.ColorPrimaryLight
+						return label.Layout(gtx)
+					})
+				}
+				return layout.Dimensions{}
+			}),
+
 			// Quantity
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				if object.Quantity != nil && object.Unit != "" {
@@ -904,6 +995,125 @@ func (ga *GioApp) renderObjectsGroupedByContainer(gtx layout.Context) layout.Dim
 			})
 		}),
 	)
+}
+
+// getObjectEffectiveLocation returns the resolved location for an object.
+// Priority: container location (if object is in a container with a location) → collection location.
+func (ga *GioApp) getObjectEffectiveLocation(obj Object) string {
+	if obj.ContainerID != "" {
+		for _, c := range ga.containers {
+			if c.ID == obj.ContainerID && c.Location != "" {
+				return c.Location
+			}
+		}
+	}
+	if ga.selectedCollection != nil {
+		return ga.selectedCollection.Location
+	}
+	return ""
+}
+
+// getObjectGroupKey returns the grouping key for an object given a group-by field.
+func (ga *GioApp) getObjectGroupKey(obj Object, field string) string {
+	switch field {
+	case "location":
+		loc := ga.getObjectEffectiveLocation(obj)
+		if loc == "" {
+			return "No Location"
+		}
+		return loc
+	case "container":
+		if obj.ContainerID == "" {
+			return "Unassigned"
+		}
+		for _, c := range ga.containers {
+			if c.ID == obj.ContainerID {
+				return c.Name
+			}
+		}
+		return "Unknown"
+	default:
+		// Schema property key
+		if tv, ok := obj.Properties[field]; ok {
+			defMap := ga.getPropertyDefMap()
+			val := RenderPropertyValueFromMap(field, tv, defMap)
+			if val != "" {
+				return val
+			}
+		}
+		return "None"
+	}
+}
+
+// renderObjectsGroupedByField renders objects grouped by the selected objectGroupByField.
+func (ga *GioApp) renderObjectsGroupedByField(gtx layout.Context) layout.Dimensions {
+	if len(ga.objects) == 0 {
+		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			label := material.Body1(ga.theme.Theme, "No objects yet")
+			label.Color = theme.ColorTextSecondary
+			label.Alignment = text.Middle
+			return label.Layout(gtx)
+		})
+	}
+
+	filteredObjects, filteredIndices := ga.getFilteredObjects()
+
+	// Build groups preserving order of first occurrence
+	type groupEntry struct {
+		key     string
+		indices []int // indices into ga.objects
+	}
+	var groupOrder []string
+	groupMap := map[string]*groupEntry{}
+
+	for i, obj := range filteredObjects {
+		originalIdx := filteredIndices[i]
+		key := ga.getObjectGroupKey(obj, ga.objectGroupByField)
+		if g, ok := groupMap[key]; ok {
+			g.indices = append(g.indices, originalIdx)
+		} else {
+			groupMap[key] = &groupEntry{key: key, indices: []int{originalIdx}}
+			groupOrder = append(groupOrder, key)
+		}
+	}
+
+	// Sort group keys alphabetically for stable output
+	sort.Strings(groupOrder)
+
+	// Flatten into header + object items
+	type listItem struct {
+		isHeader bool
+		header   string
+		objIndex int
+	}
+	var items []listItem
+	for _, key := range groupOrder {
+		g := groupMap[key]
+		items = append(items, listItem{isHeader: true, header: fmt.Sprintf("%s (%d)", g.key, len(g.indices))})
+		for _, idx := range g.indices {
+			items = append(items, listItem{objIndex: idx})
+		}
+	}
+
+	ga.ensureObjectItemStates()
+
+	list := &ga.widgetState.objectsList
+	list.Axis = layout.Vertical
+	return list.Layout(gtx, len(items), func(gtx layout.Context, index int) layout.Dimensions {
+		item := items[index]
+		if item.isHeader {
+			return layout.Inset{Top: unit.Dp(theme.Spacing3), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				label := material.Body1(ga.theme.Theme, item.header)
+				label.Font.Weight = font.Bold
+				label.Color = theme.ColorTextSecondary
+				return label.Layout(gtx)
+			})
+		}
+		obj := ga.objects[item.objIndex]
+		return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return ga.renderObjectCard(gtx, obj, item.objIndex)
+		})
+	})
 }
 
 // --- State mutation helpers (must be called inside ga.do) ---
@@ -1375,6 +1585,190 @@ func (ga *GioApp) renderFilterChip(gtx layout.Context, btn *widget.Clickable, la
 		},
 	}
 	return b.Layout(gtx, ga.theme.Theme, btn)
+}
+
+// sortGroupField describes a field available for sorting/grouping.
+type sortGroupField struct {
+	key         string // internal key: "name", "location", or a property key
+	displayName string // human label
+}
+
+// getSortableFields returns the list of fields available for sorting.
+// Always includes Name and Location, plus each schema property.
+func (ga *GioApp) getSortableFields() []sortGroupField {
+	fields := []sortGroupField{
+		{key: "name", displayName: "Name"},
+		{key: "location", displayName: "Location"},
+	}
+	if ga.selectedCollection != nil && ga.selectedCollection.PropertySchema != nil {
+		for _, def := range ga.selectedCollection.PropertySchema.Definitions {
+			name := def.DisplayName
+			if name == "" {
+				name = snakeToTitleCase(def.Key)
+			}
+			fields = append(fields, sortGroupField{key: def.Key, displayName: name})
+		}
+	}
+	return fields
+}
+
+// getGroupableFields returns the list of fields available for grouping.
+// Includes Location, Container, and each schema property.
+func (ga *GioApp) getGroupableFields() []sortGroupField {
+	fields := []sortGroupField{
+		{key: "location", displayName: "Location"},
+		{key: "container", displayName: "Container"},
+	}
+	if ga.selectedCollection != nil && ga.selectedCollection.PropertySchema != nil {
+		for _, def := range ga.selectedCollection.PropertySchema.Definitions {
+			name := def.DisplayName
+			if name == "" {
+				name = snakeToTitleCase(def.Key)
+			}
+			fields = append(fields, sortGroupField{key: def.Key, displayName: name})
+		}
+	}
+	return fields
+}
+
+// renderSortGroupControls renders sort and group-by chip selectors.
+func (ga *GioApp) renderSortGroupControls(gtx layout.Context) layout.Dimensions {
+	return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			// Sort row
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return ga.renderSortRow(gtx)
+			}),
+			// Group row
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return ga.renderGroupRow(gtx)
+			}),
+		)
+	})
+}
+
+// renderSortRow renders the sort-by chip row.
+func (ga *GioApp) renderSortRow(gtx layout.Context) layout.Dimensions {
+	fields := ga.getSortableFields()
+
+	// Process clicks
+	for _, f := range fields {
+		chipKey := "sort||" + f.key
+		btn := ga.getGroupedTextChipButton(chipKey)
+		if btn.Clicked(gtx) {
+			if ga.objectSortField == f.key {
+				// Toggle direction on re-click
+				if ga.objectSortDir == "desc" {
+					// Third click: clear sort
+					ga.objectSortField = ""
+					ga.objectSortDir = ""
+				} else {
+					ga.objectSortDir = "desc"
+				}
+			} else {
+				ga.objectSortField = f.key
+				ga.objectSortDir = "asc"
+			}
+			ga.invalidateFilteredObjects()
+		}
+	}
+
+	chipGap := gtx.Dp(unit.Dp(theme.Spacing1))
+
+	return layout.Inset{Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Start}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Right: unit.Dp(theme.Spacing2), Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					label := material.Body2(ga.theme.Theme, "Sort:")
+					label.Color = theme.ColorTextSecondary
+					return label.Layout(gtx)
+				})
+			}),
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				var chips []layout.Widget
+				for _, f := range fields {
+					f := f
+					chipKey := "sort||" + f.key
+					btn := ga.getGroupedTextChipButton(chipKey)
+					isActive := ga.objectSortField == f.key
+					label := f.displayName
+					if isActive && ga.objectSortDir == "desc" {
+						label += " ↓"
+					} else if isActive {
+						label += " ↑"
+					}
+					chips = append(chips, func(gtx layout.Context) layout.Dimensions {
+						return ga.renderFilterChip(gtx, btn, label, isActive)
+					})
+				}
+				return layoutFlowWrap(gtx, chipGap, chipGap, chips...)
+			}),
+		)
+	})
+}
+
+// renderGroupRow renders the group-by chip row.
+func (ga *GioApp) renderGroupRow(gtx layout.Context) layout.Dimensions {
+	fields := ga.getGroupableFields()
+
+	// Process clicks
+	noneKey := "group||"
+	noneBtn := ga.getGroupedTextChipButton(noneKey)
+	if noneBtn.Clicked(gtx) {
+		ga.objectGroupByField = ""
+		ga.invalidateFilteredObjects()
+	}
+	for _, f := range fields {
+		chipKey := "group||" + f.key
+		btn := ga.getGroupedTextChipButton(chipKey)
+		if btn.Clicked(gtx) {
+			if ga.objectGroupByField == f.key {
+				ga.objectGroupByField = ""
+			} else {
+				ga.objectGroupByField = f.key
+			}
+			ga.invalidateFilteredObjects()
+		}
+	}
+
+	chipGap := gtx.Dp(unit.Dp(theme.Spacing1))
+
+	return layout.Inset{Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Start}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Right: unit.Dp(theme.Spacing2), Top: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					label := material.Body2(ga.theme.Theme, "Group:")
+					label.Color = theme.ColorTextSecondary
+					return label.Layout(gtx)
+				})
+			}),
+			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+				var chips []layout.Widget
+
+				// "None" chip
+				chips = append(chips, func(gtx layout.Context) layout.Dimensions {
+					return ga.renderFilterChip(gtx, noneBtn, "None", ga.objectGroupByField == "")
+				})
+
+				for _, f := range fields {
+					f := f
+					chipKey := "group||" + f.key
+					btn := ga.getGroupedTextChipButton(chipKey)
+					isActive := ga.objectGroupByField == f.key
+					chips = append(chips, func(gtx layout.Context) layout.Dimensions {
+						return ga.renderFilterChip(gtx, btn, f.displayName, isActive)
+					})
+				}
+				return layoutFlowWrap(gtx, chipGap, chipGap, chips...)
+			}),
+		)
+	})
+}
+
+// invalidateFilteredObjects clears only the filtered objects cache (not the grouped text / property def caches).
+func (ga *GioApp) invalidateFilteredObjects() {
+	ga.cachedFilteredObjects = nil
+	ga.cachedFilteredObjIndices = nil
 }
 
 // renderGroupedTextFilters renders a filter bar of chips for each grouped_text property.

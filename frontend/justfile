@@ -1,0 +1,16 @@
+# Frontend build recipes
+# GOEXPERIMENT=jsonv2 required for encoding/json/v2
+
+export GOEXPERIMENT := "jsonv2"
+
+# Check compilation
+vet:
+    go vet ./...
+
+# Build WebAssembly output to gio-web/
+build:
+    go run cmd/web/main.go
+
+# Serve the WASM build locally
+serve:
+    go run cmd/serve/main.go
