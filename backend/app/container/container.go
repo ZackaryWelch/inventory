@@ -174,3 +174,8 @@ func (c *Container) GetAuthMiddleware() *middleware.AuthMiddleware {
 func (c *Container) SetLogger(logger *slog.Logger) {
 	c.logger = logger
 }
+
+// SetConfig sets the config (primarily for testing purposes)
+func (c *Container) SetConfig(cfg *config.Config) {
+	c.config = cfg
+}

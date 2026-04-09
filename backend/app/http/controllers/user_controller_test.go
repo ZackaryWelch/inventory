@@ -5,10 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -19,22 +17,13 @@ import (
 
 	"github.com/nishiki/backend/app/http/httputil"
 	"github.com/nishiki/backend/domain/entities"
-	"github.com/nishiki/backend/mocks"
 )
 
 func TestUserController_GetUser(t *testing.T) {
 	t.Parallel()
 
-	mockCtrl := gomock.NewController(t)
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	t.Cleanup(mockCtrl.Finish)
-
-	mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
-	controller := &UserController{
-		authService: mockAuthService,
-		logger:      logger,
-	}
+	c, m := newTestContainer(t)
+	controller := NewUserController(c, c.GetLogger())
 
 	t.Run("success - user found", func(t *testing.T) {
 		t.Parallel()
@@ -61,7 +50,7 @@ func TestUserController_GetUser(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		// Setup mock expectations
-		mockAuthService.EXPECT().
+		m.AuthService.EXPECT().
 			GetUserByID(gomock.Any(), "test-token", testUser.ID().String()).
 			Return(testUser, nil)
 
@@ -103,7 +92,7 @@ func TestUserController_GetUser(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		// Setup mock expectations
-		mockAuthService.EXPECT().
+		m.AuthService.EXPECT().
 			GetUserByID(gomock.Any(), "test-token", userID.String()).
 			Return(nil, errors.New("user not found"))
 
@@ -174,7 +163,7 @@ func TestUserController_GetUser(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		// Setup mock expectations
-		mockAuthService.EXPECT().
+		m.AuthService.EXPECT().
 			GetUserByID(gomock.Any(), "test-token", testUser.ID().String()).
 			Return(nil, errors.New("internal server error"))
 

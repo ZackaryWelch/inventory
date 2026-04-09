@@ -3,10 +3,8 @@ package controllers
 import (
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -18,26 +16,13 @@ import (
 	"github.com/nishiki/backend/app/http/request"
 	"github.com/nishiki/backend/app/http/response"
 	"github.com/nishiki/backend/domain/entities"
-	"github.com/nishiki/backend/domain/usecases"
-	"github.com/nishiki/backend/mocks"
 )
 
 func TestCollectionController_CreateCollection(t *testing.T) {
 	t.Parallel()
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
-	mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
-	createCollectionUC := usecases.NewCreateCollectionUseCase(mockCollectionRepo, mockAuthService)
-
-	controller := &CollectionController{
-		createCollectionUC: createCollectionUC,
-		logger:             logger,
-	}
+	c, m := newTestContainer(t)
+	controller := NewCollectionController(c, c.GetLogger())
 
 	t.Run("success - create collection", func(t *testing.T) {
 		testUser := randomUser()
@@ -47,8 +32,8 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 			ObjectType: "general",
 		}
 
-		// No GroupID → GetUserGroups is NOT called; only Create is called
-		mockCollectionRepo.EXPECT().
+		// No GroupID -> GetUserGroups is NOT called; only Create is called
+		m.CollectionRepo.EXPECT().
 			Create(gomock.Any(), gomock.Any()).
 			Return(nil).
 			Times(1)
@@ -94,8 +79,8 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 			ObjectType: "general",
 		}
 
-		// No GroupID → GetUserGroups NOT called; Create fails
-		mockCollectionRepo.EXPECT().
+		// No GroupID -> GetUserGroups NOT called; Create fails
+		m.CollectionRepo.EXPECT().
 			Create(gomock.Any(), gomock.Any()).
 			Return(errors.New("database connection failed")).
 			Times(1)
@@ -112,7 +97,7 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 
 	t.Run("error - auth service failure", func(t *testing.T) {
 		testUser := randomUser()
-		groupIDStr := "group-123" // non-empty so GetGroupID returns non-nil → GetUserGroups is called
+		groupIDStr := "group-123" // non-empty so GetGroupID returns non-nil -> GetUserGroups is called
 
 		// Provide a GroupID so GetUserGroups IS called
 		requestBody := request.CreateCollectionRequest{
@@ -121,7 +106,7 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 			GroupID:    &groupIDStr,
 		}
 
-		mockAuthService.EXPECT().
+		m.AuthService.EXPECT().
 			GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).
 			Return(nil, errors.New("auth service unavailable")).
 			Times(1)
@@ -140,19 +125,8 @@ func TestCollectionController_CreateCollection(t *testing.T) {
 func TestCollectionController_GetCollections(t *testing.T) {
 	t.Parallel()
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
-	mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
-	getCollectionsUC := usecases.NewGetCollectionsUseCase(mockCollectionRepo, mockAuthService)
-
-	controller := &CollectionController{
-		getCollectionsUC: getCollectionsUC,
-		logger:           logger,
-	}
+	c, m := newTestContainer(t)
+	controller := NewCollectionController(c, c.GetLogger())
 
 	t.Run("success - get collections", func(t *testing.T) {
 		testUser := randomUser()
@@ -178,7 +152,7 @@ func TestCollectionController_GetCollections(t *testing.T) {
 		}
 
 		// GetCollectionsUseCase calls GetByUserIDSummary (no GetUserGroups in simple path)
-		mockCollectionRepo.EXPECT().
+		m.CollectionRepo.EXPECT().
 			GetByUserIDSummary(gomock.Any(), testUser.ID()).
 			Return(collections, nil).
 			Times(1)
@@ -215,7 +189,7 @@ func TestCollectionController_GetCollections(t *testing.T) {
 		testUser := randomUser()
 
 		// GetCollectionsUseCase calls GetByUserIDSummary which returns error
-		mockCollectionRepo.EXPECT().
+		m.CollectionRepo.EXPECT().
 			GetByUserIDSummary(gomock.Any(), testUser.ID()).
 			Return(nil, errors.New("database connection failed")).
 			Times(1)
@@ -234,19 +208,8 @@ func TestCollectionController_GetCollections(t *testing.T) {
 func TestCollectionController_DeleteCollection(t *testing.T) {
 	t.Parallel()
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
-	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
-
-	deleteCollectionUC := usecases.NewDeleteCollectionUseCase(mockCollectionRepo, mockContainerRepo)
-
-	controller := &CollectionController{
-		deleteCollectionUC: deleteCollectionUC,
-		logger:             logger,
-	}
+	c, m := newTestContainer(t)
+	controller := NewCollectionController(c, c.GetLogger())
 
 	t.Run("success - delete collection", func(t *testing.T) {
 		testUser := randomUser()
@@ -268,12 +231,12 @@ func TestCollectionController_DeleteCollection(t *testing.T) {
 			time.Now(),
 		)
 
-		mockCollectionRepo.EXPECT().
+		m.CollectionRepo.EXPECT().
 			GetByID(gomock.Any(), collectionID).
 			Return(testCollection, nil).
 			Times(1)
 
-		mockCollectionRepo.EXPECT().
+		m.CollectionRepo.EXPECT().
 			Delete(gomock.Any(), collectionID).
 			Return(nil).
 			Times(1)
@@ -311,7 +274,7 @@ func TestCollectionController_DeleteCollection(t *testing.T) {
 		testUser := randomUser()
 		collectionID := entities.NewCollectionID()
 
-		mockCollectionRepo.EXPECT().
+		m.CollectionRepo.EXPECT().
 			GetByID(gomock.Any(), collectionID).
 			Return(nil, errors.New("collection not found")).
 			Times(1)

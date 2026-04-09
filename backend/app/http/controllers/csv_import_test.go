@@ -3,7 +3,6 @@ package controllers
 import (
 	"encoding/csv"
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -19,8 +18,6 @@ import (
 	"github.com/nishiki/backend/app/http/request"
 	"github.com/nishiki/backend/app/http/response"
 	"github.com/nishiki/backend/domain/entities"
-	"github.com/nishiki/backend/domain/usecases"
-	"github.com/nishiki/backend/mocks"
 )
 
 // dataDir returns the absolute path to the project's data/ directory.
@@ -98,21 +95,8 @@ func TestBulkImportToCollection_ElectronicSuppliesCSV(t *testing.T) {
 	}
 	data = filtered
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
-	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
-	mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
-	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(
-		mockCollectionRepo, mockContainerRepo, mockAuthService, nil, nil,
-	)
-	controller := &ObjectController{
-		bulkImportCollectionUC: bulkImportCollectionUC,
-		logger:                 logger,
-	}
+	c, m := newTestContainer(t)
+	controller := NewObjectController(c, c.GetLogger())
 
 	t.Run("location distribution", func(t *testing.T) {
 		testUser := randomUser()
@@ -120,21 +104,21 @@ func TestBulkImportToCollection_ElectronicSuppliesCSV(t *testing.T) {
 		testCollection := newTestCollection(testUser.ID(), collectionID, entities.ObjectTypeGeneral)
 
 		// Mock auth and collection lookup
-		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		m.AuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		m.CollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
 
 		// Location distribution fetches existing containers (none initially)
-		mockContainerRepo.EXPECT().GetByCollectionID(gomock.Any(), collectionID).Return([]*entities.Container{}, nil)
+		m.ContainerRepo.EXPECT().GetByCollectionID(gomock.Any(), collectionID).Return([]*entities.Container{}, nil)
 
 		// Expect container creation for each unique location + Default container
 		// Locations in CSV: OD1, OD4, OD5, Desk, Kitchen, Car, KD3
-		mockContainerRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.ContainerRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 		// Collection updated after containers created
-		mockCollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.CollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 		// Dirty containers saved after objects added
-		mockContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.ContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 		requestBody := request.BulkImportCollectionRequest{
 			Format:           "csv",
@@ -171,12 +155,12 @@ func TestBulkImportToCollection_ElectronicSuppliesCSV(t *testing.T) {
 		collectionID := entities.NewCollectionID()
 		testCollection := newTestCollection(testUser.ID(), collectionID, entities.ObjectTypeGeneral)
 
-		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		m.AuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		m.CollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
 
 		// Default distribution creates a "Default Container" since collection has no containers
-		mockCollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		mockContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.CollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.ContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 		requestBody := request.BulkImportCollectionRequest{
 			Format:     "csv",
@@ -210,12 +194,12 @@ func TestBulkImportToCollection_ElectronicSuppliesCSV(t *testing.T) {
 		collectionID := entities.NewCollectionID()
 		testCollection := newTestCollection(testUser.ID(), collectionID, entities.ObjectTypeGeneral)
 
-		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		m.AuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		m.CollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
 
 		// Schema inference triggers collection update for schema save, then again for container add
-		mockCollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		mockContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.CollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.ContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 		requestBody := request.BulkImportCollectionRequest{
 			Format:      "csv",
@@ -259,33 +243,20 @@ func TestBulkImportToCollection_LibibBooksCSV(t *testing.T) {
 	data := parseCSVFile(t, csvPath)
 	require.NotEmpty(t, data)
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
-	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
-	mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
-	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(
-		mockCollectionRepo, mockContainerRepo, mockAuthService, nil, nil,
-	)
-	controller := &ObjectController{
-		bulkImportCollectionUC: bulkImportCollectionUC,
-		logger:                 logger,
-	}
+	c, m := newTestContainer(t)
+	controller := NewObjectController(c, c.GetLogger())
 
 	t.Run("default distribution with title auto-detect", func(t *testing.T) {
 		testUser := randomUser()
 		collectionID := entities.NewCollectionID()
 		testCollection := newTestCollection(testUser.ID(), collectionID, entities.ObjectTypeBook)
 
-		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		m.AuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		m.CollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
 
 		// Default distribution path
-		mockCollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		mockContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.CollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.ContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 		requestBody := request.BulkImportCollectionRequest{
 			Format:      "csv",
@@ -319,10 +290,10 @@ func TestBulkImportToCollection_LibibBooksCSV(t *testing.T) {
 		collectionID := entities.NewCollectionID()
 		testCollection := newTestCollection(testUser.ID(), collectionID, entities.ObjectTypeBook)
 
-		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
-		mockCollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		mockContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.AuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		m.CollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		m.CollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.ContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 		requestBody := request.BulkImportCollectionRequest{
 			Format:      "csv",
@@ -364,31 +335,18 @@ func TestBulkImportToCollection_LibibVideoGamesCSV(t *testing.T) {
 	data := parseCSVFile(t, csvPath)
 	require.NotEmpty(t, data)
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
-	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
-	mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
-	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(
-		mockCollectionRepo, mockContainerRepo, mockAuthService, nil, nil,
-	)
-	controller := &ObjectController{
-		bulkImportCollectionUC: bulkImportCollectionUC,
-		logger:                 logger,
-	}
+	c, m := newTestContainer(t)
+	controller := NewObjectController(c, c.GetLogger())
 
 	t.Run("default distribution", func(t *testing.T) {
 		testUser := randomUser()
 		collectionID := entities.NewCollectionID()
 		testCollection := newTestCollection(testUser.ID(), collectionID, entities.ObjectTypeVideoGame)
 
-		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
-		mockCollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		mockContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.AuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		m.CollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		m.CollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.ContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 		requestBody := request.BulkImportCollectionRequest{
 			Format: "csv",
@@ -429,31 +387,18 @@ func TestBulkImportToCollection_LibibMusicCSV(t *testing.T) {
 	data := parseCSVFile(t, csvPath)
 	require.NotEmpty(t, data)
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
-	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
-	mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
-	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(
-		mockCollectionRepo, mockContainerRepo, mockAuthService, nil, nil,
-	)
-	controller := &ObjectController{
-		bulkImportCollectionUC: bulkImportCollectionUC,
-		logger:                 logger,
-	}
+	c, m := newTestContainer(t)
+	controller := NewObjectController(c, c.GetLogger())
 
 	t.Run("default distribution", func(t *testing.T) {
 		testUser := randomUser()
 		collectionID := entities.NewCollectionID()
 		testCollection := newTestCollection(testUser.ID(), collectionID, entities.ObjectTypeMusic)
 
-		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
-		mockCollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		mockContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.AuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		m.CollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		m.CollectionRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		m.ContainerRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 		requestBody := request.BulkImportCollectionRequest{
 			Format: "csv",
@@ -504,19 +449,8 @@ func TestBulkImport_ElectronicSuppliesCSV(t *testing.T) {
 	}
 	data = filtered
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
-	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
-	mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
-	bulkImportUC := usecases.NewBulkImportObjectsUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService, nil)
-	controller := &ObjectController{
-		bulkImportUC: bulkImportUC,
-		logger:       logger,
-	}
+	c, m := newTestContainer(t)
+	controller := NewObjectController(c, c.GetLogger())
 
 	t.Run("import all to single container", func(t *testing.T) {
 		testUser := randomUser()
@@ -545,10 +479,10 @@ func TestBulkImport_ElectronicSuppliesCSV(t *testing.T) {
 
 		testCollection := newTestCollection(testUser.ID(), collectionID, entities.ObjectTypeGeneral)
 
-		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
-		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
-		mockContainerRepo.EXPECT().Update(gomock.Any(), testContainer).Return(nil)
+		m.ContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
+		m.AuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		m.CollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		m.ContainerRepo.EXPECT().Update(gomock.Any(), testContainer).Return(nil)
 
 		requestBody := request.BulkImportRequest{
 			ContainerID: containerID.String(),
@@ -584,21 +518,8 @@ func TestBulkImport_ElectronicSuppliesCSV(t *testing.T) {
 func TestBulkImportToCollection_ValidationErrors(t *testing.T) {
 	t.Parallel()
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
-	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
-	mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
-	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(
-		mockCollectionRepo, mockContainerRepo, mockAuthService, nil, nil,
-	)
-	controller := &ObjectController{
-		bulkImportCollectionUC: bulkImportCollectionUC,
-		logger:                 logger,
-	}
+	c, _ := newTestContainer(t)
+	controller := NewObjectController(c, c.GetLogger())
 
 	t.Run("empty data", func(t *testing.T) {
 		testUser := randomUser()

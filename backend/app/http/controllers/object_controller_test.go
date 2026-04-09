@@ -3,10 +3,8 @@ package controllers
 import (
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
@@ -17,37 +15,13 @@ import (
 	"github.com/nishiki/backend/app/http/request"
 	"github.com/nishiki/backend/app/http/response"
 	"github.com/nishiki/backend/domain/entities"
-	"github.com/nishiki/backend/domain/usecases"
-	"github.com/nishiki/backend/mocks"
 )
 
 func TestObjectController_CreateObject(t *testing.T) {
 	t.Parallel()
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
-	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
-	mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
-	createObjectUC := usecases.NewCreateObjectUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
-	updateObjectUC := usecases.NewUpdateObjectUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
-	deleteObjectUC := usecases.NewDeleteObjectUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
-	getCollectionObjectsUC := usecases.NewGetCollectionObjectsUseCase(mockCollectionRepo, mockContainerRepo, mockAuthService)
-	bulkImportUC := usecases.NewBulkImportObjectsUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService, nil)
-	bulkImportCollectionUC := usecases.NewBulkImportCollectionUseCase(mockCollectionRepo, mockContainerRepo, mockAuthService, nil, nil)
-
-	controller := &ObjectController{
-		createObjectUC:         createObjectUC,
-		updateObjectUC:         updateObjectUC,
-		deleteObjectUC:         deleteObjectUC,
-		getCollectionObjectsUC: getCollectionObjectsUC,
-		bulkImportUC:           bulkImportUC,
-		bulkImportCollectionUC: bulkImportCollectionUC,
-		logger:                 logger,
-	}
+	c, m := newTestContainer(t)
+	controller := NewObjectController(c, c.GetLogger())
 
 	t.Run("success - create object", func(t *testing.T) {
 		testUser := randomUser()
@@ -84,10 +58,10 @@ func TestObjectController_CreateObject(t *testing.T) {
 			time.Now(),
 		)
 
-		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
-		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
-		mockContainerRepo.EXPECT().AddObject(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		m.ContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
+		m.AuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		m.CollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		m.ContainerRepo.EXPECT().AddObject(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/objects", requestBody)
 		req.SetPathValue("id", testUser.ID().String())
@@ -156,9 +130,9 @@ func TestObjectController_CreateObject(t *testing.T) {
 			time.Now(),
 		)
 
-		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
-		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		m.ContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
+		m.AuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		m.CollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/objects", requestBody)
 		req.SetPathValue("id", testUser.ID().String())
@@ -180,7 +154,7 @@ func TestObjectController_CreateObject(t *testing.T) {
 			ObjectType:  "general",
 		}
 
-		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(nil, errors.New("container not found"))
+		m.ContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(nil, errors.New("container not found"))
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/objects", requestBody)
 		req.SetPathValue("id", testUser.ID().String())
@@ -196,20 +170,8 @@ func TestObjectController_CreateObject(t *testing.T) {
 func TestObjectController_DeleteObject(t *testing.T) {
 	t.Parallel()
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
-	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
-	mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
-	deleteObjectUC := usecases.NewDeleteObjectUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService)
-
-	controller := &ObjectController{
-		deleteObjectUC: deleteObjectUC,
-		logger:         logger,
-	}
+	c, m := newTestContainer(t)
+	controller := NewObjectController(c, c.GetLogger())
 
 	t.Run("success - delete object", func(t *testing.T) {
 		testUser := randomUser()
@@ -252,10 +214,10 @@ func TestObjectController_DeleteObject(t *testing.T) {
 			time.Now(),
 		)
 
-		mockContainerRepo.EXPECT().GetByID(gomock.Any(), gomock.Any()).Return(testContainer, nil)
-		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
-		mockContainerRepo.EXPECT().RemoveObject(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		m.ContainerRepo.EXPECT().GetByID(gomock.Any(), gomock.Any()).Return(testContainer, nil)
+		m.AuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		m.CollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		m.ContainerRepo.EXPECT().RemoveObject(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 		req := newTestRequest(http.MethodDelete, "/accounts/"+testUser.ID().String()+"/objects/"+objectID.String()+"?container_id="+containerID.String(), nil)
 		req.SetPathValue("id", testUser.ID().String())
@@ -293,7 +255,7 @@ func TestObjectController_DeleteObject(t *testing.T) {
 		containerID := entities.NewContainerID()
 
 		// Container not found causes early return
-		mockContainerRepo.EXPECT().GetByID(gomock.Any(), gomock.Any()).Return(nil, errors.New("container not found"))
+		m.ContainerRepo.EXPECT().GetByID(gomock.Any(), gomock.Any()).Return(nil, errors.New("container not found"))
 
 		req := newTestRequest(http.MethodDelete, "/accounts/"+testUser.ID().String()+"/objects/"+objectID.String()+"?container_id="+containerID.String(), nil)
 		req.SetPathValue("id", testUser.ID().String())
@@ -310,20 +272,8 @@ func TestObjectController_DeleteObject(t *testing.T) {
 func TestObjectController_BulkImport(t *testing.T) {
 	t.Parallel()
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	mockContainerRepo := mocks.NewMockContainerRepository(mockCtrl)
-	mockCollectionRepo := mocks.NewMockCollectionRepository(mockCtrl)
-	mockAuthService := mocks.NewMockAuthService(mockCtrl)
-
-	bulkImportUC := usecases.NewBulkImportObjectsUseCase(mockContainerRepo, mockCollectionRepo, mockAuthService, nil)
-
-	controller := &ObjectController{
-		bulkImportUC: bulkImportUC,
-		logger:       logger,
-	}
+	c, m := newTestContainer(t)
+	controller := NewObjectController(c, c.GetLogger())
 
 	t.Run("success - bulk import objects", func(t *testing.T) {
 		testUser := randomUser()
@@ -363,10 +313,10 @@ func TestObjectController_BulkImport(t *testing.T) {
 			time.Now(),
 		)
 
-		mockContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
-		mockAuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
-		mockCollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
-		mockContainerRepo.EXPECT().Update(gomock.Any(), testContainer).Return(nil).Times(1)
+		m.ContainerRepo.EXPECT().GetByID(gomock.Any(), containerID).Return(testContainer, nil)
+		m.AuthService.EXPECT().GetUserGroups(gomock.Any(), "test-token", testUser.ID().String()).Return([]*entities.Group{}, nil)
+		m.CollectionRepo.EXPECT().GetByID(gomock.Any(), collectionID).Return(testCollection, nil)
+		m.ContainerRepo.EXPECT().Update(gomock.Any(), testContainer).Return(nil).Times(1)
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/import", requestBody)
 		req.SetPathValue("id", testUser.ID().String())
