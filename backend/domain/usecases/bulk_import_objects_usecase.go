@@ -19,7 +19,7 @@ type BulkImportObjectsRequest struct {
 type ObjectImportData struct {
 	Name       string
 	ObjectType entities.ObjectType
-	Properties map[string]interface{}
+	Properties map[string]entities.TypedValue
 	Tags       []string
 }
 

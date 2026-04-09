@@ -681,8 +681,8 @@ func (ga *GioApp) renderObjectCard(gtx layout.Context, object Object, index int)
 				if def.Type == "bool" {
 					b := ga.getObjectPropertyBool(def.Key)
 					b.Value = false
-					if val, ok := object.Properties[def.Key]; ok {
-						switch v := val.(type) {
+					if tv, ok := object.Properties[def.Key]; ok {
+						switch v := tv.Val.(type) {
 						case bool:
 							b.Value = v
 						case string:
@@ -691,8 +691,8 @@ func (ga *GioApp) renderObjectCard(gtx layout.Context, object Object, index int)
 					}
 				} else {
 					ed := ga.getObjectPropertyEditor(def.Key)
-					if val, ok := object.Properties[def.Key]; ok {
-						ed.SetText(fmt.Sprintf("%v", val))
+					if tv, ok := object.Properties[def.Key]; ok {
+						ed.SetText(fmt.Sprintf("%v", tv.Val))
 					} else {
 						ed.SetText("")
 					}
@@ -1087,7 +1087,7 @@ func (ga *GioApp) fetchContainersAndObjects() {
 }
 
 // renderObjectProperties renders the key/value properties of an object using schema-aware formatting.
-func (ga *GioApp) renderObjectProperties(gtx layout.Context, props map[string]interface{}, defs []PropertyDefinition) layout.Dimensions {
+func (ga *GioApp) renderObjectProperties(gtx layout.Context, props map[string]TypedValue, defs []PropertyDefinition) layout.Dimensions {
 	defMap := ga.getPropertyDefMap()
 
 	// Build ordered keys: schema-defined first (in order), then remaining alpha-sorted
@@ -1113,9 +1113,9 @@ func (ga *GioApp) renderObjectProperties(gtx layout.Context, props map[string]in
 			children := make([]layout.FlexChild, 0, len(keys))
 			for _, k := range keys {
 				k := k
-				v := props[k]
+				tv := props[k]
 				displayKey := propertyDisplayNameFromMap(k, defMap)
-				displayVal := RenderPropertyValueFromMap(k, v, defMap)
+				displayVal := RenderPropertyValueFromMap(k, tv, defMap)
 				children = append(children, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					label := material.Body2(ga.theme.Theme, displayKey+": "+displayVal)
 					label.Color = theme.ColorTextSecondary

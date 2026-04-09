@@ -17,85 +17,11 @@ var currencySymbols = map[string]string{
 	"AUD": "A$",
 }
 
-// RenderPropertyValue formats a property value for display using schema type info.
+// RenderPropertyValue formats a TypedValue for display using schema type info.
 // Pass nil or an empty slice when no schema is available; falls back to plain string conversion.
-func RenderPropertyValue(key string, value interface{}, defs []PropertyDefinition) string {
+func RenderPropertyValue(key string, tv TypedValue, defs []PropertyDefinition) string {
 	def := findPropertyDef(key, defs)
-	if def == nil {
-		return fmt.Sprintf("%v", value)
-	}
-
-	str := fmt.Sprintf("%v", value)
-
-	switch def.Type {
-	case "currency":
-		f, err := toFloat(value)
-		if err != nil {
-			return str
-		}
-		symbol := currencySymbols[strings.ToUpper(def.CurrencyCode)]
-		if symbol == "" {
-			if def.CurrencyCode != "" {
-				symbol = def.CurrencyCode + " "
-			} else {
-				symbol = "$"
-			}
-		}
-		return fmt.Sprintf("%s%.2f", symbol, f)
-
-	case "date":
-		t, err := time.Parse(time.RFC3339, str)
-		if err != nil {
-			t, err = time.Parse("2006-01-02", str)
-			if err != nil {
-				return str
-			}
-		}
-		return t.Format("Jan 2, 2006")
-
-	case "bool":
-		switch v := value.(type) {
-		case bool:
-			if v {
-				return "Yes"
-			}
-			return "No"
-		case string:
-			if strings.EqualFold(v, "true") || v == "1" {
-				return "Yes"
-			}
-			return "No"
-		default:
-			f, err := toFloat(value)
-			if err != nil {
-				return str
-			}
-			if f != 0 {
-				return "Yes"
-			}
-			return "No"
-		}
-
-	case "url":
-		if str == "" {
-			return str
-		}
-		base := path.Base(str)
-		if base == "." || base == "/" {
-			return str
-		}
-		return base
-
-	case "numeric":
-		f, err := toFloat(value)
-		if err != nil {
-			return str
-		}
-		return strconv.FormatFloat(f, 'f', -1, 64)
-
-	default: // "text", "grouped_text", unknown
-		return str
-	}
+	return renderTypedValue(tv, def)
 }
 
 func findPropertyDef(key string, defs []PropertyDefinition) *PropertyDefinition {
@@ -108,29 +34,39 @@ func findPropertyDef(key string, defs []PropertyDefinition) *PropertyDefinition 
 }
 
 // RenderPropertyValueFromMap is like RenderPropertyValue but uses a pre-built map for O(1) lookup.
-func RenderPropertyValueFromMap(key string, value interface{}, defMap map[string]*PropertyDefinition) string {
+func RenderPropertyValueFromMap(key string, tv TypedValue, defMap map[string]*PropertyDefinition) string {
 	def := defMap[key]
-	return renderPropertyValueWithDef(value, def)
+	return renderTypedValue(tv, def)
 }
 
-// renderPropertyValueWithDef formats a property value using an already-resolved definition.
-func renderPropertyValueWithDef(value interface{}, def *PropertyDefinition) string {
-	if def == nil {
-		return fmt.Sprintf("%v", value)
+// renderTypedValue formats a TypedValue using an already-resolved definition (may be nil).
+func renderTypedValue(tv TypedValue, def *PropertyDefinition) string {
+	if tv.Val == nil {
+		return ""
 	}
 
-	str := fmt.Sprintf("%v", value)
+	// Use the TypedValue's own type for rendering; fall back to def.Type if empty.
+	tvType := tv.Type
+	if tvType == "" && def != nil {
+		tvType = def.Type
+	}
 
-	switch def.Type {
+	// Currency symbol: prefer TypedValue.Currency, fall back to def.CurrencyCode.
+	currencyCode := tv.Currency
+	if currencyCode == "" && def != nil {
+		currencyCode = def.CurrencyCode
+	}
+
+	switch tvType {
 	case "currency":
-		f, err := toFloat(value)
+		f, err := toFloat(tv.Val)
 		if err != nil {
-			return str
+			return fmt.Sprintf("%v", tv.Val)
 		}
-		symbol := currencySymbols[strings.ToUpper(def.CurrencyCode)]
+		symbol := currencySymbols[strings.ToUpper(currencyCode)]
 		if symbol == "" {
-			if def.CurrencyCode != "" {
-				symbol = def.CurrencyCode + " "
+			if currencyCode != "" {
+				symbol = currencyCode + " "
 			} else {
 				symbol = "$"
 			}
@@ -138,17 +74,31 @@ func renderPropertyValueWithDef(value interface{}, def *PropertyDefinition) stri
 		return fmt.Sprintf("%s%.2f", symbol, f)
 
 	case "date":
-		t, err := time.Parse(time.RFC3339, str)
-		if err != nil {
-			t, err = time.Parse("2006-01-02", str)
+		var t time.Time
+		switch v := tv.Val.(type) {
+		case string:
+			var err error
+			t, err = time.Parse(time.RFC3339, v)
 			if err != nil {
-				return str
+				t, err = time.Parse("2006-01-02", v)
+				if err != nil {
+					return v
+				}
 			}
+		case float64:
+			// JSON numbers for time (ms since epoch) — unlikely but handled
+			t = time.UnixMilli(int64(v)).UTC()
+		default:
+			return fmt.Sprintf("%v", v)
 		}
-		return t.Format("Jan 2, 2006")
+		formatted := t.Format("Jan 2, 2006")
+		if tv.Approx {
+			return "~" + t.Format("2006")
+		}
+		return formatted
 
 	case "bool":
-		switch v := value.(type) {
+		switch v := tv.Val.(type) {
 		case bool:
 			if v {
 				return "Yes"
@@ -160,9 +110,9 @@ func renderPropertyValueWithDef(value interface{}, def *PropertyDefinition) stri
 			}
 			return "No"
 		default:
-			f, err := toFloat(value)
+			f, err := toFloat(tv.Val)
 			if err != nil {
-				return str
+				return fmt.Sprintf("%v", tv.Val)
 			}
 			if f != 0 {
 				return "Yes"
@@ -171,6 +121,7 @@ func renderPropertyValueWithDef(value interface{}, def *PropertyDefinition) stri
 		}
 
 	case "url":
+		str := fmt.Sprintf("%v", tv.Val)
 		if str == "" {
 			return str
 		}
@@ -181,14 +132,14 @@ func renderPropertyValueWithDef(value interface{}, def *PropertyDefinition) stri
 		return base
 
 	case "numeric":
-		f, err := toFloat(value)
+		f, err := toFloat(tv.Val)
 		if err != nil {
-			return str
+			return fmt.Sprintf("%v", tv.Val)
 		}
 		return strconv.FormatFloat(f, 'f', -1, 64)
 
 	default: // "text", "grouped_text", unknown
-		return str
+		return fmt.Sprintf("%v", tv.Val)
 	}
 }
 

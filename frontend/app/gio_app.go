@@ -41,6 +41,7 @@ type (
 	Object             = response.ObjectResponse
 	PropertySchema     = response.PropertySchemaResponse
 	PropertyDefinition = response.PropertyDefinitionResponse
+	TypedValue         = response.TypedValueResponse
 )
 
 // consoleWriter writes logs to browser console

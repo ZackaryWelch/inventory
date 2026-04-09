@@ -57,8 +57,9 @@ var (
 		"January 2, 2006",
 		"Jan 2, 2006",
 	}
-	// Matches prefix-dates like "<2020"
+	// Matches prefix-dates like "<2020" or "~2020"
 	prefixDateRe = regexp.MustCompile(`^<\d{4}$`)
+	approxDateRe = regexp.MustCompile(`^~\d{4}$`)
 )
 
 // inferColumnType determines the PropertyType for a single column based on sample values.
@@ -119,7 +120,7 @@ func isBool(v string) bool {
 }
 
 func isDate(v string) bool {
-	if prefixDateRe.MatchString(v) {
+	if prefixDateRe.MatchString(v) || approxDateRe.MatchString(v) {
 		return true
 	}
 	for _, fmt := range dateFmts {
@@ -222,15 +223,15 @@ func (s *TypeInferenceService) InferSchema(headers []string, data []map[string]i
 	return &entities.PropertySchema{Definitions: defs}
 }
 
-// CoerceValue converts a raw value to the appropriate Go type for the given PropertyType.
-// On failure it returns the original value as a string.
-func (s *TypeInferenceService) CoerceValue(value interface{}, targetType entities.PropertyType) interface{} {
+// CoerceValue converts a raw value to a TypedValue for the given PropertyType.
+// On failure it returns the original value as a text TypedValue.
+func (s *TypeInferenceService) CoerceValue(value interface{}, targetType entities.PropertyType) entities.TypedValue {
 	if value == nil {
-		return nil
+		return entities.TypedValue{Type: targetType, Val: nil}
 	}
 	str := strings.TrimSpace(fmt.Sprintf("%v", value))
 	if str == "" {
-		return nil
+		return entities.TypedValue{Type: targetType, Val: nil}
 	}
 
 	switch targetType {
@@ -238,34 +239,67 @@ func (s *TypeInferenceService) CoerceValue(value interface{}, targetType entitie
 		cleaned := strings.ReplaceAll(str, ",", "")
 		cleaned = strings.TrimLeft(cleaned, "$€£¥ ")
 		if f, err := strconv.ParseFloat(cleaned, 64); err == nil {
-			return f
+			return entities.TypedValue{Type: targetType, Val: f}
 		}
-		return str
+		return entities.TypedValue{Type: entities.PropertyTypeText, Val: str}
 
 	case entities.PropertyTypeDate:
 		if prefixDateRe.MatchString(str) {
-			// Return as-is; represents a partial date like "<2020"
-			return str
+			year, _ := strconv.Atoi(str[1:])
+			t := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
+			return entities.TypedValue{Type: entities.PropertyTypeDate, Val: t, Approx: true}
+		}
+		if approxDateRe.MatchString(str) {
+			year, _ := strconv.Atoi(str[1:])
+			t := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
+			return entities.TypedValue{Type: entities.PropertyTypeDate, Val: t, Approx: true}
 		}
 		for _, fmt := range dateFmts {
 			if t, err := time.Parse(fmt, str); err == nil {
-				return t.Format(time.RFC3339)
+				return entities.TypedValue{Type: entities.PropertyTypeDate, Val: t}
 			}
 		}
-		return str
+		return entities.TypedValue{Type: entities.PropertyTypeText, Val: str}
 
 	case entities.PropertyTypeBool:
 		if boolTrueRe.MatchString(str) {
-			return true
+			return entities.TypedValue{Type: entities.PropertyTypeBool, Val: true}
 		}
-		return false
+		return entities.TypedValue{Type: entities.PropertyTypeBool, Val: false}
 
 	case entities.PropertyTypeURL:
-		return str // URLs stored as strings
+		return entities.TypedValue{Type: entities.PropertyTypeURL, Val: str}
 
 	default: // text, grouped_text
-		return str
+		return entities.TypedValue{Type: targetType, Val: str}
 	}
+}
+
+// CoerceValueWithDef converts a raw value to a TypedValue using a PropertyDefinition,
+// which also sets the Currency field for currency-typed properties.
+func (s *TypeInferenceService) CoerceValueWithDef(value interface{}, def *entities.PropertyDefinition) entities.TypedValue {
+	tv := s.CoerceValue(value, def.Type)
+	if def.Type == entities.PropertyTypeCurrency && def.CurrencyCode != "" {
+		tv.Currency = def.CurrencyCode
+	}
+	return tv
+}
+
+// CoerceRawProperties coerces a raw map[string]interface{} into map[string]TypedValue
+// using the collection's PropertySchema. Schema-defined keys use their definition's type;
+// unknown keys are wrapped as text.
+func (s *TypeInferenceService) CoerceRawProperties(raw map[string]interface{}, schema *entities.PropertySchema) map[string]entities.TypedValue {
+	result := make(map[string]entities.TypedValue, len(raw))
+	for k, v := range raw {
+		if schema != nil {
+			if def := schema.GetDefinition(k); def != nil {
+				result[k] = s.CoerceValueWithDef(v, def)
+				continue
+			}
+		}
+		result[k] = entities.TypedValue{Type: entities.PropertyTypeText, Val: fmt.Sprintf("%v", v)}
+	}
+	return result
 }
 
 // NormalizeRowKeys rewrites every key in a data row to its snake_case equivalent.
@@ -278,19 +312,17 @@ func (s *TypeInferenceService) NormalizeRowKeys(row map[string]interface{}) map[
 	return result
 }
 
-// CoerceRow applies CoerceValue to all properties in a row according to the schema.
-func (s *TypeInferenceService) CoerceRow(row map[string]interface{}, schema *entities.PropertySchema) map[string]interface{} {
-	if schema == nil {
-		return row
-	}
-	result := make(map[string]interface{}, len(row))
+// CoerceRow applies CoerceValueWithDef to schema-defined keys and wraps unknown keys as text TypedValues.
+func (s *TypeInferenceService) CoerceRow(row map[string]interface{}, schema *entities.PropertySchema) map[string]entities.TypedValue {
+	result := make(map[string]entities.TypedValue, len(row))
 	for k, v := range row {
-		result[k] = v
-	}
-	for _, def := range schema.Definitions {
-		if v, ok := result[def.Key]; ok {
-			result[def.Key] = s.CoerceValue(v, def.Type)
+		if schema != nil {
+			if def := schema.GetDefinition(k); def != nil {
+				result[k] = s.CoerceValueWithDef(v, def)
+				continue
+			}
 		}
+		result[k] = entities.TypedValue{Type: entities.PropertyTypeText, Val: fmt.Sprintf("%v", v)}
 	}
 	return result
 }

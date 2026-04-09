@@ -123,8 +123,8 @@ func (uc *ExportCollectionUseCase) Execute(ctx context.Context, req ExportCollec
 		props := obj.Properties()
 		for _, key := range propKeys {
 			val := ""
-			if v, ok := props[key]; ok && v != nil {
-				val = fmt.Sprintf("%v", v)
+			if tv, ok := props[key]; ok && tv.Val != nil {
+				val = tv.DisplayString()
 			}
 			row = append(row, val)
 		}

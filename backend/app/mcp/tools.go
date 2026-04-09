@@ -370,15 +370,15 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 		}
 
 		ucReq := usecases.CreateObjectRequest{
-			Name:        input.Name,
-			Description: input.Description,
-			ObjectType:  entities.ObjectType(input.ObjectType),
-			Quantity:    input.Quantity,
-			Unit:        input.Unit,
-			Properties:  input.Properties,
-			Tags:        input.Tags,
-			UserID:      user.ID(),
-			UserToken:   token,
+			Name:          input.Name,
+			Description:   input.Description,
+			ObjectType:    entities.ObjectType(input.ObjectType),
+			Quantity:      input.Quantity,
+			Unit:          input.Unit,
+			RawProperties: input.Properties,
+			Tags:          input.Tags,
+			UserID:        user.ID(),
+			UserToken:     token,
 		}
 
 		if input.ContainerID != "" {
@@ -501,7 +501,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 			ucReq.Name = &input.Name
 		}
 		if input.Properties != nil {
-			ucReq.Properties = input.Properties
+			ucReq.RawProperties = input.Properties
 		}
 		if input.Tags != nil {
 			ucReq.Tags = input.Tags

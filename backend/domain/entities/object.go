@@ -99,10 +99,10 @@ type Object struct {
 	name        ObjectName
 	description ObjectDescription
 	objectType  ObjectType
-	location    string                 // Optional physical location
-	quantity    *float64               // Optional quantity
-	unit        string                 // Optional unit (e.g., "kg", "lbs", "pieces")
-	properties  map[string]interface{} // Flexible properties for different object types
+	location    string                // Optional physical location
+	quantity    *float64              // Optional quantity
+	unit        string                // Optional unit (e.g., "kg", "lbs", "pieces")
+	properties  map[string]TypedValue // Flexible properties for different object types
 	tags        []string
 	expiresAt   *time.Time // Optional expiration date (e.g., for food items)
 	createdAt   time.Time
@@ -116,7 +116,7 @@ type ObjectProps struct {
 	Location    string
 	Quantity    *float64
 	Unit        string
-	Properties  map[string]interface{}
+	Properties  map[string]TypedValue
 	Tags        []string
 	ExpiresAt   *time.Time
 }
@@ -139,7 +139,7 @@ func NewObject(props ObjectProps) (*Object, error) {
 	}, nil
 }
 
-func ReconstructObject(id ObjectID, name ObjectName, description ObjectDescription, objectType ObjectType, location string, quantity *float64, unit string, properties map[string]interface{}, tags []string, expiresAt *time.Time, createdAt, updatedAt time.Time) *Object {
+func ReconstructObject(id ObjectID, name ObjectName, description ObjectDescription, objectType ObjectType, location string, quantity *float64, unit string, properties map[string]TypedValue, tags []string, expiresAt *time.Time, createdAt, updatedAt time.Time) *Object {
 	return &Object{
 		id:          id,
 		name:        name,
@@ -184,12 +184,12 @@ func (o *Object) Unit() string {
 	return o.unit
 }
 
-func (o *Object) Properties() map[string]interface{} {
+func (o *Object) Properties() map[string]TypedValue {
 	if o.properties == nil {
-		return make(map[string]interface{})
+		return make(map[string]TypedValue)
 	}
 	// Return a copy to prevent external modifications
-	result := make(map[string]interface{})
+	result := make(map[string]TypedValue)
 	for k, v := range o.properties {
 		result[k] = v
 	}
@@ -212,9 +212,9 @@ func (o *Object) UpdatedAt() time.Time {
 	return o.updatedAt
 }
 
-func (o *Object) GetProperty(key string) (interface{}, bool) {
+func (o *Object) GetProperty(key string) (TypedValue, bool) {
 	if o.properties == nil {
-		return nil, false
+		return TypedValue{}, false
 	}
 	value, exists := o.properties[key]
 	return value, exists
@@ -259,7 +259,7 @@ func (o *Object) UpdateUnit(unit string) error {
 	return nil
 }
 
-func (o *Object) UpdateProperties(properties map[string]interface{}) error {
+func (o *Object) UpdateProperties(properties map[string]TypedValue) error {
 	o.properties = properties
 	o.updatedAt = time.Now()
 	return nil

@@ -17,18 +17,18 @@ import (
 )
 
 type objectDocument struct {
-	ID          string                 `bson:"id"`
-	Name        string                 `bson:"name"`
-	Description string                 `bson:"description"`
-	ObjectType  string                 `bson:"object_type"`
-	Location    string                 `bson:"location,omitempty"`
-	Quantity    *float64               `bson:"quantity,omitempty"`
-	Unit        string                 `bson:"unit,omitempty"`
-	Properties  map[string]interface{} `bson:"properties"`
-	Tags        []string               `bson:"tags"`
-	ExpiresAt   *time.Time             `bson:"expires_at,omitempty"`
-	CreatedAt   time.Time              `bson:"created_at"`
-	UpdatedAt   time.Time              `bson:"updated_at"`
+	ID          string                         `bson:"id"`
+	Name        string                         `bson:"name"`
+	Description string                         `bson:"description"`
+	ObjectType  string                         `bson:"object_type"`
+	Location    string                         `bson:"location,omitempty"`
+	Quantity    *float64                       `bson:"quantity,omitempty"`
+	Unit        string                         `bson:"unit,omitempty"`
+	Properties  map[string]entities.TypedValue `bson:"properties"`
+	Tags        []string                       `bson:"tags"`
+	ExpiresAt   *time.Time                     `bson:"expires_at,omitempty"`
+	CreatedAt   time.Time                      `bson:"created_at"`
+	UpdatedAt   time.Time                      `bson:"updated_at"`
 }
 
 type containerDocument struct {

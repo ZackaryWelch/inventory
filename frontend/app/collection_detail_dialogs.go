@@ -737,12 +737,13 @@ func (ga *GioApp) handleObjectUpdate() {
 		containerID = ga.selectedObject.ContainerID
 	}
 
-	// Merge schema-defined property editors into existing object properties
-	properties := ga.selectedObject.Properties
-	if properties == nil {
-		properties = make(map[string]interface{})
+	// Build a raw map[string]interface{} from the existing TypedValue properties (extract .Val),
+	// then merge in form editor values before sending to the backend for re-coercion.
+	rawProps := make(map[string]interface{})
+	for k, tv := range ga.selectedObject.Properties {
+		rawProps[k] = tv.Val
 	}
-	ga.mergeSchemaProperties(properties)
+	ga.mergeSchemaProperties(rawProps)
 	tags := ga.selectedObject.Tags
 
 	oldContainerID := ""
@@ -757,7 +758,7 @@ func (ga *GioApp) handleObjectUpdate() {
 			Description: &description,
 			Quantity:    quantity,
 			Unit:        &unit,
-			Properties:  properties,
+			Properties:  rawProps,
 			Tags:        tags,
 		}
 

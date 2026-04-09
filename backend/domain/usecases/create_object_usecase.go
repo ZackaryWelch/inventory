@@ -11,19 +11,20 @@ import (
 )
 
 type CreateObjectRequest struct {
-	ContainerID  *entities.ContainerID  // nil = auto-assign to default container
-	CollectionID *entities.CollectionID // required when ContainerID is nil
-	Name         string
-	Description  string
-	ObjectType   entities.ObjectType
-	Location     string
-	Quantity     *float64
-	Unit         string
-	Properties   map[string]interface{}
-	Tags         []string
-	ExpiresAt    *time.Time
-	UserID       entities.UserID
-	UserToken    string
+	ContainerID   *entities.ContainerID  // nil = auto-assign to default container
+	CollectionID  *entities.CollectionID // required when ContainerID is nil
+	Name          string
+	Description   string
+	ObjectType    entities.ObjectType
+	Location      string
+	Quantity      *float64
+	Unit          string
+	Properties    map[string]entities.TypedValue // for direct callers (bulk import)
+	RawProperties map[string]interface{}         // for HTTP/MCP callers; coerced in Execute()
+	Tags          []string
+	ExpiresAt     *time.Time
+	UserID        entities.UserID
+	UserToken     string
 }
 
 type CreateObjectResponse struct {
@@ -35,6 +36,7 @@ type CreateObjectUseCase struct {
 	containerRepo  repositories.ContainerRepository
 	collectionRepo repositories.CollectionRepository
 	authService    services.AuthService
+	typeInference  *services.TypeInferenceService
 }
 
 func NewCreateObjectUseCase(containerRepo repositories.ContainerRepository, collectionRepo repositories.CollectionRepository, authService services.AuthService) *CreateObjectUseCase {
@@ -42,6 +44,7 @@ func NewCreateObjectUseCase(containerRepo repositories.ContainerRepository, coll
 		containerRepo:  containerRepo,
 		collectionRepo: collectionRepo,
 		authService:    authService,
+		typeInference:  services.NewTypeInferenceService(nil),
 	}
 }
 
@@ -104,6 +107,12 @@ func (uc *CreateObjectUseCase) Execute(ctx context.Context, req CreateObjectRequ
 	// Create object description
 	objectDesc := entities.NewObjectDescription(req.Description)
 
+	// Coerce raw properties from HTTP/MCP if provided
+	props := req.Properties
+	if len(req.RawProperties) > 0 {
+		props = uc.typeInference.CoerceRawProperties(req.RawProperties, collection.PropertySchema())
+	}
+
 	// Create new object
 	object, err := entities.NewObject(entities.ObjectProps{
 		Name:        objectName,
@@ -112,7 +121,7 @@ func (uc *CreateObjectUseCase) Execute(ctx context.Context, req CreateObjectRequ
 		Location:    req.Location,
 		Quantity:    req.Quantity,
 		Unit:        req.Unit,
-		Properties:  req.Properties,
+		Properties:  props,
 		Tags:        req.Tags,
 		ExpiresAt:   req.ExpiresAt,
 	})

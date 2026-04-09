@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -114,19 +115,19 @@ func (ctrl *ObjectController) CreateObject(w http.ResponseWriter, r *http.Reques
 	}
 
 	ucReq := usecases.CreateObjectRequest{
-		ContainerID:  containerID,
-		CollectionID: collectionID,
-		Name:         req.Name,
-		Description:  req.Description,
-		ObjectType:   req.GetObjectType(),
-		Location:     req.Location,
-		Quantity:     req.Quantity,
-		Unit:         req.Unit,
-		Properties:   req.Properties,
-		Tags:         req.Tags,
-		ExpiresAt:    req.ExpiresAt,
-		UserID:       pathUserID,
-		UserToken:    userToken,
+		ContainerID:   containerID,
+		CollectionID:  collectionID,
+		Name:          req.Name,
+		Description:   req.Description,
+		ObjectType:    req.GetObjectType(),
+		Location:      req.Location,
+		Quantity:      req.Quantity,
+		Unit:          req.Unit,
+		RawProperties: req.Properties,
+		Tags:          req.Tags,
+		ExpiresAt:     req.ExpiresAt,
+		UserID:        pathUserID,
+		UserToken:     userToken,
 	}
 
 	resp, err := ctrl.createObjectUC.Execute(r.Context(), ucReq)
@@ -334,17 +335,17 @@ func (ctrl *ObjectController) UpdateObject(w http.ResponseWriter, r *http.Reques
 	}
 
 	ucReq := usecases.UpdateObjectRequest{
-		ContainerID: containerID,
-		ObjectID:    objectID,
-		Name:        req.Name,
-		Description: req.Description,
-		Location:    req.Location,
-		Quantity:    req.Quantity,
-		Unit:        req.Unit,
-		Properties:  req.Properties,
-		Tags:        req.Tags,
-		UserID:      pathUserID,
-		UserToken:   userToken,
+		ContainerID:   containerID,
+		ObjectID:      objectID,
+		Name:          req.Name,
+		Description:   req.Description,
+		Location:      req.Location,
+		Quantity:      req.Quantity,
+		Unit:          req.Unit,
+		RawProperties: req.Properties,
+		Tags:          req.Tags,
+		UserID:        pathUserID,
+		UserToken:     userToken,
 	}
 
 	resp, err := ctrl.updateObjectUC.Execute(r.Context(), ucReq)
@@ -623,10 +624,13 @@ func (ctrl *ObjectController) BulkImport(w http.ResponseWriter, r *http.Request)
 			continue
 		}
 
-		properties := make(map[string]interface{})
+		properties := make(map[string]entities.TypedValue)
 		for key, value := range item {
 			if key != "name" {
-				properties[key] = value
+				properties[key] = entities.TypedValue{
+					Type: entities.PropertyTypeText,
+					Val:  fmt.Sprintf("%v", value),
+				}
 			}
 		}
 

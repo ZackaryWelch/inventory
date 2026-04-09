@@ -112,11 +112,7 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 			req.Data[i] = uc.typeInference.NormalizeRowKeys(row)
 		}
 		if inferredSchema != nil {
-			// Coerce all row values according to inferred schema
-			for i, row := range req.Data {
-				req.Data[i] = uc.typeInference.CoerceRow(row, inferredSchema)
-			}
-			// Save schema to collection
+			// Save schema to collection (coercion happens per-row at object creation time)
 			collection.UpdatePropertySchema(inferredSchema)
 			if err := uc.collectionRepo.Update(ctx, collection); err != nil {
 				return nil, fmt.Errorf("failed to save inferred schema: %w", err)
@@ -124,9 +120,15 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		}
 	}
 
+	// activeSchema is used for type coercion during property extraction
+	activeSchema := inferredSchema
+	if activeSchema == nil {
+		activeSchema = collection.PropertySchema()
+	}
+
 	// Handle location-based distribution mode before the standard switch
 	if req.DistributionMode == "location" {
-		return uc.executeLocationDistribution(ctx, req, collection, inferredSchema)
+		return uc.executeLocationDistribution(ctx, req, collection, inferredSchema, activeSchema)
 	}
 
 	// Determine target container(s) based on distribution mode
@@ -182,7 +184,7 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		}
 
 		// Process objects with automatic distribution
-		return uc.executeAutomaticDistribution(ctx, req, collection, autoDistData, inferredSchema)
+		return uc.executeAutomaticDistribution(ctx, req, collection, autoDistData, inferredSchema, activeSchema)
 
 	default:
 		// Use first available container or create default
@@ -238,14 +240,15 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		desc, quantity := resolveReservedFields(item)
 		tags := resolveTagsField(item, req.DefaultTags)
 
-		// Extract properties (all fields except reserved columns), with normalized keys
-		properties := make(map[string]interface{})
+		// Extract and coerce properties (all fields except reserved columns)
+		rawProps := make(map[string]interface{})
 		for key, value := range item {
 			nk := services.ToSnakeCase(key)
 			if !uc.typeInference.IsReserved(nk) {
-				properties[nk] = value
+				rawProps[nk] = value
 			}
 		}
+		properties := uc.typeInference.CoerceRow(rawProps, activeSchema)
 
 		// Create the object
 		objectName, err := entities.NewObjectName(name)
@@ -308,7 +311,7 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 	}, nil
 }
 
-func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.Context, req BulkImportCollectionRequest, collection *entities.Collection, autoDistData *automaticDistribution, inferredSchema *entities.PropertySchema) (*BulkImportCollectionResponse, error) {
+func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.Context, req BulkImportCollectionRequest, collection *entities.Collection, autoDistData *automaticDistribution, inferredSchema *entities.PropertySchema, activeSchema *entities.PropertySchema) (*BulkImportCollectionResponse, error) {
 	plan := autoDistData.plan
 	containerMap := autoDistData.containerMap
 
@@ -343,14 +346,15 @@ func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.
 		desc, quantity := resolveReservedFields(item)
 		tags := resolveTagsField(item, req.DefaultTags)
 
-		// Extract properties (all fields except reserved columns), with normalized keys
-		properties := make(map[string]interface{})
+		// Extract and coerce properties (all fields except reserved columns)
+		rawProps := make(map[string]interface{})
 		for key, value := range item {
 			nk := services.ToSnakeCase(key)
 			if !uc.typeInference.IsReserved(nk) {
-				properties[nk] = value
+				rawProps[nk] = value
 			}
 		}
+		properties := uc.typeInference.CoerceRow(rawProps, activeSchema)
 
 		// Create the object
 		objectName, err := entities.NewObjectName(name)
@@ -446,6 +450,7 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 	req BulkImportCollectionRequest,
 	collection *entities.Collection,
 	inferredSchema *entities.PropertySchema,
+	activeSchema *entities.PropertySchema,
 ) (*BulkImportCollectionResponse, error) {
 	// Determine the location column name (default: "location")
 	locationCol := req.LocationColumn
@@ -571,8 +576,8 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 		desc, quantity := resolveReservedFields(item)
 		tags := resolveTagsField(item, req.DefaultTags)
 
-		// Build properties (exclude reserved columns and location column), with normalized keys
-		properties := make(map[string]interface{})
+		// Build and coerce properties (exclude reserved columns and location column)
+		rawProps := make(map[string]interface{})
 		for key, value := range item {
 			nk := services.ToSnakeCase(key)
 			if uc.typeInference.IsReserved(nk) {
@@ -581,8 +586,9 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 			if nk == services.ToSnakeCase(locationCol) {
 				continue
 			}
-			properties[nk] = value
+			rawProps[nk] = value
 		}
+		properties := uc.typeInference.CoerceRow(rawProps, activeSchema)
 
 		objectName, err := entities.NewObjectName(name)
 		if err != nil {

@@ -512,6 +512,26 @@ func documentToObject(doc objectDocument) (*entities.Object, error) {
 
 	description := entities.NewObjectDescription(doc.Description)
 
+	// Normalize BSON-decoded values in TypedValue.Val:
+	// - primitive.DateTime (int64 ms) → time.Time
+	// - int32/int64 → float64 (for numeric/currency types)
+	for k, tv := range doc.Properties {
+		switch v := tv.Val.(type) {
+		case bson.DateTime:
+			doc.Properties[k] = entities.TypedValue{
+				Type: tv.Type, Val: v.Time(), Approx: tv.Approx, Currency: tv.Currency,
+			}
+		case int32:
+			doc.Properties[k] = entities.TypedValue{
+				Type: tv.Type, Val: float64(v), Approx: tv.Approx, Currency: tv.Currency,
+			}
+		case int64:
+			doc.Properties[k] = entities.TypedValue{
+				Type: tv.Type, Val: float64(v), Approx: tv.Approx, Currency: tv.Currency,
+			}
+		}
+	}
+
 	return entities.ReconstructObject(
 		id,
 		name,

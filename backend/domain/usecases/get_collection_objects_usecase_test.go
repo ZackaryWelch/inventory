@@ -49,7 +49,7 @@ func buildMultiContainerCollection(
 }
 
 // newSimpleObject builds a minimal Object with the given name and optional tags/properties.
-func newSimpleObject(name string, tags []string, props map[string]interface{}) entities.Object {
+func newSimpleObject(name string, tags []string, props map[string]entities.TypedValue) entities.Object {
 	objName, _ := entities.NewObjectName(name)
 	obj := entities.ReconstructObject(
 		entities.NewObjectID(), objName, entities.NewObjectDescription(""),
@@ -74,9 +74,9 @@ func TestGetCollectionObjectsUseCase_Filters(t *testing.T) {
 	userID := entities.NewUserID()
 	userGroups := []*entities.Group{}
 
-	obj1 := newSimpleObject("Apple Juice", []string{"food", "beverage"}, map[string]interface{}{"brand": "Tropicana", "for_sale": "true"})
-	obj2 := newSimpleObject("Banana Smoothie", []string{"food"}, map[string]interface{}{"brand": "Dole"})
-	obj3 := newSimpleObject("Code Book", []string{"book"}, map[string]interface{}{"author": "Clean Coder"})
+	obj1 := newSimpleObject("Apple Juice", []string{"food", "beverage"}, map[string]entities.TypedValue{"brand": {Val: "Tropicana"}, "for_sale": {Val: "true"}})
+	obj2 := newSimpleObject("Banana Smoothie", []string{"food"}, map[string]entities.TypedValue{"brand": {Val: "Dole"}})
+	obj3 := newSimpleObject("Code Book", []string{"book"}, map[string]entities.TypedValue{"author": {Val: "Clean Coder"}})
 
 	collection, cid1, _ := buildMultiContainerCollection(userID, []entities.Object{obj1, obj2}, []entities.Object{obj3})
 

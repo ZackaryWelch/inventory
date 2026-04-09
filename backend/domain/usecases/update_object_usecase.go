@@ -10,17 +10,18 @@ import (
 )
 
 type UpdateObjectRequest struct {
-	ContainerID *entities.ContainerID // nil = keep current container
-	ObjectID    entities.ObjectID
-	Name        *string
-	Description *string
-	Location    *string
-	Quantity    *float64
-	Unit        *string
-	Properties  map[string]interface{}
-	Tags        []string
-	UserID      entities.UserID
-	UserToken   string
+	ContainerID   *entities.ContainerID // nil = keep current container
+	ObjectID      entities.ObjectID
+	Name          *string
+	Description   *string
+	Location      *string
+	Quantity      *float64
+	Unit          *string
+	Properties    map[string]entities.TypedValue // for direct callers
+	RawProperties map[string]interface{}         // for HTTP/MCP callers; coerced in Execute()
+	Tags          []string
+	UserID        entities.UserID
+	UserToken     string
 }
 
 type UpdateObjectResponse struct {
@@ -32,6 +33,7 @@ type UpdateObjectUseCase struct {
 	containerRepo  repositories.ContainerRepository
 	collectionRepo repositories.CollectionRepository
 	authService    services.AuthService
+	typeInference  *services.TypeInferenceService
 }
 
 func NewUpdateObjectUseCase(containerRepo repositories.ContainerRepository, collectionRepo repositories.CollectionRepository, authService services.AuthService) *UpdateObjectUseCase {
@@ -39,6 +41,7 @@ func NewUpdateObjectUseCase(containerRepo repositories.ContainerRepository, coll
 		containerRepo:  containerRepo,
 		collectionRepo: collectionRepo,
 		authService:    authService,
+		typeInference:  services.NewTypeInferenceService(nil),
 	}
 }
 
@@ -117,7 +120,13 @@ func (uc *UpdateObjectUseCase) Execute(ctx context.Context, req UpdateObjectRequ
 		}
 	}
 
-	if req.Properties != nil {
+	if req.RawProperties != nil {
+		schema := collection.PropertySchema()
+		coerced := uc.typeInference.CoerceRawProperties(req.RawProperties, schema)
+		if err := updatedObject.UpdateProperties(coerced); err != nil {
+			return nil, fmt.Errorf("failed to update object properties: %w", err)
+		}
+	} else if req.Properties != nil {
 		if err := updatedObject.UpdateProperties(req.Properties); err != nil {
 			return nil, fmt.Errorf("failed to update object properties: %w", err)
 		}

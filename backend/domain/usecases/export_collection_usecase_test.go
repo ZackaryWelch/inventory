@@ -81,7 +81,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			"",
 			&qty,
 			"pcs",
-			map[string]interface{}{"sku": "SKU-001", "color": "red"},
+			map[string]entities.TypedValue{"sku": {Val: "SKU-001"}, "color": {Val: "red"}},
 			[]string{"sale", "new"},
 			&exp,
 			time.Now(), time.Now(),
@@ -137,7 +137,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			entities.NewObjectDescription(""),
 			entities.ObjectTypeGeneral,
 			"", nil, "",
-			map[string]interface{}{"sku": "G-42", "price": 9.99},
+			map[string]entities.TypedValue{"sku": {Val: "G-42"}, "price": {Val: 9.99}},
 			[]string{},
 			nil,
 			time.Now(), time.Now(),
@@ -183,7 +183,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			objName,
 			entities.NewObjectDescription(""),
 			entities.ObjectTypeGeneral,
-			"", nil, "", map[string]interface{}{}, []string{}, nil,
+			"", nil, "", map[string]entities.TypedValue{}, []string{}, nil,
 			time.Now(), time.Now(),
 		)
 
@@ -248,7 +248,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			objName,
 			entities.NewObjectDescription(""),
 			entities.ObjectTypeGeneral,
-			"", nil, "", map[string]interface{}{}, []string{}, nil,
+			"", nil, "", map[string]entities.TypedValue{}, []string{}, nil,
 			time.Now(), time.Now(),
 		)
 

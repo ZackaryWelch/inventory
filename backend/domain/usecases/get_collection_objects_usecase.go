@@ -117,11 +117,11 @@ func matchesPropertyFilters(obj entities.Object, filters map[string]string) bool
 	}
 	props := obj.Properties()
 	for k, v := range filters {
-		propVal, ok := props[k]
-		if !ok || propVal == nil {
+		tv, ok := props[k]
+		if !ok || tv.Val == nil {
 			return false
 		}
-		if !strings.Contains(strings.ToLower(fmt.Sprintf("%v", propVal)), strings.ToLower(v)) {
+		if !strings.Contains(strings.ToLower(fmt.Sprintf("%v", tv.Val)), strings.ToLower(v)) {
 			return false
 		}
 	}
