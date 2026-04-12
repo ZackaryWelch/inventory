@@ -340,6 +340,9 @@ func (ctrl *CollectionController) UpdateCollection(w http.ResponseWriter, r *htt
 		Location:     &req.Location,
 		UserToken:    userToken,
 	}
+	if req.ObjectType != "" {
+		ucReq.ObjectType = &req.ObjectType
+	}
 
 	resp, err := ctrl.updateCollectionUC.Execute(r.Context(), ucReq)
 	if err != nil {

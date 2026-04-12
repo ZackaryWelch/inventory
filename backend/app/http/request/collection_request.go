@@ -47,6 +47,7 @@ type CreateCollectionRequest struct {
 
 type UpdateCollectionRequest struct {
 	Name           string                 `json:"name" binding:"required,min=1,max=255"`
+	ObjectType     string                 `json:"object_type,omitempty"`
 	Tags           []string               `json:"tags,omitempty"`
 	Location       string                 `json:"location,omitempty"`
 	PropertySchema *PropertySchemaRequest `json:"property_schema,omitempty"`

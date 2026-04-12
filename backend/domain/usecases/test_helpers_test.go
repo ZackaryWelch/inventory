@@ -63,14 +63,16 @@ type objectOpts struct {
 	expiresAt *time.Time
 }
 
-func ObjName(n string) func(*objectOpts)                            { return func(o *objectOpts) { o.name = n } }
-func ObjDesc(d string) func(*objectOpts)                            { return func(o *objectOpts) { o.desc = d } }
-func ObjID(id entities.ObjectID) func(*objectOpts)                  { return func(o *objectOpts) { o.id.set(id) } }
-func ObjProps(p map[string]entities.TypedValue) func(*objectOpts)    { return func(o *objectOpts) { o.props = p } }
-func ObjTags(t ...string) func(*objectOpts)                         { return func(o *objectOpts) { o.tags = t } }
-func ObjUnit(u string) func(*objectOpts)                             { return func(o *objectOpts) { o.unit = u } }
-func ObjQuantity(q float64) func(*objectOpts)                       { return func(o *objectOpts) { o.quantity = &q } }
-func ObjExpiresAt(t time.Time) func(*objectOpts)                    { return func(o *objectOpts) { o.expiresAt = &t } }
+func ObjName(n string) func(*objectOpts)           { return func(o *objectOpts) { o.name = n } }
+func ObjDesc(d string) func(*objectOpts)           { return func(o *objectOpts) { o.desc = d } }
+func ObjID(id entities.ObjectID) func(*objectOpts) { return func(o *objectOpts) { o.id.set(id) } }
+func ObjProps(p map[string]entities.TypedValue) func(*objectOpts) {
+	return func(o *objectOpts) { o.props = p }
+}
+func ObjTags(t ...string) func(*objectOpts)      { return func(o *objectOpts) { o.tags = t } }
+func ObjUnit(u string) func(*objectOpts)         { return func(o *objectOpts) { o.unit = u } }
+func ObjQuantity(q float64) func(*objectOpts)    { return func(o *objectOpts) { o.quantity = &q } }
+func ObjExpiresAt(t time.Time) func(*objectOpts) { return func(o *objectOpts) { o.expiresAt = &t } }
 
 // TestContainer builds a minimal reconstructed Container. Override fields via opts.
 func NewTestContainer(opts ...func(*containerOpts)) *entities.Container {
@@ -103,12 +105,20 @@ type containerOpts struct {
 	location     string
 }
 
-func CtrName(n string) func(*containerOpts)                          { return func(o *containerOpts) { o.name = n } }
-func CtrID(id entities.ContainerID) func(*containerOpts)             { return func(o *containerOpts) { o.id.set(id) } }
-func CtrCollectionID(id entities.CollectionID) func(*containerOpts)  { return func(o *containerOpts) { o.collectionID.set(id) } }
-func CtrGroupID(id *entities.GroupID) func(*containerOpts)           { return func(o *containerOpts) { o.groupID = id } }
-func CtrObjects(objs ...entities.Object) func(*containerOpts)        { return func(o *containerOpts) { o.objects = objs } }
-func CtrLocation(l string) func(*containerOpts)                      { return func(o *containerOpts) { o.location = l } }
+func CtrName(n string) func(*containerOpts) { return func(o *containerOpts) { o.name = n } }
+func CtrID(id entities.ContainerID) func(*containerOpts) {
+	return func(o *containerOpts) { o.id.set(id) }
+}
+func CtrCollectionID(id entities.CollectionID) func(*containerOpts) {
+	return func(o *containerOpts) { o.collectionID.set(id) }
+}
+func CtrGroupID(id *entities.GroupID) func(*containerOpts) {
+	return func(o *containerOpts) { o.groupID = id }
+}
+func CtrObjects(objs ...entities.Object) func(*containerOpts) {
+	return func(o *containerOpts) { o.objects = objs }
+}
+func CtrLocation(l string) func(*containerOpts) { return func(o *containerOpts) { o.location = l } }
 
 // TestCollection builds a minimal reconstructed Collection. Override fields via opts.
 func NewTestCollection(opts ...func(*collectionOpts)) *entities.Collection {
@@ -141,14 +151,24 @@ type collectionOpts struct {
 	schema     *entities.PropertySchema
 }
 
-func ColName(n string) func(*collectionOpts)                             { return func(o *collectionOpts) { o.name = n } }
-func ColID(id entities.CollectionID) func(*collectionOpts)               { return func(o *collectionOpts) { o.id.set(id) } }
-func ColUserID(id entities.UserID) func(*collectionOpts)                 { return func(o *collectionOpts) { o.userID.set(id) } }
-func ColGroupID(id *entities.GroupID) func(*collectionOpts)              { return func(o *collectionOpts) { o.groupID = id } }
-func ColContainers(c ...entities.Container) func(*collectionOpts)        { return func(o *collectionOpts) { o.containers = c } }
-func ColTags(t ...string) func(*collectionOpts)                          { return func(o *collectionOpts) { o.tags = t } }
-func ColLocation(l string) func(*collectionOpts)                         { return func(o *collectionOpts) { o.location = l } }
-func ColSchema(s *entities.PropertySchema) func(*collectionOpts)         { return func(o *collectionOpts) { o.schema = s } }
+func ColName(n string) func(*collectionOpts) { return func(o *collectionOpts) { o.name = n } }
+func ColID(id entities.CollectionID) func(*collectionOpts) {
+	return func(o *collectionOpts) { o.id.set(id) }
+}
+func ColUserID(id entities.UserID) func(*collectionOpts) {
+	return func(o *collectionOpts) { o.userID.set(id) }
+}
+func ColGroupID(id *entities.GroupID) func(*collectionOpts) {
+	return func(o *collectionOpts) { o.groupID = id }
+}
+func ColContainers(c ...entities.Container) func(*collectionOpts) {
+	return func(o *collectionOpts) { o.containers = c }
+}
+func ColTags(t ...string) func(*collectionOpts)  { return func(o *collectionOpts) { o.tags = t } }
+func ColLocation(l string) func(*collectionOpts) { return func(o *collectionOpts) { o.location = l } }
+func ColSchema(s *entities.PropertySchema) func(*collectionOpts) {
+	return func(o *collectionOpts) { o.schema = s }
+}
 
 // TestGroup builds a minimal reconstructed Group. Override fields via opts.
 func NewTestGroup(opts ...func(*groupOpts)) *entities.Group {
@@ -172,9 +192,9 @@ type groupOpts struct {
 	desc string
 }
 
-func GrpName(n string) func(*groupOpts)              { return func(o *groupOpts) { o.name = n } }
-func GrpID(id entities.GroupID) func(*groupOpts)      { return func(o *groupOpts) { o.id.set(id) } }
-func GrpDesc(d string) func(*groupOpts)               { return func(o *groupOpts) { o.desc = d } }
+func GrpName(n string) func(*groupOpts)          { return func(o *groupOpts) { o.name = n } }
+func GrpID(id entities.GroupID) func(*groupOpts) { return func(o *groupOpts) { o.id.set(id) } }
+func GrpDesc(d string) func(*groupOpts)          { return func(o *groupOpts) { o.desc = d } }
 
 // --- generic optional ID ---
 

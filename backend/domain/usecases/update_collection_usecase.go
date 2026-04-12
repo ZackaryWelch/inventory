@@ -13,6 +13,7 @@ type UpdateCollectionRequest struct {
 	CollectionID entities.CollectionID
 	UserID       entities.UserID
 	Name         *string
+	ObjectType   *string
 	Tags         []string
 	Location     *string
 	UserToken    string
@@ -57,35 +58,34 @@ func (uc *UpdateCollectionUseCase) Execute(ctx context.Context, req UpdateCollec
 		}
 	}
 
-	// Update location if provided (location is stored as string in collection)
+	// Determine effective values for reconstruction
+	objectType := collection.ObjectType()
+	if req.ObjectType != nil {
+		objectType = entities.ObjectType(*req.ObjectType)
+	}
+
+	location := collection.Location()
 	if req.Location != nil {
-		// Update location through reconstruction since we don't have direct setter
+		location = *req.Location
+	}
+
+	tags := collection.Tags()
+	if len(req.Tags) > 0 {
+		tags = req.Tags
+	}
+
+	// Reconstruct with updated fields
+	if req.ObjectType != nil || req.Location != nil || len(req.Tags) > 0 {
 		collection = entities.ReconstructCollection(
 			collection.ID(),
 			collection.UserID(),
 			collection.GroupID(),
 			collection.Name(),
 			collection.CategoryID(),
-			collection.ObjectType(),
+			objectType,
 			collection.Containers(),
-			req.Tags,      // Use new tags
-			*req.Location, // Use new location
-			collection.PropertySchema(),
-			collection.CreatedAt(),
-			collection.UpdatedAt(),
-		)
-	} else if len(req.Tags) > 0 {
-		// Update only tags
-		collection = entities.ReconstructCollection(
-			collection.ID(),
-			collection.UserID(),
-			collection.GroupID(),
-			collection.Name(),
-			collection.CategoryID(),
-			collection.ObjectType(),
-			collection.Containers(),
-			req.Tags,
-			collection.Location(),
+			tags,
+			location,
 			collection.PropertySchema(),
 			collection.CreatedAt(),
 			collection.UpdatedAt(),

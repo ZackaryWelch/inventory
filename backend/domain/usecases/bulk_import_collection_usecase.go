@@ -154,6 +154,35 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		targetContainers = append(targetContainers, container)
 
 	case "automatic":
+		// If no containers exist, create a default one before distributing
+		existingContainers, err := uc.containerRepo.GetByCollectionID(ctx, req.CollectionID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check existing containers: %w", err)
+		}
+		if len(existingContainers) == 0 {
+			containerName, err := entities.NewContainerName("Default Container")
+			if err != nil {
+				return nil, fmt.Errorf("failed to create container name: %w", err)
+			}
+			newContainer, err := entities.NewContainer(entities.ContainerProps{
+				CollectionID:  req.CollectionID,
+				Name:          containerName,
+				ContainerType: entities.ContainerTypeGeneral,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to create default container: %w", err)
+			}
+			if err := uc.containerRepo.Create(ctx, newContainer); err != nil {
+				return nil, fmt.Errorf("failed to save default container: %w", err)
+			}
+			if err := collection.AddContainer(*newContainer); err != nil {
+				return nil, fmt.Errorf("failed to add default container to collection: %w", err)
+			}
+			if err := uc.collectionRepo.Update(ctx, collection); err != nil {
+				return nil, fmt.Errorf("failed to update collection with default container: %w", err)
+			}
+		}
+
 		// Use distribution helpers for automatic distribution
 		distributionPlan, err := DistributeObjects(ctx, uc.containerRepo, req.CollectionID, req.Data, collection.ObjectType())
 		if err != nil {
