@@ -1,14 +1,20 @@
 package theme
 
 import (
+	_ "embed"
+	"fmt"
 	"image/color"
 
 	"gioui.org/font"
 	"gioui.org/font/gofont"
+	"gioui.org/font/opentype"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
 )
+
+//go:embed fonts/NotoSansJP-Regular.otf
+var notoSansJPRegular []byte
 
 // NishikiTheme extends material.Theme with custom colors and styling
 type NishikiTheme struct {
@@ -37,11 +43,18 @@ type NishikiTheme struct {
 
 // NewTheme creates a customized Nishiki theme based on material design
 func NewTheme() *NishikiTheme {
-	// Start with default material theme and register Go fonts
+	// Start with default material theme and register Go fonts + CJK fallback
 	th := material.NewTheme()
 
-	// Register the embedded Go fonts (required for WASM)
-	th.Shaper = text.NewShaper(text.WithCollection(gofont.Collection()))
+	// Build font collection: Go fonts + Noto Sans JP for CJK characters
+	fonts := gofont.Collection()
+	jpFaces, err := opentype.ParseCollection(notoSansJPRegular)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse Noto Sans JP font: %v", err))
+	}
+	fonts = append(fonts, jpFaces...)
+
+	th.Shaper = text.NewShaper(text.WithCollection(fonts))
 
 	// Customize the base theme from active palette
 	th.Fg = ColorTextPrimary     // Default text color
