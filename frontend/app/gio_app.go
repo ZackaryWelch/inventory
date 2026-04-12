@@ -77,6 +77,13 @@ type GioApp struct {
 	// Login error message shown on the login screen after auth failures
 	loginErrorMsg string
 
+	// Loading state for async data fetches
+	loadingContainersObjects bool
+
+	// Generic API error dialog state
+	showAPIError bool
+	apiErrorMsg  string
+
 	// Dialog state
 	showGroupDialog           bool
 	groupDialogMode           string // "create" or "edit"
@@ -123,6 +130,13 @@ type GioApp struct {
 	importRunning        bool
 	importResult         *importResult
 
+	// Import & Create Collection state
+	importCreateMode         bool    // flag: file picker opens import-create dialog
+	showImportCreateDialog   bool
+	importContainerCol       *string // column for container creation
+	importCreateRunning      bool
+	importCreateError        string
+
 	// Container display mode in collection detail
 	showContainersPanel bool   // whether container column is visible
 	containerViewMode   string // "split" (side-by-side) or "grouped" (objects grouped by container)
@@ -131,8 +145,8 @@ type GioApp struct {
 	activeGroupedTextFilters map[string]string
 
 	// Sort/group state for objects listing
-	objectSortField   string // "", "name", "location", or a property key
-	objectSortDir     string // "asc" or "desc" (default "asc")
+	objectSortField    string // "", "name", "location", or a property key
+	objectSortDir      string // "asc" or "desc" (default "asc")
 	objectGroupByField string // "", "location", "container", or a property key
 
 	// Render caches — invalidated when underlying data changes (see invalidateObjectCaches)
@@ -221,6 +235,10 @@ type WidgetState struct {
 	collectionErrorDialogDismiss widget.Clickable
 	collectionErrorDialog        *widgets.Dialog
 
+	// API error dialog
+	apiErrorDialog        *widgets.Dialog
+	apiErrorDialogDismiss widget.Clickable
+
 	// Container/Object view
 	toggleContainersButton widget.Clickable
 	containerViewSplitBtn  widget.Clickable
@@ -244,6 +262,19 @@ type WidgetState struct {
 	importNameColumnButtons     map[string]*widget.Clickable
 	importLocationColumnButtons map[string]*widget.Clickable
 	importInferSchemaCheck      widget.Bool
+
+	// Import & Create Collection dialog
+	importCreateButton             widget.Clickable // "Import" button on collections toolbar
+	importCreateDialog             *widgets.Dialog
+	importCreateNameEditor         widget.Editor
+	importCreateLocationEditor     widget.Editor
+	importCreateExecuteButton      widget.Clickable
+	importCreateCancelButton       widget.Clickable
+	importCreateDialogList         widget.List
+	importCreatePreviewList        widget.List
+	importCreateNameColButtons     map[string]*widget.Clickable
+	importCreateContainerColButtons map[string]*widget.Clickable
+	importCreateInferSchemaCheck   widget.Bool
 
 	// Grouped-text filter chips (key = "propKey||value")
 	groupedTextFilterButtons map[string]*widget.Clickable
@@ -419,20 +450,26 @@ func NewGioApp() *GioApp {
 		collectionTypeButtons:       make(map[string]*widget.Clickable),
 		collectionGroupButtons:      make(map[string]*widget.Clickable),
 		containerTypeButtons:        make(map[string]*widget.Clickable),
-		importNameColumnButtons:     make(map[string]*widget.Clickable),
-		importLocationColumnButtons: make(map[string]*widget.Clickable),
-		groupedTextFilterButtons:    make(map[string]*widget.Clickable),
-		importDialogList:            widget.List{List: layout.List{Axis: layout.Vertical}},
-		importPreviewList:           widget.List{List: layout.List{Axis: layout.Vertical}},
+		importNameColumnButtons:         make(map[string]*widget.Clickable),
+		importLocationColumnButtons:     make(map[string]*widget.Clickable),
+		importCreateNameColButtons:      make(map[string]*widget.Clickable),
+		importCreateContainerColButtons: make(map[string]*widget.Clickable),
+		groupedTextFilterButtons:        make(map[string]*widget.Clickable),
+		importDialogList:                widget.List{List: layout.List{Axis: layout.Vertical}},
+		importPreviewList:               widget.List{List: layout.List{Axis: layout.Vertical}},
+		importCreateDialogList:          widget.List{List: layout.List{Axis: layout.Vertical}},
+		importCreatePreviewList:         widget.List{List: layout.List{Axis: layout.Vertical}},
 		collectionDialog:            widgets.NewDialog(),
 		groupDialog:                 widgets.NewDialog(),
 		deleteDialog:                widgets.NewDialog(),
 		collectionErrorDialog:       widgets.NewDialog(),
+		apiErrorDialog:              widgets.NewDialog(),
 		containerDialog:             widgets.NewDialog(),
 		objectDialog:                widgets.NewDialog(),
 		schemaDialog:                widgets.NewDialog(),
 		membersDialog:               widgets.NewDialog(),
 		joinGroupDialog:             widgets.NewDialog(),
+		importCreateDialog:          widgets.NewDialog(),
 		knownUserClickables:         make(map[string]*widget.Clickable),
 	}
 
@@ -547,6 +584,9 @@ func (ga *GioApp) render(gtx layout.Context) layout.Dimensions {
 				}
 				if ga.showDeleteCollectionError {
 					return ga.renderDeleteCollectionErrorDialog(gtx)
+				}
+				if ga.showImportCreateDialog {
+					return ga.renderImportCreateDialog(gtx)
 				}
 			}
 			return layout.Dimensions{}

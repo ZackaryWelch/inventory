@@ -54,7 +54,6 @@ func (ga *GioApp) handleImportFileContent(content string, filename string) {
 
 	ga.importData = importData
 	ga.importFilename = filename
-	ga.showImportPreview = true
 
 	// Initialize column mapping with auto-detected values
 	ga.importNameColumn = detectNameColumn(importData.Data)
@@ -63,7 +62,29 @@ func (ga *GioApp) handleImportFileContent(content string, filename string) {
 	} else {
 		ga.importLocationColumn = nil
 	}
-	ga.widgetState.importInferSchemaCheck.Value = true
+
+	if ga.importCreateMode {
+		// Import & Create Collection mode
+		ga.importCreateMode = false
+		ga.showImportCreateDialog = true
+		ga.importCreateError = ""
+		ga.selectedObjectType = ObjectTypeGeneral
+		ga.selectedGroupID = nil
+		ga.widgetState.importCreateNameEditor.SetText(filenameToCollectionName(filename))
+		ga.widgetState.importCreateLocationEditor.SetText("")
+		ga.widgetState.importCreateInferSchemaCheck.Value = true
+
+		// Auto-detect container column
+		if col := detectContainerColumn(importData.Data); col != "" {
+			ga.importContainerCol = &col
+		} else {
+			ga.importContainerCol = nil
+		}
+	} else {
+		// Regular import into existing collection
+		ga.showImportPreview = true
+		ga.widgetState.importInferSchemaCheck.Value = true
+	}
 
 	ga.window.Invalidate()
 }
@@ -171,6 +192,32 @@ func detectNameColumn(data []map[string]interface{}) string {
 	return detectColumnByName(data, "name", "title", "item")
 }
 
+// detectContainerColumn returns the container column if found in the data headers.
+func detectContainerColumn(data []map[string]interface{}) string {
+	return detectColumnByName(data, "container", "shelf", "room", "box", "bin")
+}
+
+// filenameToCollectionName converts a filename to a human-readable collection name.
+// e.g., "my_board_games.csv" → "My Board Games"
+func filenameToCollectionName(filename string) string {
+	// Strip extension
+	name := filename
+	if idx := strings.LastIndex(name, "."); idx > 0 {
+		name = name[:idx]
+	}
+	// Replace separators with spaces
+	name = strings.ReplaceAll(name, "_", " ")
+	name = strings.ReplaceAll(name, "-", " ")
+	// Title case
+	words := strings.Fields(name)
+	for i, w := range words {
+		if len(w) > 0 {
+			words[i] = strings.ToUpper(w[:1]) + strings.ToLower(w[1:])
+		}
+	}
+	return strings.Join(words, " ")
+}
+
 // executeImport sends the import request to the backend.
 func (ga *GioApp) executeImport() {
 	if ga.selectedCollection == nil || ga.importData == nil {
@@ -212,6 +259,23 @@ func (ga *GioApp) executeImport() {
 			return
 		}
 
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			var errResp struct {
+				Error string `json:"error"`
+			}
+			_ = json.NewDecoder(resp.Body).Decode(&errResp)
+			resp.Body.Close()
+			ga.importRunning = false
+			errMsg := errResp.Error
+			if errMsg == "" {
+				errMsg = fmt.Sprintf("server error (status %d)", resp.StatusCode)
+			}
+			ga.logger.Error("Import failed", "error", errMsg)
+			ga.importData.Errors = []string{errMsg}
+			ga.window.Invalidate()
+			return
+		}
+
 		var result struct {
 			Imported          int      `json:"imported"`
 			Failed            int      `json:"failed"`
@@ -249,6 +313,32 @@ func (ga *GioApp) executeImport() {
 		} else {
 			ga.dismissImport()
 		}
+
+		// Refetch collection to pick up inferred schema
+		if inferSchema {
+			userID := ga.currentUser.ID
+			collectionID := ga.selectedCollection.ID
+			updated, err := ga.collectionsClient.Get(userID, collectionID)
+			if err != nil {
+				ga.logger.Warn("Failed to refetch collection after import", "error", err)
+			} else {
+				ga.do(func() {
+					ga.selectedCollection = updated
+					for i, c := range ga.collections {
+						if c.ID == updated.ID {
+							ga.collections[i] = *updated
+							break
+						}
+					}
+					// Reset sort/group since schema may have changed
+					ga.objectSortField = ""
+					ga.objectSortDir = ""
+					ga.objectGroupByField = ""
+					ga.invalidateObjectCaches()
+				})
+			}
+		}
+
 		ga.fetchContainersAndObjects()
 	}()
 }

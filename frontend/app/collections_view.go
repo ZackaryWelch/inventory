@@ -59,6 +59,13 @@ func (ga *GioApp) renderCollectionsView(gtx layout.Context) layout.Dimensions {
 		ga.widgetState.collectionTagsEditor.SetText("")
 	}
 
+	// Handle import-create button click
+	if ga.widgetState.importCreateButton.Clicked(gtx) {
+		ga.logger.Info("Opening import & create collection file picker")
+		ga.importCreateMode = true
+		ga.SelectImportFile()
+	}
+
 	// Ensure we have collection item states
 	ga.ensureCollectionItemStates()
 
@@ -122,6 +129,13 @@ func (ga *GioApp) renderCollectionsToolbar(gtx layout.Context) layout.Dimensions
 					editor := material.Editor(ga.theme.Theme, &ga.widgetState.collectionsSearchField, "Search collections...")
 					editor.Color = theme.ColorTextPrimary
 					return editor.Layout(gtx)
+				})
+			}),
+
+			// Import button
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return widgets.AccentButton(ga.theme.Theme, &ga.widgetState.importCreateButton, "Import")(gtx)
 				})
 			}),
 
@@ -331,9 +345,10 @@ func (ga *GioApp) renderCollectionDialog(gtx layout.Context) layout.Dimensions {
 				return ga.renderFormField(gtx, "Name *", &ga.widgetState.collectionNameEditor, "Enter collection name")
 			}),
 
-			// Object Type selection (only for create mode)
+			// Object Type selection (create mode, or edit mode with no objects)
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				if ga.collectionDialogMode == "create" {
+				if ga.collectionDialogMode == "create" ||
+					(ga.collectionDialogMode == "edit" && ga.selectedCollection != nil && ga.collectionObjectCount() == 0) {
 					return ga.renderObjectTypeSelector(gtx)
 				}
 				return layout.Dimensions{}
@@ -541,9 +556,10 @@ func (ga *GioApp) handleCollectionUpdate() {
 
 	go func() {
 		req := types.UpdateCollectionRequest{
-			Name:     name,
-			Location: location,
-			Tags:     tags,
+			Name:       name,
+			ObjectType: ga.selectedObjectType,
+			Location:   location,
+			Tags:       tags,
 		}
 
 		updated, err := ga.collectionsClient.Update(ga.currentUser.ID, collectionID, req)
@@ -567,6 +583,19 @@ func (ga *GioApp) handleCollectionUpdate() {
 	ga.showCollectionDialog = false
 	ga.selectedCollection = nil
 	ga.window.Invalidate()
+}
+
+// collectionObjectCount returns the total object count for the selected collection,
+// using the embedded container data from the collection response.
+func (ga *GioApp) collectionObjectCount() int {
+	if ga.selectedCollection == nil {
+		return 0
+	}
+	count := 0
+	for _, c := range ga.selectedCollection.Containers {
+		count += c.ObjectCount
+	}
+	return count
 }
 
 // renderDeleteCollectionDialog renders the delete confirmation dialog

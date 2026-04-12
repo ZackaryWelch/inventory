@@ -17,22 +17,6 @@ var currencySymbols = map[string]string{
 	"AUD": "A$",
 }
 
-// RenderPropertyValue formats a TypedValue for display using schema type info.
-// Pass nil or an empty slice when no schema is available; falls back to plain string conversion.
-func RenderPropertyValue(key string, tv TypedValue, defs []PropertyDefinition) string {
-	def := findPropertyDef(key, defs)
-	return renderTypedValue(tv, def)
-}
-
-func findPropertyDef(key string, defs []PropertyDefinition) *PropertyDefinition {
-	for i := range defs {
-		if defs[i].Key == key {
-			return &defs[i]
-		}
-	}
-	return nil
-}
-
 // RenderPropertyValueFromMap is like RenderPropertyValue but uses a pre-built map for O(1) lookup.
 func RenderPropertyValueFromMap(key string, tv TypedValue, defMap map[string]*PropertyDefinition) string {
 	def := defMap[key]

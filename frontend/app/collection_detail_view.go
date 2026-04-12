@@ -217,6 +217,9 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
 			return ga.renderSchemaEditorDialog(gtx)
 		}),
+		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
+			return ga.renderAPIErrorDialog(gtx)
+		}),
 	)
 }
 
@@ -357,8 +360,11 @@ func (ga *GioApp) renderContainersColumn(gtx layout.Context) layout.Dimensions {
 			})
 		}),
 
-		// Containers list
+		// Containers list (or loading indicator)
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			if ga.loadingContainersObjects {
+				return ga.renderLoadingIndicator(gtx, "Loading containers...")
+			}
 			return ga.renderContainersList(gtx)
 		}),
 	)
@@ -430,8 +436,11 @@ func (ga *GioApp) renderObjectsColumn(gtx layout.Context) layout.Dimensions {
 			})
 		}),
 
-		// Objects list
+		// Objects list (or loading indicator)
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+			if ga.loadingContainersObjects {
+				return ga.renderLoadingIndicator(gtx, "Loading objects...")
+			}
 			if ga.objectGroupByField != "" {
 				return ga.renderObjectsGroupedByField(gtx)
 			}
@@ -559,12 +568,12 @@ func (ga *GioApp) sortObjects(filtered []Object, indices []int) {
 	defMap := ga.getPropertyDefMap()
 
 	sort.Sort(&objectSorter{
-		objects:   filtered,
-		indices:   indices,
-		field:     ga.objectSortField,
-		desc:      desc,
-		defMap:    defMap,
-		locFn:     ga.getObjectEffectiveLocation,
+		objects: filtered,
+		indices: indices,
+		field:   ga.objectSortField,
+		desc:    desc,
+		defMap:  defMap,
+		locFn:   ga.getObjectEffectiveLocation,
 	})
 }
 
@@ -1240,6 +1249,8 @@ func (ga *GioApp) fetchContainersAndObjects() {
 	collectionID := ga.selectedCollection.ID
 	userID := ga.currentUser.ID
 
+	ga.loadingContainersObjects = true
+
 	go func() {
 		fetchStart := time.Now()
 		ga.logger.Info("Fetching containers and objects", "collection_id", collectionID)
@@ -1274,12 +1285,20 @@ func (ga *GioApp) fetchContainersAndObjects() {
 			"objects", len(objects), "objects_time", objTime,
 			"total_time", time.Since(fetchStart))
 
-		if contErr != nil {
-			ga.logger.Error("Failed to fetch containers", "error", contErr)
-			return
-		}
-		if objErr != nil {
-			ga.logger.Error("Failed to fetch objects", "error", objErr)
+		if contErr != nil || objErr != nil {
+			var errMsgs []string
+			if contErr != nil {
+				errMsgs = append(errMsgs, "Containers: "+contErr.Error())
+			}
+			if objErr != nil {
+				errMsgs = append(errMsgs, "Objects: "+objErr.Error())
+			}
+			ga.logger.Error("Failed to fetch data", "contErr", contErr, "objErr", objErr)
+			ga.do(func() {
+				ga.loadingContainersObjects = false
+				ga.showAPIError = true
+				ga.apiErrorMsg = "Failed to load collection data.\n\n" + strings.Join(errMsgs, "\n")
+			})
 			return
 		}
 
@@ -1287,6 +1306,7 @@ func (ga *GioApp) fetchContainersAndObjects() {
 		doStart := time.Now()
 		ga.do(func() {
 			ga.logger.Info("ga.do() callback executing", "wait", time.Since(doStart))
+			ga.loadingContainersObjects = false
 			ga.containers = containers
 			ga.objects = objects
 			ga.activeGroupedTextFilters = nil
@@ -1294,6 +1314,16 @@ func (ga *GioApp) fetchContainersAndObjects() {
 			ga.logger.Info("State updated", "objects", len(ga.objects), "containers", len(ga.containers))
 		})
 	}()
+}
+
+// renderLoadingIndicator renders a centered loading message.
+func (ga *GioApp) renderLoadingIndicator(gtx layout.Context, msg string) layout.Dimensions {
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		label := material.Body1(ga.theme.Theme, msg)
+		label.Color = theme.ColorTextSecondary
+		label.Alignment = text.Middle
+		return label.Layout(gtx)
+	})
 }
 
 // renderObjectProperties renders the key/value properties of an object using schema-aware formatting.
@@ -1453,7 +1483,7 @@ func (ga *GioApp) collectGroupedTextValues() map[string][]string {
 	for _, obj := range ga.objects {
 		for k := range result {
 			if v, ok := obj.Properties[k]; ok {
-				s := fmt.Sprintf("%v", v)
+				s := fmt.Sprintf("%v", v.Val)
 				if s != "" && !seen[k][s] {
 					seen[k][s] = true
 					result[k] = append(result[k], s)
@@ -1477,7 +1507,7 @@ func (ga *GioApp) matchesGroupedTextFilters(obj Object) bool {
 		if !ok {
 			return false
 		}
-		if fmt.Sprintf("%v", v) != selectedVal {
+		if fmt.Sprintf("%v", v.Val) != selectedVal {
 			return false
 		}
 	}

@@ -540,6 +540,7 @@ func (ga *GioApp) handleContainerCreate() {
 		container, err := ga.containersClient.Create(userID, collectionID, req)
 		if err != nil {
 			ga.logger.Error("Failed to create container", "error", err)
+			ga.do(func() { ga.showAPIErrorDialog("Failed to create container: " + err.Error()) })
 			return
 		}
 
@@ -594,6 +595,7 @@ func (ga *GioApp) handleContainerUpdate() {
 		updated, err := ga.containersClient.Update(userID, collectionID, containerID, req)
 		if err != nil {
 			ga.logger.Error("Failed to update container", "error", err)
+			ga.do(func() { ga.showAPIErrorDialog("Failed to update container: " + err.Error()) })
 			return
 		}
 
@@ -624,6 +626,7 @@ func (ga *GioApp) handleContainerDelete() {
 		err := ga.containersClient.Delete(userID, collectionID, containerID)
 		if err != nil {
 			ga.logger.Error("Failed to delete container", "error", err)
+			ga.do(func() { ga.showAPIErrorDialog("Failed to delete container: " + err.Error()) })
 			return
 		}
 
@@ -688,6 +691,7 @@ func (ga *GioApp) handleObjectCreate() {
 		object, err := ga.objectsClient.Create(userID, req, collectionID)
 		if err != nil {
 			ga.logger.Error("Failed to create object", "error", err)
+			ga.do(func() { ga.showAPIErrorDialog("Failed to create object: " + err.Error()) })
 			return
 		}
 
@@ -765,6 +769,7 @@ func (ga *GioApp) handleObjectUpdate() {
 		updated, err := ga.objectsClient.Update(userID, objectID, req)
 		if err != nil {
 			ga.logger.Error("Failed to update object", "error", err)
+			ga.do(func() { ga.showAPIErrorDialog("Failed to update object: " + err.Error()) })
 			return
 		}
 
@@ -802,6 +807,7 @@ func (ga *GioApp) handleObjectDelete() {
 		err := ga.objectsClient.Delete(userID, objectID, containerID)
 		if err != nil {
 			ga.logger.Error("Failed to delete object", "error", err)
+			ga.do(func() { ga.showAPIErrorDialog("Failed to delete object: " + err.Error()) })
 			return
 		}
 
@@ -909,4 +915,59 @@ func (ga *GioApp) renderObjectSchemaFields(gtx layout.Context) layout.Dimensions
 		})
 	}
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+}
+
+// showAPIErrorDialog sets state to display the API error dialog with the given message.
+func (ga *GioApp) showAPIErrorDialog(msg string) {
+	ga.showAPIError = true
+	ga.apiErrorMsg = msg
+}
+
+// renderAPIErrorDialog renders a dismissible error dialog for API errors.
+func (ga *GioApp) renderAPIErrorDialog(gtx layout.Context) layout.Dimensions {
+	if !ga.showAPIError {
+		return layout.Dimensions{}
+	}
+
+	if ga.widgetState.apiErrorDialogDismiss.Clicked(gtx) {
+		ga.showAPIError = false
+		ga.apiErrorMsg = ""
+		ga.widgetState.apiErrorDialog.Reset()
+		return layout.Dimensions{}
+	}
+
+	dialogStyle := widgets.DefaultDialogStyle(ga.widgetState.apiErrorDialog, "Error")
+	dialogStyle.Width = unit.Dp(500)
+	dialogStyle.TitleBarColor = theme.ColorDanger
+
+	dims, dismissed := dialogStyle.Layout(gtx, ga.theme.Theme, func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{
+			Axis: layout.Vertical,
+		}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Bottom: unit.Dp(theme.Spacing4)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					label := material.Body1(ga.theme.Theme, ga.apiErrorMsg)
+					return label.Layout(gtx)
+				})
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{
+					Axis:    layout.Horizontal,
+					Spacing: layout.SpaceEnd,
+				}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return widgets.PrimaryButton(ga.theme.Theme, &ga.widgetState.apiErrorDialogDismiss, "OK")(gtx)
+					}),
+				)
+			}),
+		)
+	})
+
+	if dismissed {
+		ga.showAPIError = false
+		ga.apiErrorMsg = ""
+		ga.widgetState.apiErrorDialog.Reset()
+	}
+
+	return dims
 }

@@ -27,8 +27,8 @@ func makeObjects(n int, propKey string, values []string) []Object {
 			Name:        fmt.Sprintf("Object %d", i),
 			Description: fmt.Sprintf("Description for object %d", i),
 			ContainerID: fmt.Sprintf("cont-%d", i%5),
-			Properties: map[string]interface{}{
-				propKey: values[i%len(values)],
+			Properties: map[string]TypedValue{
+				propKey: TypedValue{Val: values[i%len(values)]},
 			},
 		}
 	}
@@ -268,11 +268,7 @@ func TestGetFilteredObjects_Cache(t *testing.T) {
 
 func TestGetFilteredObjects_GroupedTextFilter(t *testing.T) {
 	ga := newTestGioApp()
-	ga.objects = []Object{
-		{ID: "1", Name: "A", Properties: map[string]interface{}{"color": "red"}},
-		{ID: "2", Name: "B", Properties: map[string]interface{}{"color": "blue"}},
-		{ID: "3", Name: "C", Properties: map[string]interface{}{"color": "red"}},
-	}
+	ga.objects = makeObjects(3, "color", []string{"red", "blue", "red"})
 	ga.activeGroupedTextFilters = map[string]string{"color": "red"}
 
 	objs, _ := ga.getFilteredObjects()
@@ -416,10 +412,10 @@ func BenchmarkMatchesGroupedTextFilters(b *testing.B) {
 		"brand":    "Sony",
 	}
 	obj := Object{
-		Properties: map[string]interface{}{
-			"category": "Electronics",
-			"brand":    "Sony",
-			"color":    "black",
+		Properties: map[string]TypedValue{
+			"category": {Val: "Electronics"},
+			"brand":    {Val: "Sony"},
+			"color":    {Val: "black"},
 		},
 	}
 	b.ResetTimer()
