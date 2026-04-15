@@ -63,7 +63,7 @@ func (ctrl *AuthController) GetCurrentUser(w http.ResponseWriter, r *http.Reques
 // @Produce json
 // @Success 200 {object} map[string]string
 // @Router /health [get]
-func (ctrl *AuthController) HealthCheck(w http.ResponseWriter, r *http.Request) {
+func (ctrl *AuthController) HealthCheck(w http.ResponseWriter, _ *http.Request) {
 	httputil.JSON(w, http.StatusOK, map[string]string{
 		"status":  "healthy",
 		"service": "nishiki-backend",

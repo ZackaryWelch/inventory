@@ -62,7 +62,7 @@ func DistributeObjects(
 	}
 
 	// Build container hierarchy
-	hierarchy, err := BuildContainerHierarchy(ctx, containers)
+	hierarchy, err := BuildContainerHierarchy(containers)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build hierarchy: %w", err)
 	}
@@ -158,12 +158,7 @@ func CalculateContainerCapacity(container *entities.Container) float64 {
 }
 
 // BuildContainerHierarchy builds a hierarchical tree of containers
-func BuildContainerHierarchy(
-	ctx context.Context,
-	containers []*entities.Container,
-) ([]*ContainerWithCapacity, error) {
-
-	// Create lookup maps
+func BuildContainerHierarchy(containers []*entities.Container) ([]*ContainerWithCapacity, error) {
 	containerMap := make(map[string]*ContainerWithCapacity)
 	roots := make([]*ContainerWithCapacity, 0)
 

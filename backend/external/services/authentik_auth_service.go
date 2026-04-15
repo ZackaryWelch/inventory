@@ -558,7 +558,7 @@ func (s *AuthentikAuthService) addUserToGroup(ctx context.Context, groupID, user
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(string(payloadBytes)))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(string(payloadBytes)))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -913,7 +913,7 @@ func (s *AuthentikAuthService) ProxyTokenExchange(ctx context.Context, tokenRequ
 		slog.String("provider_name", client.config.ProviderName))
 
 	// Create request
-	req, err := http.NewRequestWithContext(ctx, "POST", tokenURL, strings.NewReader(formData.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(formData.Encode()))
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to create request: %w", err)
 	}

@@ -1,0 +1,156 @@
+#file: noinspection SpellCheckingInspection
+# See https://golangci-lint.run/usage/integrations/ for editor integrations
+# Supports VSCode and vim-go
+version: "2"
+run:
+  concurrency: 8
+  tests: true
+
+issues:
+  max-same-issues: 0
+  max-issues-per-linter: 0
+  fix: false
+
+linters:
+  default: all
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: false
+      exclude-functions:
+        - (io.ReadCloser).Close
+
+    errchkjson:
+      report-no-exported: true
+
+    interfacebloat:
+      max: 14
+
+    dupl:
+      threshold: 190
+
+    cyclop:
+      max-complexity: 16
+      package-average: 8
+
+    gocritic:
+      disabled-checks:
+        - sloppyReassign # Not useful
+        - hugeParam # Value copies in params are negligible vs IO-bound operations
+        - rangeValCopy # Same rationale as hugeParam; readability over micro-optimization
+      enable-all: true
+      settings:
+        ifElseChain:
+          minThreshold: 4
+
+    goconst:
+      numbers: false # Using mnd
+      ignore-calls: true
+      match-constant: false
+      find-duplicates: true
+      eval-const-expressions: true
+
+    mnd:
+      ignored-numbers:
+        - '2'
+        - '5'
+        - '10'
+        - '30'
+
+    tagliatelle:
+      case:
+        rules:
+          json: snake
+          yaml: snake
+        overrides:
+          - pkg: app/config
+            ignored-fields:
+              - DBConfig
+              - AppConfig
+
+    godot:
+      period: false
+      capital: false
+
+    unparam:
+      check-exported: true
+
+    lll:
+      line-length: 200
+      tab-width: 2
+
+    unused:
+      exported-fields-are-used: false
+      parameters-are-used: true # Doesn't like blank imports. Use revive otherwise
+      local-variables-are-used: false
+      generated-is-used: false
+      field-writes-are-uses: false
+
+    revive:
+      enable-default-rules: true
+      rules:
+        - name: exported
+          disabled: true
+        - name: package-comments
+          disabled: true
+        - name: unused-parameter
+          disabled: true
+        - name: var-naming
+          disabled: true
+
+    staticcheck:
+      checks:
+        - "all"
+        - "-ST1003" # Checking for capitalization, too picky
+        - "-ST1000" # Checking for comments
+        - "-ST1020" # Checking for comments
+        - "-ST1021" # Checking for comments
+        - "-ST1022" # Checking for comments
+        - "-ST1029" # Context key type, doesn't work well with Gin context key-value map
+        - "-SA1029" # Context key type, doesn't work well with Gin context key-value map
+
+    gosec:
+      excludes:
+        - G117
+        - G704
+
+  disable:
+    # Whitespace related - too noisy
+    - wsl
+    - wsl_v5
+    - whitespace
+    - nlreturn
+
+    # Style preferences - not critical for functionality
+    - wrapcheck # Custom error types preferred
+    - varnamelen # Short names acceptable in context
+    - exhaustruct # Empty structs are fine
+    - funlen # Function length not critical
+    - nonamedreturns # Named returns optional
+    - ireturn # Interface returns are good
+    - tagalign # Tag alignment not critical
+    - nakedret # Named returns with naked return acceptable
+    - testpackage # Tests in main package acceptable
+    - depguard # No import restrictions needed
+    - gochecknoinits # Init functions acceptable
+    - noinlineerr
+    - paralleltest
+    - godoclint
+    - tparallel
+
+  exclusions:
+    rules:
+      - path: tests
+        linters:
+          - err113
+          - maintidx
+          - gochecknoglobals
+      - path: repositories
+        linters:
+          - dupl
+          - gochecknoglobals
+      - path: api
+        linters:
+          - dupl
+          - gochecknoglobals
+          - lll

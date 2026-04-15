@@ -31,7 +31,7 @@ func Setup(appContainer *container.Container) http.Handler {
 	globalMiddleware := httputil.Chain(
 		middleware.CORSMiddleware(middleware.CORSConfig{
 			AllowOrigins:     []string{"*"},
-			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 			AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 			ExposeHeaders:    []string{"Content-Length"},
 			AllowCredentials: true,
@@ -45,7 +45,7 @@ func Setup(appContainer *container.Container) http.Handler {
 
 	// Helper to wrap handlers with auth middleware
 	withAuth := func(h http.HandlerFunc) http.HandlerFunc {
-		return httputil.WrapHandler(http.HandlerFunc(h), authRequired)
+		return httputil.WrapHandler(h, authRequired)
 	}
 
 	// API spec (no auth required — docs UI served by frontend)
