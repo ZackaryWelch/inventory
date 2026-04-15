@@ -131,15 +131,16 @@ type GioApp struct {
 	importResult         *importResult
 
 	// Import & Create Collection state
-	importCreateMode         bool    // flag: file picker opens import-create dialog
-	showImportCreateDialog   bool
-	importContainerCol       *string // column for container creation
-	importCreateRunning      bool
-	importCreateError        string
+	importCreateMode       bool // flag: file picker opens import-create dialog
+	showImportCreateDialog bool
+	importContainerCol     *string // column for container creation
+	importCreateRunning    bool
+	importCreateError      string
 
 	// Container display mode in collection detail
-	showContainersPanel bool   // whether container column is visible
-	containerViewMode   string // "split" (side-by-side) or "grouped" (objects grouped by container)
+	showContainersPanel bool             // whether container column is visible
+	containerViewMode   string           // "split" (side-by-side) or "grouped" (objects grouped by container)
+	objectViewLayout    ObjectViewLayout // ObjectViewList (single column) or ObjectViewGrid (multi-column)
 
 	// Grouped-text filter state (property key → selected value; empty = "All")
 	activeGroupedTextFilters map[string]string
@@ -243,6 +244,8 @@ type WidgetState struct {
 	toggleContainersButton widget.Clickable
 	containerViewSplitBtn  widget.Clickable
 	containerViewGroupBtn  widget.Clickable
+	objectViewListBtn      widget.Clickable
+	objectViewGridBtn      widget.Clickable
 	containersSearchField  widget.Editor
 	containersList         widget.List
 	containerItems         []ContainerItemState
@@ -264,17 +267,17 @@ type WidgetState struct {
 	importInferSchemaCheck      widget.Bool
 
 	// Import & Create Collection dialog
-	importCreateButton             widget.Clickable // "Import" button on collections toolbar
-	importCreateDialog             *widgets.Dialog
-	importCreateNameEditor         widget.Editor
-	importCreateLocationEditor     widget.Editor
-	importCreateExecuteButton      widget.Clickable
-	importCreateCancelButton       widget.Clickable
-	importCreateDialogList         widget.List
-	importCreatePreviewList        widget.List
-	importCreateNameColButtons     map[string]*widget.Clickable
+	importCreateButton              widget.Clickable // "Import" button on collections toolbar
+	importCreateDialog              *widgets.Dialog
+	importCreateNameEditor          widget.Editor
+	importCreateLocationEditor      widget.Editor
+	importCreateExecuteButton       widget.Clickable
+	importCreateCancelButton        widget.Clickable
+	importCreateDialogList          widget.List
+	importCreatePreviewList         widget.List
+	importCreateNameColButtons      map[string]*widget.Clickable
 	importCreateContainerColButtons map[string]*widget.Clickable
-	importCreateInferSchemaCheck   widget.Bool
+	importCreateInferSchemaCheck    widget.Bool
 
 	// Grouped-text filter chips (key = "propKey||value")
 	groupedTextFilterButtons map[string]*widget.Clickable
@@ -447,9 +450,9 @@ func NewGioApp() *GioApp {
 
 	// Initialize widget state with button maps and dialogs
 	widgetState := &WidgetState{
-		collectionTypeButtons:       make(map[string]*widget.Clickable),
-		collectionGroupButtons:      make(map[string]*widget.Clickable),
-		containerTypeButtons:        make(map[string]*widget.Clickable),
+		collectionTypeButtons:           make(map[string]*widget.Clickable),
+		collectionGroupButtons:          make(map[string]*widget.Clickable),
+		containerTypeButtons:            make(map[string]*widget.Clickable),
 		importNameColumnButtons:         make(map[string]*widget.Clickable),
 		importLocationColumnButtons:     make(map[string]*widget.Clickable),
 		importCreateNameColButtons:      make(map[string]*widget.Clickable),
@@ -459,18 +462,18 @@ func NewGioApp() *GioApp {
 		importPreviewList:               widget.List{List: layout.List{Axis: layout.Vertical}},
 		importCreateDialogList:          widget.List{List: layout.List{Axis: layout.Vertical}},
 		importCreatePreviewList:         widget.List{List: layout.List{Axis: layout.Vertical}},
-		collectionDialog:            widgets.NewDialog(),
-		groupDialog:                 widgets.NewDialog(),
-		deleteDialog:                widgets.NewDialog(),
-		collectionErrorDialog:       widgets.NewDialog(),
-		apiErrorDialog:              widgets.NewDialog(),
-		containerDialog:             widgets.NewDialog(),
-		objectDialog:                widgets.NewDialog(),
-		schemaDialog:                widgets.NewDialog(),
-		membersDialog:               widgets.NewDialog(),
-		joinGroupDialog:             widgets.NewDialog(),
-		importCreateDialog:          widgets.NewDialog(),
-		knownUserClickables:         make(map[string]*widget.Clickable),
+		collectionDialog:                widgets.NewDialog(),
+		groupDialog:                     widgets.NewDialog(),
+		deleteDialog:                    widgets.NewDialog(),
+		collectionErrorDialog:           widgets.NewDialog(),
+		apiErrorDialog:                  widgets.NewDialog(),
+		containerDialog:                 widgets.NewDialog(),
+		objectDialog:                    widgets.NewDialog(),
+		schemaDialog:                    widgets.NewDialog(),
+		membersDialog:                   widgets.NewDialog(),
+		joinGroupDialog:                 widgets.NewDialog(),
+		importCreateDialog:              widgets.NewDialog(),
+		knownUserClickables:             make(map[string]*widget.Clickable),
 	}
 
 	gioApp := &GioApp{
