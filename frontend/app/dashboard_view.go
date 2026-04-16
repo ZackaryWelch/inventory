@@ -163,14 +163,14 @@ func (ga *GioApp) renderStats(gtx layout.Context) layout.Dimensions {
 				// Groups stat
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ga.renderStatCard(gtx, fmt.Sprintf("%d", len(ga.groups)), "Groups", theme.ColorPrimary, theme.ColorWhite)
+						return ga.renderStatCard(gtx, strconv.Itoa(len(ga.groups)), "Groups", theme.ColorPrimary, theme.ColorWhite)
 					})
 				}),
 
 				// Collections stat
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Left: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ga.renderStatCard(gtx, fmt.Sprintf("%d", len(ga.collections)), "Collections", theme.ColorAccent, theme.ColorBlack)
+						return ga.renderStatCard(gtx, strconv.Itoa(len(ga.collections)), "Collections", theme.ColorAccent, theme.ColorBlack)
 					})
 				}),
 			)
@@ -245,7 +245,6 @@ func (ga *GioApp) renderBottomMenu(gtx layout.Context, activeView ViewID) layout
 		return card.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			children := make([]layout.FlexChild, len(items))
 			for i, item := range items {
-				item := item
 				children[i] = layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					variant := widgets.PrimaryButton
 					if item.target == activeView {

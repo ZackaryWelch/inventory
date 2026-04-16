@@ -127,7 +127,7 @@ func renderTypedValue(tv TypedValue, def *PropertyDefinition) string {
 	}
 }
 
-func toFloat(value interface{}) (float64, error) {
+func toFloat(value any) (float64, error) {
 	switch v := value.(type) {
 	case float64:
 		return v, nil

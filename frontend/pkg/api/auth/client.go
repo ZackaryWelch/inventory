@@ -30,7 +30,7 @@ func (c *Client) GetCurrentUser() (*types.AuthInfoResponse, error) {
 }
 
 // GetOIDCConfig gets the OIDC configuration from the backend
-func (c *Client) GetOIDCConfig() (*map[string]interface{}, error) {
+func (c *Client) GetOIDCConfig() (*map[string]any, error) {
 	// Add client_id query parameter as required by backend
 	endpoint := "/auth/oidc-config?client_id=" + c.clientID
 	resp, err := c.common.Get(endpoint)
@@ -38,5 +38,5 @@ func (c *Client) GetOIDCConfig() (*map[string]interface{}, error) {
 		return nil, err
 	}
 
-	return common.DecodeResponse[map[string]interface{}](resp)
+	return common.DecodeResponse[map[string]any](resp)
 }

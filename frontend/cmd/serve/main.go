@@ -175,7 +175,7 @@ func main() {
 		backendURL: frontendConfig.BackendURL,
 	}
 
-	addr := fmt.Sprintf(":%s", port)
+	addr := ":" + port
 	fmt.Printf("Serving Gio app from: %s\n", webOutputDir)
 	fmt.Printf("Server available at: http://localhost:%s\n", port)
 	fmt.Println("SPA routing enabled - press Ctrl+C to stop")

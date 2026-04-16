@@ -423,7 +423,6 @@ func (ga *GioApp) renderFormField(gtx layout.Context, label string, editor *widg
 func (ga *GioApp) renderObjectTypeSelector(gtx layout.Context) layout.Dimensions {
 	chips := make([]layout.Widget, len(objectTypes))
 	for i, ot := range objectTypes {
-		ot := ot
 		if ga.widgetState.collectionTypeButtons[ot] == nil {
 			ga.widgetState.collectionTypeButtons[ot] = &widget.Clickable{}
 		}
@@ -487,7 +486,7 @@ func (ga *GioApp) handleCollectionCreate() {
 	// Parse tags
 	var tags []string
 	if tagsText != "" {
-		for _, tag := range strings.Split(tagsText, ",") {
+		for tag := range strings.SplitSeq(tagsText, ",") {
 			tag = strings.TrimSpace(tag)
 			if tag != "" {
 				tags = append(tags, tag)
@@ -542,7 +541,7 @@ func (ga *GioApp) handleCollectionUpdate() {
 	// Parse tags
 	var tags []string
 	if tagsText != "" {
-		for _, tag := range strings.Split(tagsText, ",") {
+		for tag := range strings.SplitSeq(tagsText, ",") {
 			tag = strings.TrimSpace(tag)
 			if tag != "" {
 				tags = append(tags, tag)

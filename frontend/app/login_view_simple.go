@@ -214,7 +214,7 @@ func paintAccentBar(gtx layout.Context, width int) layout.Dimensions {
 
 		// Paint gradient from primary to accent using horizontal steps
 		steps := 20
-		for i := 0; i < steps; i++ {
+		for i := range steps {
 			frac := float64(i) / float64(steps)
 			x0 := int(float64(width) * frac)
 			x1 := int(float64(width) * (frac + 1.0/float64(steps)))

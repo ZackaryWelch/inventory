@@ -55,13 +55,13 @@ func (as *AuthService) DesktopLogin() (*oauth2.Token, error) {
 
 	mux.HandleFunc("/auth/callback", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("state") != state {
-			errCh <- fmt.Errorf("OAuth state mismatch")
+			errCh <- errors.New("OAuth state mismatch")
 			http.Error(w, "Authentication failed: state mismatch", http.StatusBadRequest)
 			return
 		}
 		code := r.URL.Query().Get("code")
 		if code == "" {
-			errCh <- fmt.Errorf("no authorization code in callback")
+			errCh <- errors.New("no authorization code in callback")
 			http.Error(w, "Authentication failed: no code", http.StatusBadRequest)
 			return
 		}
@@ -119,14 +119,14 @@ func (as *AuthService) InitiateLogin() error { return nil }
 
 // HandleCallback is not used on desktop; the callback is captured by DesktopLogin.
 func (as *AuthService) HandleCallback() (*oauth2.Token, error) {
-	return nil, fmt.Errorf("desktop: callback is handled by the local HTTP server in DesktopLogin")
+	return nil, errors.New("desktop: callback is handled by the local HTTP server in DesktopLogin")
 }
 
 func (as *AuthService) GetStoredToken() (*oauth2.Token, error) {
 	as.mu.RLock()
 	defer as.mu.RUnlock()
 	if as.token == nil {
-		return nil, fmt.Errorf("no token stored")
+		return nil, errors.New("no token stored")
 	}
 	return as.token, nil
 }
@@ -142,7 +142,7 @@ func (as *AuthService) RefreshToken() (*oauth2.Token, error) {
 	as.mu.RUnlock()
 
 	if token == nil || token.RefreshToken == "" {
-		return nil, fmt.Errorf("no refresh token available")
+		return nil, errors.New("no refresh token available")
 	}
 	newToken, err := as.config.TokenSource(context.Background(), token).Token()
 	if err != nil {

@@ -10,7 +10,7 @@ import (
 
 // ImportData represents parsed import data.
 type ImportData struct {
-	Data   []map[string]interface{}
+	Data   []map[string]any
 	Format string // "csv" or "json"
 	Errors []string
 }
@@ -98,12 +98,12 @@ func (ga *GioApp) parseCSV(content string) (*ImportData, error) {
 	}
 
 	if len(records) < 2 {
-		return nil, fmt.Errorf("CSV file must have at least a header row and one data row")
+		return nil, errors.New("CSV file must have at least a header row and one data row")
 	}
 
 	headers := records[0]
 	data := &ImportData{
-		Data:   make([]map[string]interface{}, 0),
+		Data:   make([]map[string]any, 0),
 		Format: "csv",
 		Errors: make([]string, 0),
 	}
@@ -114,7 +114,7 @@ func (ga *GioApp) parseCSV(content string) (*ImportData, error) {
 			continue
 		}
 
-		row := make(map[string]interface{})
+		row := make(map[string]any)
 		for i, header := range headers {
 			header = strings.TrimSpace(header)
 			value := strings.TrimSpace(record[i])
@@ -135,7 +135,7 @@ func (ga *GioApp) parseCSV(content string) (*ImportData, error) {
 
 // parseJSON parses JSON content into import data.
 func (ga *GioApp) parseJSON(content string) (*ImportData, error) {
-	var rawData []map[string]interface{}
+	var rawData []map[string]any
 	if err := json.Unmarshal([]byte(content), &rawData); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
@@ -151,7 +151,7 @@ func (ga *GioApp) parseJSON(content string) (*ImportData, error) {
 
 // findStringField returns the first string value found for any of the given
 // field names, matched case-insensitively against the map keys.
-func findStringField(m map[string]interface{}, fields ...string) string {
+func findStringField(m map[string]any, fields ...string) string {
 	for k, v := range m {
 		kLower := strings.ToLower(k)
 		for _, f := range fields {
@@ -168,7 +168,7 @@ func findStringField(m map[string]interface{}, fields ...string) string {
 
 // detectColumnByName returns the actual key from the first data row that
 // matches one of the given names case-insensitively, checked in order.
-func detectColumnByName(data []map[string]interface{}, names ...string) string {
+func detectColumnByName(data []map[string]any, names ...string) string {
 	if len(data) == 0 {
 		return ""
 	}
@@ -183,17 +183,17 @@ func detectColumnByName(data []map[string]interface{}, names ...string) string {
 }
 
 // detectLocationColumn returns the location column name if found in the data headers.
-func detectLocationColumn(data []map[string]interface{}) string {
+func detectLocationColumn(data []map[string]any) string {
 	return detectColumnByName(data, "location")
 }
 
 // detectNameColumn returns the name column if "name", "title", or "item" is present.
-func detectNameColumn(data []map[string]interface{}) string {
+func detectNameColumn(data []map[string]any) string {
 	return detectColumnByName(data, "name", "title", "item")
 }
 
 // detectContainerColumn returns the container column if found in the data headers.
-func detectContainerColumn(data []map[string]interface{}) string {
+func detectContainerColumn(data []map[string]any) string {
 	return detectColumnByName(data, "container", "shelf", "room", "box", "bin")
 }
 
@@ -238,7 +238,7 @@ func (ga *GioApp) executeImport() {
 			distMode = "location"
 		}
 
-		req := map[string]interface{}{
+		req := map[string]any{
 			"format":            ga.importData.Format,
 			"data":              ga.importData.Data,
 			"distribution_mode": distMode,

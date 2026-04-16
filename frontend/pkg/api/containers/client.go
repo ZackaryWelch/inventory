@@ -31,7 +31,7 @@ func (c *Client) List(accountID, collectionID string) ([]types.Container, error)
 
 // Get gets a specific container by ID
 func (c *Client) Get(accountID, collectionID, containerID string) (*types.Container, error) {
-	resp, err := c.common.Get(fmt.Sprintf("/containers/%s", containerID))
+	resp, err := c.common.Get("/containers/" + containerID)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (c *Client) Create(accountID, collectionID string, req types.CreateContaine
 
 // Update updates an existing container
 func (c *Client) Update(accountID, collectionID, containerID string, req types.UpdateContainerRequest) (*types.Container, error) {
-	resp, err := c.common.Put(fmt.Sprintf("/containers/%s", containerID), req)
+	resp, err := c.common.Put("/containers/"+containerID, req)
 	if err != nil {
 		return nil, err
 	}

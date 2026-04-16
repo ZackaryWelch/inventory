@@ -87,9 +87,10 @@ func (ds DialogStyle) Layout(gtx layout.Context, th *material.Theme, content lay
 			break
 		}
 
-		if ev.Kind == pointer.Press {
+		switch ev.Kind {
+		case pointer.Press:
 			ds.Dialog.dragOffset = ds.Dialog.Position.Sub(ev.Position)
-		} else if ev.Kind == pointer.Drag {
+		case pointer.Drag:
 			ds.Dialog.Position = ev.Position.Add(ds.Dialog.dragOffset)
 		}
 	}

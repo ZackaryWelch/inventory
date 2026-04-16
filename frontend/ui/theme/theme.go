@@ -50,7 +50,7 @@ func NewTheme() *NishikiTheme {
 	fonts := gofont.Collection()
 	jpFaces, err := opentype.ParseCollection(notoSansJPRegular)
 	if err != nil {
-		panic(fmt.Errorf("failed to parse Noto Sans JP font: %v", err))
+		panic(fmt.Errorf("failed to parse Noto Sans JP font: %w", err))
 	}
 	fonts = append(fonts, jpFaces...)
 

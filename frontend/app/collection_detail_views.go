@@ -263,7 +263,6 @@ func (ga *GioApp) renderTableHeader(gtx layout.Context, columns []tableColumn) l
 	}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		children := make([]layout.FlexChild, len(columns))
 		for i, col := range columns {
-			col := col
 			isSortField := ga.objectSortField == col.key
 			label := col.displayName
 			if isSortField {
@@ -304,7 +303,6 @@ func (ga *GioApp) renderTableRow(gtx layout.Context, obj Object, index int, colu
 			}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				children := make([]layout.FlexChild, len(columns))
 				for i, col := range columns {
-					col := col
 					cellText := ga.tableCellValue(obj, col.key, defMap)
 					children[i] = layout.Flexed(col.flex, func(gtx layout.Context) layout.Dimensions {
 						lbl := material.Body2(ga.theme.Theme, cellText)
@@ -360,10 +358,7 @@ func (ga *GioApp) tableCellValue(obj Object, key string, defMap map[string]*Prop
 func galleryColumns(gtx layout.Context) int {
 	widthDp := float32(gtx.Constraints.Max.X) / gtx.Metric.PxPerDp
 	const minColWidth = 180
-	cols := int(widthDp / minColWidth)
-	if cols < 2 {
-		cols = 2
-	}
+	cols := max(int(widthDp/minColWidth), 2)
 	return cols
 }
 
@@ -387,10 +382,7 @@ func (ga *GioApp) renderGalleryGrid(gtx layout.Context, indices []int) layout.Di
 	type row struct{ indices []int }
 	var rows []row
 	for i := 0; i < len(indices); i += cols {
-		end := i + cols
-		if end > len(indices) {
-			end = len(indices)
-		}
+		end := min(i+cols, len(indices))
 		rows = append(rows, row{indices: indices[i:end]})
 	}
 
@@ -755,7 +747,6 @@ func (ga *GioApp) renderContainerDistribution(gtx layout.Context) layout.Dimensi
 				children := make([]layout.FlexChild, len(bars))
 				maxWidth := gtx.Constraints.Max.X
 				for i, b := range bars {
-					b := b
 					children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return layout.Inset{Top: unit.Dp(2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 							return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
@@ -771,10 +762,7 @@ func (ga *GioApp) renderContainerDistribution(gtx layout.Context) layout.Dimensi
 								// Bar
 								layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 									barMaxW := maxWidth - gtx.Dp(unit.Dp(130))
-									barW := barMaxW * b.count / maxCount
-									if barW < 4 {
-										barW = 4
-									}
+									barW := max(barMaxW*b.count/maxCount, 4)
 									barH := gtx.Dp(unit.Dp(12))
 									sz := image.Point{X: barW, Y: barH}
 									defer clip.RRect{Rect: image.Rectangle{Max: sz}, SE: 3, SW: 3, NW: 3, NE: 3}.Push(gtx.Ops).Pop()
@@ -834,7 +822,6 @@ func (ga *GioApp) renderTagCloud(gtx layout.Context) layout.Dimensions {
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				var widgets []layout.Widget
 				for _, t := range tags {
-					t := t
 					widgets = append(widgets, func(gtx layout.Context) layout.Dimensions {
 						lbl := material.Caption(ga.theme.Theme, fmt.Sprintf("%s (%d)", t.tag, t.count))
 						lbl.Color = theme.ColorTextPrimary
@@ -872,7 +859,6 @@ func (ga *GioApp) renderPropertyDistributions(gtx layout.Context) layout.Dimensi
 
 	children := make([]layout.FlexChild, len(propDefs))
 	for i, def := range propDefs {
-		def := def
 		// Count values
 		valFreq := make(map[string]int)
 		for _, obj := range ga.objects {

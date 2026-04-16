@@ -394,7 +394,6 @@ func (ga *GioApp) renderDeleteObjectDialog(gtx layout.Context) layout.Dimensions
 func (ga *GioApp) renderContainerTypeSelector(gtx layout.Context) layout.Dimensions {
 	chips := make([]layout.Widget, len(containerTypes))
 	for i, ct := range containerTypes {
-		ct := ct
 		if ga.widgetState.containerTypeButtons[ct] == nil {
 			ga.widgetState.containerTypeButtons[ct] = &widget.Clickable{}
 		}
@@ -431,7 +430,6 @@ func (ga *GioApp) renderParentContainerSelector(gtx layout.Context) layout.Dimen
 		editingID = ga.selectedContainer.ID
 	}
 	for _, c := range ga.containers {
-		c := c
 		if c.ID == editingID {
 			continue
 		}
@@ -476,7 +474,6 @@ func (ga *GioApp) renderObjectContainerSelector(gtx layout.Context) layout.Dimen
 		},
 	}
 	for _, c := range ga.containers {
-		c := c
 		btn := ga.getObjectContainerButton(c.ID)
 		if btn.Clicked(gtx) {
 			cid := c.ID
@@ -743,7 +740,7 @@ func (ga *GioApp) handleObjectUpdate() {
 
 	// Build a raw map[string]interface{} from the existing TypedValue properties (extract .Val),
 	// then merge in form editor values before sending to the backend for re-coercion.
-	rawProps := make(map[string]interface{})
+	rawProps := make(map[string]any)
 	for k, tv := range ga.selectedObject.Properties {
 		rawProps[k] = tv.Val
 	}
@@ -847,14 +844,14 @@ func (ga *GioApp) getObjectPropertyBool(key string) *widget.Bool {
 }
 
 // collectObjectProperties reads the current schema property editors and returns a properties map.
-func (ga *GioApp) collectObjectProperties() map[string]interface{} {
-	props := make(map[string]interface{})
+func (ga *GioApp) collectObjectProperties() map[string]any {
+	props := make(map[string]any)
 	ga.mergeSchemaProperties(props)
 	return props
 }
 
 // mergeSchemaProperties writes schema editor values into the given properties map.
-func (ga *GioApp) mergeSchemaProperties(props map[string]interface{}) {
+func (ga *GioApp) mergeSchemaProperties(props map[string]any) {
 	if ga.selectedCollection == nil || ga.selectedCollection.PropertySchema == nil {
 		return
 	}
@@ -884,7 +881,6 @@ func (ga *GioApp) renderObjectSchemaFields(gtx layout.Context) layout.Dimensions
 
 	children := make([]layout.FlexChild, len(defs))
 	for i, def := range defs {
-		def := def
 		children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			label := def.DisplayName
 			if label == "" {

@@ -37,7 +37,7 @@ func NewClient(baseURL string, tokenFetcher TokenFetcher) *Client {
 }
 
 // Request makes an authenticated HTTP request
-func (c *Client) Request(method, endpoint string, body interface{}) (*http.Response, error) {
+func (c *Client) Request(method, endpoint string, body any) (*http.Response, error) {
 	var reqBody io.Reader
 
 	if body != nil {
@@ -84,12 +84,12 @@ func (c *Client) Get(endpoint string) (*http.Response, error) {
 }
 
 // Post makes a POST request
-func (c *Client) Post(endpoint string, body interface{}) (*http.Response, error) {
+func (c *Client) Post(endpoint string, body any) (*http.Response, error) {
 	return c.Request(http.MethodPost, endpoint, body)
 }
 
 // Put makes a PUT request
-func (c *Client) Put(endpoint string, body interface{}) (*http.Response, error) {
+func (c *Client) Put(endpoint string, body any) (*http.Response, error) {
 	return c.Request(http.MethodPut, endpoint, body)
 }
 

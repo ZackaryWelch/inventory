@@ -51,7 +51,7 @@ func (c *Client) Create(req types.CreateCategoryRequest) (*types.Category, error
 
 // Update updates an existing category
 func (c *Client) Update(id string, req types.UpdateCategoryRequest) (*types.Category, error) {
-	resp, err := c.common.Put(fmt.Sprintf("/categories/%s", id), req)
+	resp, err := c.common.Put("/categories/"+id, req)
 	if err != nil {
 		return nil, err
 	}

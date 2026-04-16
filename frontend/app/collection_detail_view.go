@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"image"
+	"maps"
 	"sort"
 	"strings"
 	"sync"
@@ -1168,7 +1169,6 @@ func (ga *GioApp) renderObjectLayoutToggle(gtx layout.Context) layout.Dimensions
 	return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		children := make([]layout.FlexChild, len(chips)+1)
 		for i, c := range chips {
-			c := c
 			isActive := current == c.layout || (current == "" && c.layout == ObjectViewList)
 			children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -1202,10 +1202,7 @@ func (ga *GioApp) renderGroupSeparator(gtx layout.Context) layout.Dimensions {
 func gridColumns(gtx layout.Context) int {
 	widthDp := float32(gtx.Constraints.Max.X) / gtx.Metric.PxPerDp
 	const minColWidth = 260 // minimum card width in dp
-	cols := int(widthDp / minColWidth)
-	if cols < 2 {
-		cols = 2
-	}
+	cols := max(int(widthDp/minColWidth), 2)
 	return cols
 }
 
@@ -1226,10 +1223,7 @@ func (ga *GioApp) renderObjectsGrid(gtx layout.Context) layout.Dimensions {
 	// Chunk into rows
 	var gridRows [][]int
 	for i := 0; i < len(filteredIndices); i += cols {
-		end := i + cols
-		if end > len(filteredIndices) {
-			end = len(filteredIndices)
-		}
+		end := min(i+cols, len(filteredIndices))
 		gridRows = append(gridRows, filteredIndices[i:end])
 	}
 
@@ -1248,10 +1242,7 @@ func (ga *GioApp) renderObjectCardGrid(gtx layout.Context, indices []int) layout
 	// Chunk into rows
 	var gridRows [][]int
 	for i := 0; i < len(indices); i += cols {
-		end := i + cols
-		if end > len(indices) {
-			end = len(indices)
-		}
+		end := min(i+cols, len(indices))
 		gridRows = append(gridRows, indices[i:end])
 	}
 
@@ -1535,7 +1526,6 @@ func (ga *GioApp) renderObjectProperties(gtx layout.Context, props map[string]Ty
 		func() []layout.FlexChild {
 			children := make([]layout.FlexChild, 0, len(keys))
 			for _, k := range keys {
-				k := k
 				tv := props[k]
 				displayKey := propertyDisplayNameFromMap(k, defMap)
 				displayVal := RenderPropertyValueFromMap(k, tv, defMap)
@@ -1612,9 +1602,7 @@ func copyStringMap(m map[string]string) map[string]string {
 		return nil
 	}
 	cp := make(map[string]string, len(m))
-	for k, v := range m {
-		cp[k] = v
-	}
+	maps.Copy(cp, m)
 	return cp
 }
 
@@ -1900,7 +1888,6 @@ func (ga *GioApp) renderSortRow(gtx layout.Context) layout.Dimensions {
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 				var chips []layout.Widget
 				for _, f := range fields {
-					f := f
 					chipKey := "sort||" + f.key
 					btn := ga.getGroupedTextChipButton(chipKey)
 					isActive := ga.objectSortField == f.key
@@ -1964,7 +1951,6 @@ func (ga *GioApp) renderGroupRow(gtx layout.Context) layout.Dimensions {
 				})
 
 				for _, f := range fields {
-					f := f
 					chipKey := "group||" + f.key
 					btn := ga.getGroupedTextChipButton(chipKey)
 					isActive := ga.objectGroupByField == f.key
@@ -2008,7 +1994,6 @@ func (ga *GioApp) renderGroupedTextFilters(gtx layout.Context) layout.Dimensions
 
 	rows := make([]layout.FlexChild, 0, len(keys))
 	for _, propKey := range keys {
-		propKey := propKey
 		vals := values[propKey]
 		if len(vals) == 0 {
 			continue
@@ -2054,7 +2039,6 @@ func (ga *GioApp) renderGroupedTextFilters(gtx layout.Context) layout.Dimensions
 
 						// Value chips
 						for _, val := range vals {
-							val := val
 							chipKey := propKey + "||" + val
 							btn := ga.getGroupedTextChipButton(chipKey)
 							isActive := activeVal == val

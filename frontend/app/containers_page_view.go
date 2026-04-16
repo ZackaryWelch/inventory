@@ -316,7 +316,7 @@ func (ga *GioApp) renderContainerDetailPanel(gtx layout.Context) layout.Dimensio
 						return label.Layout(gtx)
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						info := fmt.Sprintf("%s", containerTypeLabels[ga.selectedContainer.Type])
+						info := containerTypeLabels[ga.selectedContainer.Type]
 						if ga.selectedContainer.Location != "" {
 							info += " - " + ga.selectedContainer.Location
 						}

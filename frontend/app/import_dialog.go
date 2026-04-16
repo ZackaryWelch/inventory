@@ -193,14 +193,11 @@ func (ga *GioApp) renderImportErrors(gtx layout.Context) layout.Dimensions {
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					// Show first 5 errors
-					maxErrors := 5
-					if len(ga.importData.Errors) < maxErrors {
-						maxErrors = len(ga.importData.Errors)
-					}
+					maxErrors := min(len(ga.importData.Errors), 5)
 
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx, func() []layout.FlexChild {
 						children := make([]layout.FlexChild, maxErrors)
-						for i := 0; i < maxErrors; i++ {
+						for i := range maxErrors {
 							errMsg := ga.importData.Errors[i]
 							children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 								label := material.Body2(ga.theme.Theme, "• "+errMsg)
@@ -285,7 +282,7 @@ func (ga *GioApp) renderImportPreview(gtx layout.Context) layout.Dimensions {
 }
 
 // renderPreviewItem renders a single preview item
-func (ga *GioApp) renderPreviewItem(gtx layout.Context, item map[string]interface{}, index int) layout.Dimensions {
+func (ga *GioApp) renderPreviewItem(gtx layout.Context, item map[string]any, index int) layout.Dimensions {
 	return layout.Inset{
 		Top:    unit.Dp(theme.Spacing1),
 		Bottom: unit.Dp(theme.Spacing1),
@@ -338,7 +335,7 @@ func (ga *GioApp) renderPreviewItem(gtx layout.Context, item map[string]interfac
 }
 
 // importColumns returns sorted column names from the first data row.
-func importColumns(data []map[string]interface{}) []string {
+func importColumns(data []map[string]any) []string {
 	if len(data) == 0 {
 		return nil
 	}
@@ -386,7 +383,6 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 		},
 	}
 	for _, col := range cols {
-		col := col
 		btn := ga.getImportNameColButton(col)
 		if btn.Clicked(gtx) {
 			ga.importNameColumn = col
@@ -408,7 +404,6 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 		},
 	}
 	for _, col := range cols {
-		col := col
 		btn := ga.getImportLocationColButton(col)
 		if btn.Clicked(gtx) {
 			c := col

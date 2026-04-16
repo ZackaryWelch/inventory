@@ -65,8 +65,8 @@ type ErrorResponse struct {
 
 // SuccessResponse represents a generic success response
 type SuccessResponse struct {
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
 }
 
 // PaginationParams represents pagination parameters
@@ -77,11 +77,11 @@ type PaginationParams struct {
 
 // PaginatedResponse represents a paginated API response
 type PaginatedResponse struct {
-	Data       interface{} `json:"data"`
-	Page       int         `json:"page"`
-	PageSize   int         `json:"page_size"`
-	TotalItems int         `json:"total_items"`
-	TotalPages int         `json:"total_pages"`
+	Data       any `json:"data"`
+	Page       int `json:"page"`
+	PageSize   int `json:"page_size"`
+	TotalItems int `json:"total_items"`
+	TotalPages int `json:"total_pages"`
 }
 
 // ViewMode represents the view mode for displaying items

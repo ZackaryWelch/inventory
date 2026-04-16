@@ -12,7 +12,7 @@ import (
 // newTestGioApp creates a minimal GioApp suitable for cache/filter unit tests.
 func newTestGioApp() *GioApp {
 	return &GioApp{
-		logger:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+		logger:      slog.New(slog.DiscardHandler),
 		widgetState: &WidgetState{},
 	}
 }
@@ -352,7 +352,7 @@ func BenchmarkCollectGroupedTextValues(b *testing.B) {
 				PropertySchema: makeSchema("category", "grouped_text"),
 			}
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				ga.collectGroupedTextValues()
 			}
 		})
@@ -367,7 +367,7 @@ func BenchmarkGetGroupedTextValues_Cached(b *testing.B) {
 	}
 	ga.getGroupedTextValues() // prime cache
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		ga.getGroupedTextValues()
 	}
 }
@@ -378,7 +378,7 @@ func BenchmarkFilterObjects(b *testing.B) {
 			ga := newTestGioApp()
 			ga.objects = makeObjects(n, "cat", []string{"A", "B"})
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				ga.cachedFilteredObjects = nil
 				ga.getFilteredObjects()
 			}
@@ -388,7 +388,7 @@ func BenchmarkFilterObjects(b *testing.B) {
 			ga.objects = makeObjects(n, "cat", []string{"A", "B"})
 			ga.widgetState.objectsSearchField.SetText("Object 1")
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				ga.cachedFilteredObjects = nil
 				ga.getFilteredObjects()
 			}
@@ -398,7 +398,7 @@ func BenchmarkFilterObjects(b *testing.B) {
 			ga.objects = makeObjects(n, "cat", []string{"A", "B"})
 			ga.getFilteredObjects() // prime cache
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				ga.getFilteredObjects()
 			}
 		})
@@ -419,7 +419,7 @@ func BenchmarkMatchesGroupedTextFilters(b *testing.B) {
 		},
 	}
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		ga.matchesGroupedTextFilters(obj)
 	}
 }
@@ -436,7 +436,7 @@ func BenchmarkPropertyDisplayName(b *testing.B) {
 	targetKey := "prop_19" // worst case: last element
 
 	b.Run("slice_scan", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			propertyDisplayName(targetKey, defs)
 		}
 	})
@@ -447,7 +447,7 @@ func BenchmarkPropertyDisplayName(b *testing.B) {
 	}
 
 	b.Run("map_lookup", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			propertyDisplayNameFromMap(targetKey, defMap)
 		}
 	})
@@ -469,7 +469,7 @@ func BenchmarkFilterContainers(b *testing.B) {
 			}
 			ga.widgetState.containersSearchField.SetText("Container 1")
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for range b.N {
 				ga.cachedFilteredContainers = nil
 				ga.getFilteredContainers()
 			}
@@ -483,7 +483,7 @@ func BenchmarkWidgetEditorText(b *testing.B) {
 	var ed widget.Editor
 	ed.SetText("some search query")
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = ed.Text()
 	}
 }

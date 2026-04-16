@@ -241,7 +241,6 @@ func (ga *GioApp) renderImportCreateColumnMapping(gtx layout.Context) layout.Dim
 		},
 	}
 	for _, col := range cols {
-		col := col
 		btn := ga.getImportCreateNameColButton(col)
 		if btn.Clicked(gtx) {
 			ga.importNameColumn = col
@@ -263,7 +262,6 @@ func (ga *GioApp) renderImportCreateColumnMapping(gtx layout.Context) layout.Dim
 		},
 	}
 	for _, col := range cols {
-		col := col
 		btn := ga.getImportCreateContainerColButton(col)
 		if btn.Clicked(gtx) {
 			c := col
@@ -361,7 +359,7 @@ func (ga *GioApp) executeImportCreate() {
 		distMode = "location"
 	}
 
-	importReq := map[string]interface{}{
+	importReq := map[string]any{
 		"format":            ga.importData.Format,
 		"data":              ga.importData.Data,
 		"distribution_mode": distMode,
@@ -398,7 +396,7 @@ func (ga *GioApp) executeImportCreate() {
 		}
 		ga.do(func() {
 			ga.importCreateRunning = false
-			ga.importCreateError = fmt.Sprintf("Collection created but import failed: %s", errMsg)
+			ga.importCreateError = "Collection created but import failed: " + errMsg
 			ga.collections = append(ga.collections, *collection)
 		})
 		return
@@ -432,10 +430,7 @@ func (ga *GioApp) executeImportCreate() {
 			ga.importCreateRunning = false
 			var errSummary string
 			if len(result.Errors) > 0 {
-				maxShow := 5
-				if len(result.Errors) < maxShow {
-					maxShow = len(result.Errors)
-				}
+				maxShow := min(len(result.Errors), 5)
 				errSummary = strings.Join(result.Errors[:maxShow], "; ")
 				if len(result.Errors) > 5 {
 					errSummary += fmt.Sprintf(" ...and %d more", len(result.Errors)-5)
