@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -15,6 +15,7 @@ import (
 	"goauthentik.io/api/v3"
 
 	"github.com/nishiki/backend/app/config"
+	"github.com/stretchr/testify/require"
 )
 
 // newTestService constructs an AuthentikAuthService wired to the given mock HTTP server.
@@ -59,7 +60,7 @@ func TestAuthentikAuthService_GetGroupUsers(t *testing.T) {
 				"autocomplete": map[string]any{},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
+			require.NoError(t, json.MarshalWrite(w, response))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -93,7 +94,7 @@ func TestAuthentikAuthService_GetUserByID(t *testing.T) {
 				"date_joined": "2024-01-01T00:00:00Z", "avatar": "", "is_superuser": false, "groups_obj": []any{},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
+			require.NoError(t, json.MarshalWrite(w, response))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -124,7 +125,7 @@ func TestAuthentikAuthService_GetGroupByID(t *testing.T) {
 				"users_obj": []any{},
 			}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response)
+			require.NoError(t, json.MarshalWrite(w, response))
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -184,7 +185,7 @@ func TestAuthentikAuthService_GetOIDCConfig(t *testing.T) {
 			mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if tt.serverStatus == http.StatusOK {
 					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(tt.serverResponse)
+					require.NoError(t, json.MarshalWrite(w, tt.serverResponse))
 				} else {
 					w.WriteHeader(tt.serverStatus)
 				}
@@ -348,7 +349,7 @@ func TestAuthentikAuthService_ProxyTokenExchange(t *testing.T) {
 
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(tt.serverStatus)
-				json.NewEncoder(w).Encode(tt.serverResponse)
+				require.NoError(t, json.MarshalWrite(w, tt.serverResponse))
 			}))
 			defer mockServer.Close()
 

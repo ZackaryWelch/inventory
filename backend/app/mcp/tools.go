@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/csv"
 	"errors"
-	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -49,6 +49,13 @@ func registerTools(s *mcp.Server, mctx *MCPContext) {
 	registerSearchTools(s, mctx)
 }
 
+// invalidFormatErr logs an invalid format error and returns a ToolError result.
+func invalidFormatErr(field, value string, err error) (*mcp.CallToolResult, any, error) {
+	slog.Error("invalid format", "field", field, "value", value, "err", err)
+	r, _ := errorResult(ErrInvalidFormat.With(map[string]any{"field": field, "value": value}).Wrap(err))
+	return r, nil, nil
+}
+
 // --- Collection tools ---
 
 func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
@@ -74,8 +81,7 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 		if input.GroupID != "" {
 			gid, err := entities.GroupIDFromString(input.GroupID)
 			if err != nil {
-				r, _ := errorResult(fmt.Errorf("invalid group_id: %w", err))
-				return r, nil, nil
+				return invalidFormatErr("group_id", input.GroupID, err)
 			}
 			groupID = &gid
 		}
@@ -118,8 +124,7 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("collection_id", input.CollectionID, err)
 		}
 
 		ucReq := usecases.UpdateCollectionRequest{
@@ -161,8 +166,7 @@ func registerCollectionTools(s *mcp.Server, mctx *MCPContext) {
 
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("collection_id", input.CollectionID, err)
 		}
 
 		_, err = mctx.deleteCollectionUC().Execute(ctx, usecases.DeleteCollectionRequest{
@@ -206,8 +210,7 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("collection_id", input.CollectionID, err)
 		}
 
 		ucReq := usecases.CreateContainerRequest{
@@ -226,8 +229,7 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 		if input.ParentContainerID != "" {
 			parentID, err := entities.ContainerIDFromString(input.ParentContainerID)
 			if err != nil {
-				r, _ := errorResult(fmt.Errorf("invalid parent_container_id: %w", err))
-				return r, nil, nil
+				return invalidFormatErr("parent_container_id", input.ParentContainerID, err)
 			}
 			ucReq.ParentContainerID = &parentID
 		}
@@ -265,8 +267,7 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 
 		containerID, err := entities.ContainerIDFromString(input.ContainerID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("container_id", input.ContainerID, err)
 		}
 
 		ucReq := usecases.UpdateContainerRequest{
@@ -323,8 +324,7 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 
 		containerID, err := entities.ContainerIDFromString(input.ContainerID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("container_id", input.ContainerID, err)
 		}
 
 		_, err = mctx.deleteContainerUC().Execute(ctx, usecases.DeleteContainerRequest{
@@ -383,8 +383,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 		if input.ContainerID != "" {
 			containerID, err := entities.ContainerIDFromString(input.ContainerID)
 			if err != nil {
-				r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
-				return r, nil, nil
+				return invalidFormatErr("container_id", input.ContainerID, err)
 			}
 			ucReq.ContainerID = &containerID
 		}
@@ -392,8 +391,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 		if input.CollectionID != "" {
 			collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 			if err != nil {
-				r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
-				return r, nil, nil
+				return invalidFormatErr("collection_id", input.CollectionID, err)
 			}
 			ucReq.CollectionID = &collectionID
 		}
@@ -401,8 +399,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 		if input.ExpiresAt != "" {
 			t, err := time.Parse(time.RFC3339, input.ExpiresAt)
 			if err != nil {
-				r, _ := errorResult(fmt.Errorf("invalid expires_at format (use RFC3339): %w", err))
-				return r, nil, nil
+				return invalidFormatErr("expires_at", input.ExpiresAt, err)
 			}
 			ucReq.ExpiresAt = &t
 		}
@@ -434,13 +431,11 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 
 		containerID, err := entities.ContainerIDFromString(input.ContainerID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("container_id", input.ContainerID, err)
 		}
 		objectID, err := entities.ObjectIDFromHex(input.ObjectID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid object_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("object_id", input.ObjectID, err)
 		}
 
 		_, err = mctx.deleteObjectUC().Execute(ctx, usecases.DeleteObjectRequest{
@@ -478,8 +473,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 
 		objectID, err := entities.ObjectIDFromHex(input.ObjectID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid object_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("object_id", input.ObjectID, err)
 		}
 
 		ucReq := usecases.UpdateObjectRequest{
@@ -491,8 +485,7 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 		if input.ContainerID != "" {
 			containerID, err := entities.ContainerIDFromString(input.ContainerID)
 			if err != nil {
-				r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
-				return r, nil, nil
+				return invalidFormatErr("container_id", input.ContainerID, err)
 			}
 			ucReq.ContainerID = &containerID
 		}
@@ -565,8 +558,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 
 		groupID, err := entities.GroupIDFromString(input.GroupID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid group_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("group_id", input.GroupID, err)
 		}
 
 		if err := mctx.groupUC().AddMember(ctx, usecases.GroupMemberRequest{
@@ -599,8 +591,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 
 		groupID, err := entities.GroupIDFromString(input.GroupID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid group_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("group_id", input.GroupID, err)
 		}
 
 		if err := mctx.groupUC().RemoveMember(ctx, usecases.GroupMemberRequest{
@@ -646,8 +637,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 
 		groupID, err := entities.GroupIDFromString(input.GroupID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid group_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("group_id", input.GroupID, err)
 		}
 
 		resp, err := mctx.groupUC().UpdateGroup(ctx, usecases.UpdateGroupRequest{
@@ -681,8 +671,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 
 		groupID, err := entities.GroupIDFromString(input.GroupID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid group_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("group_id", input.GroupID, err)
 		}
 
 		if err := mctx.groupUC().DeleteGroup(ctx, usecases.DeleteGroupRequest{
@@ -724,8 +713,7 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("collection_id", input.CollectionID, err)
 		}
 
 		ucReq := usecases.BulkImportCollectionRequest{
@@ -743,8 +731,7 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 		if input.TargetContainerID != "" {
 			targetID, err := entities.ContainerIDFromString(input.TargetContainerID)
 			if err != nil {
-				r, _ := errorResult(fmt.Errorf("invalid target_container_id: %w", err))
-				return r, nil, nil
+				return invalidFormatErr("target_container_id", input.TargetContainerID, err)
 			}
 			ucReq.TargetContainerID = &targetID
 		}
@@ -781,18 +768,18 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("collection_id", input.CollectionID, err)
 		}
 
 		// Parse CSV
 		data, headers, parseErr := parseCSVString(input.CSVData)
 		if parseErr != nil {
-			r, _ := errorResult(fmt.Errorf("CSV parse error: %w", parseErr))
+			slog.Error("failed to parse CSV", "err", parseErr)
+			r, _ := errorResult(ErrParseFailure.With(map[string]any{"field": "csv_data"}).Wrap(parseErr))
 			return r, nil, nil
 		}
 		if len(data) == 0 {
-			r, _ := errorResult(errors.New("CSV contains no data rows"))
+			r, _ := errorResult(ErrParseFailure.With(map[string]any{"field": "csv_data", "reason": "no data rows"}))
 			return r, nil, nil
 		}
 
@@ -858,8 +845,7 @@ func registerSearchTools(s *mcp.Server, mctx *MCPContext) {
 
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("collection_id", input.CollectionID, err)
 		}
 
 		ucReq := usecases.GetCollectionObjectsRequest{
@@ -874,8 +860,7 @@ func registerSearchTools(s *mcp.Server, mctx *MCPContext) {
 		if input.ContainerID != "" {
 			cid, err := entities.ContainerIDFromString(input.ContainerID)
 			if err != nil {
-				r, _ := errorResult(fmt.Errorf("invalid container_id: %w", err))
-				return r, nil, nil
+				return invalidFormatErr("container_id", input.ContainerID, err)
 			}
 			ucReq.ContainerID = &cid
 		}
@@ -918,8 +903,7 @@ func registerExportTools(s *mcp.Server, mctx *MCPContext) {
 
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("collection_id", input.CollectionID, err)
 		}
 
 		format := strings.ToLower(strings.TrimSpace(input.Format))
@@ -927,7 +911,8 @@ func registerExportTools(s *mcp.Server, mctx *MCPContext) {
 			format = "csv"
 		}
 		if format != "csv" && format != "json" {
-			r, _ := errorResult(fmt.Errorf("unsupported format %q: must be csv or json", format))
+			slog.Error("invalid export format", "format", input.Format)
+			r, _ := errorResult(ErrInvalidFormat.With(map[string]any{"field": "format", "value": input.Format, "allowed": "csv, json"}))
 			return r, nil, nil
 		}
 
@@ -1012,8 +997,7 @@ func registerSchemaTools(s *mcp.Server, mctx *MCPContext) {
 
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("collection_id", input.CollectionID, err)
 		}
 
 		resp, err := mctx.getCollectionsUC().Execute(ctx, usecases.GetCollectionsRequest{
@@ -1054,8 +1038,7 @@ func registerSchemaTools(s *mcp.Server, mctx *MCPContext) {
 
 		collectionID, err := entities.CollectionIDFromString(input.CollectionID)
 		if err != nil {
-			r, _ := errorResult(fmt.Errorf("invalid collection_id: %w", err))
-			return r, nil, nil
+			return invalidFormatErr("collection_id", input.CollectionID, err)
 		}
 
 		defs := make([]entities.PropertyDefinition, len(input.Definitions))

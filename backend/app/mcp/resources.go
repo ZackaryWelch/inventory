@@ -2,7 +2,7 @@ package mcpserver
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -60,7 +60,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 			UserToken: token,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("get groups: %w", err)
+			slog.Error("failed to get groups", "err", err)
+			return nil, err
 		}
 		return jsonResourceResult(req.Params.URI, response.NewGroupListResponse(resp.Groups))
 	})
@@ -81,7 +82,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 			UserToken: token,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("get collections: %w", err)
+			slog.Error("failed to get collections", "err", err)
+			return nil, err
 		}
 		return jsonResourceResult(req.Params.URI, response.NewCollectionListResponse(resp.Collections))
 	})
@@ -102,7 +104,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 			UserToken: token,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("get all containers: %w", err)
+			slog.Error("failed to get all containers", "err", err)
+			return nil, err
 		}
 		return jsonResourceResult(req.Params.URI, response.NewContainerListResponse(resp.Containers))
 	})
@@ -123,7 +126,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		id := extractID(req.Params.URI, "nishiki://groups/")
 		group, err := mctx.Container.AuthService.GetGroupByID(ctx, token, id)
 		if err != nil {
-			return nil, fmt.Errorf("get group: %w", err)
+			slog.Error("failed to get group", "group_id", id, "err", err)
+			return nil, err
 		}
 		return jsonResourceResult(req.Params.URI, response.NewGroupResponse(group))
 	})
@@ -142,7 +146,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		id := extractID(req.Params.URI, "nishiki://groups/")
 		users, err := mctx.Container.AuthService.GetGroupUsers(ctx, token, id)
 		if err != nil {
-			return nil, fmt.Errorf("get group users: %w", err)
+			slog.Error("failed to get group users", "group_id", id, "err", err)
+			return nil, err
 		}
 		type userInfo struct {
 			ID       string `json:"id"`
@@ -174,7 +179,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		id := extractID(req.Params.URI, "nishiki://groups/")
 		groupID, err := entities.GroupIDFromString(id)
 		if err != nil {
-			return nil, fmt.Errorf("invalid group ID: %w", err)
+			slog.Error("invalid group ID", "group_id", id, "err", err)
+			return nil, ErrInvalidFormat.With(map[string]any{"field": "group_id", "value": id}).Wrap(err)
 		}
 		resp, err := mctx.getContainersUC().Execute(ctx, usecases.GetContainersRequest{
 			GroupID:   groupID,
@@ -182,7 +188,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 			UserToken: token,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("get group containers: %w", err)
+			slog.Error("failed to get group containers", "group_id", id, "err", err)
+			return nil, err
 		}
 		return jsonResourceResult(req.Params.URI, response.NewContainerListResponse(resp.Containers))
 	})
@@ -201,7 +208,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		id := extractID(req.Params.URI, "nishiki://collections/")
 		collectionID, err := entities.CollectionIDFromString(id)
 		if err != nil {
-			return nil, fmt.Errorf("invalid collection ID: %w", err)
+			slog.Error("invalid collection ID", "collection_id", id, "err", err)
+			return nil, ErrInvalidFormat.With(map[string]any{"field": "collection_id", "value": id}).Wrap(err)
 		}
 		resp, err := mctx.getCollectionsUC().Execute(ctx, usecases.GetCollectionsRequest{
 			UserID:       user.ID(),
@@ -209,7 +217,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 			UserToken:    token,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("get collection: %w", err)
+			slog.Error("failed to get collection", "collection_id", id, "err", err)
+			return nil, err
 		}
 		if len(resp.Collections) == 0 {
 			return nil, mcp.ResourceNotFoundError(req.Params.URI)
@@ -231,7 +240,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		id := extractID(req.Params.URI, "nishiki://collections/")
 		collectionID, err := entities.CollectionIDFromString(id)
 		if err != nil {
-			return nil, fmt.Errorf("invalid collection ID: %w", err)
+			slog.Error("invalid collection ID", "collection_id", id, "err", err)
+			return nil, ErrInvalidFormat.With(map[string]any{"field": "collection_id", "value": id}).Wrap(err)
 		}
 		resp, err := mctx.getContainersByCollectionUC().Execute(ctx, usecases.GetContainersByCollectionRequest{
 			CollectionID: collectionID,
@@ -239,7 +249,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 			UserToken:    token,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("get collection containers: %w", err)
+			slog.Error("failed to get collection containers", "collection_id", id, "err", err)
+			return nil, err
 		}
 		return jsonResourceResult(req.Params.URI, response.NewContainerListResponse(resp.Containers))
 	})
@@ -258,7 +269,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		id := extractID(req.Params.URI, "nishiki://collections/")
 		collectionID, err := entities.CollectionIDFromString(id)
 		if err != nil {
-			return nil, fmt.Errorf("invalid collection ID: %w", err)
+			slog.Error("invalid collection ID", "collection_id", id, "err", err)
+			return nil, ErrInvalidFormat.With(map[string]any{"field": "collection_id", "value": id}).Wrap(err)
 		}
 		resp, err := mctx.getCollectionObjectsUC().Execute(ctx, usecases.GetCollectionObjectsRequest{
 			CollectionID: collectionID,
@@ -266,7 +278,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 			UserToken:    token,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("get collection objects: %w", err)
+			slog.Error("failed to get collection objects", "collection_id", id, "err", err)
+			return nil, err
 		}
 		objectResponses := make([]response.ObjectResponse, len(resp.Objects))
 		for i, item := range resp.Objects {
@@ -289,7 +302,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 		id := extractID(req.Params.URI, "nishiki://containers/")
 		containerID, err := entities.ContainerIDFromString(id)
 		if err != nil {
-			return nil, fmt.Errorf("invalid container ID: %w", err)
+			slog.Error("invalid container ID", "container_id", id, "err", err)
+			return nil, ErrInvalidFormat.With(map[string]any{"field": "container_id", "value": id}).Wrap(err)
 		}
 		resp, err := mctx.getContainerByIDUC().Execute(ctx, usecases.GetContainerByIDRequest{
 			ContainerID: containerID,
@@ -297,7 +311,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 			UserToken:   token,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("get container: %w", err)
+			slog.Error("failed to get container", "container_id", id, "err", err)
+			return nil, err
 		}
 		return jsonResourceResult(req.Params.URI, response.NewContainerResponse(resp.Container))
 	})

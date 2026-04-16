@@ -1,7 +1,7 @@
 package httputil
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"net/http"
 )
 
@@ -10,7 +10,7 @@ func JSON(w http.ResponseWriter, statusCode int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if data != nil {
-		if err := json.NewEncoder(w).Encode(data); err != nil {
+		if err := json.MarshalWrite(w, data); err != nil {
 			// Log error but can't change status at this point
 			http.Error(w, "failed to encode response", http.StatusInternalServerError)
 		}
@@ -24,7 +24,7 @@ func Error(w http.ResponseWriter, statusCode int, message string) {
 
 // DecodeJSON decodes JSON from the request body into the target
 func DecodeJSON(r *http.Request, target any) error {
-	return json.NewDecoder(r.Body).Decode(target)
+	return json.UnmarshalRead(r.Body, target)
 }
 
 // Data writes raw data with the given content type

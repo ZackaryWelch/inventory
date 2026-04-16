@@ -1,0 +1,13 @@
+# Frontend build recipes
+# GOEXPERIMENT=jsonv2 required for encoding/json/v2
+
+export GOEXPERIMENT := "jsonv2"
+
+vet:
+    go vet ./...
+
+lint:
+    golangci-lint run
+
+build:
+    CGO_ENABLED=0 go build -o backend

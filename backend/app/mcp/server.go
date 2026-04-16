@@ -2,8 +2,8 @@ package mcpserver
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"log/slog"
 	"strings"
 
@@ -131,9 +131,9 @@ func unsubscribeHandler() func(context.Context, *mcp.UnsubscribeRequest) error {
 
 // jsonResult marshals a result to JSON and returns it as MCP text content.
 func jsonResult(result any) (*mcp.CallToolResult, error) {
-	data, err := json.MarshalIndent(result, "", "  ")
+	data, err := json.Marshal(result, jsontext.Multiline(true))
 	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
+		return nil, err
 	}
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
@@ -164,9 +164,9 @@ func textResult(text string) *mcp.CallToolResult {
 
 // jsonResourceResult marshals a result and wraps it in an MCP ReadResourceResult.
 func jsonResourceResult(uri string, result any) (*mcp.ReadResourceResult, error) {
-	data, err := json.MarshalIndent(result, "", "  ")
+	data, err := json.Marshal(result, jsontext.Multiline(true))
 	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
+		return nil, err
 	}
 	return &mcp.ReadResourceResult{
 		Contents: []*mcp.ResourceContents{{

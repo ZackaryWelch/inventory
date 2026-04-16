@@ -1,7 +1,8 @@
 package openapi
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"net/http"
 	"sync"
 
@@ -68,7 +69,7 @@ func GenerateOpenAPISpec() []byte {
 		specMap["x-mcp-prompts"] = mcpPromptsDocs()
 		specMap["x-mcp-config"] = mcpConfigExample()
 
-		enriched, err := json.MarshalIndent(specMap, "", "  ")
+		enriched, err := json.Marshal(specMap, jsontext.Multiline(true))
 		if err != nil {
 			openAPISpec = baseSpec
 			return
