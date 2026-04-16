@@ -7,6 +7,9 @@ export GOEXPERIMENT := "jsonv2"
 vet:
     go vet ./...
 
+lint:
+    golangci-lint run
+
 # Build WebAssembly output to gio-web/
 build:
     go run cmd/web/main.go
