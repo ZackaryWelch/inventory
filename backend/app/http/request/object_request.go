@@ -9,33 +9,33 @@ import (
 )
 
 type CreateObjectRequest struct {
-	ContainerID string                 `json:"container_id,omitempty"`
-	Name        string                 `json:"name" binding:"required,min=1,max=255"`
-	Description string                 `json:"description,omitempty"`
-	ObjectType  string                 `json:"object_type" binding:"required"`
-	Location    string                 `json:"location,omitempty"`
-	Quantity    *float64               `json:"quantity,omitempty"`
-	Unit        string                 `json:"unit,omitempty"`
-	Properties  map[string]interface{} `json:"properties,omitempty"`
-	Tags        []string               `json:"tags,omitempty"`
-	ExpiresAt   *time.Time             `json:"expires_at,omitempty"`
+	ContainerID string         `json:"container_id,omitempty"`
+	Name        string         `json:"name" binding:"required,min=1,max=255"`
+	Description string         `json:"description,omitempty"`
+	ObjectType  string         `json:"object_type" binding:"required"`
+	Location    string         `json:"location,omitempty"`
+	Quantity    *float64       `json:"quantity,omitempty"`
+	Unit        string         `json:"unit,omitempty"`
+	Properties  map[string]any `json:"properties,omitempty"`
+	Tags        []string       `json:"tags,omitempty"`
+	ExpiresAt   *time.Time     `json:"expires_at,omitempty"`
 }
 
 type UpdateObjectRequest struct {
-	ContainerID string                 `json:"container_id,omitempty"`
-	Name        *string                `json:"name,omitempty"`
-	Description *string                `json:"description,omitempty"`
-	Location    *string                `json:"location,omitempty"`
-	Quantity    *float64               `json:"quantity,omitempty"`
-	Unit        *string                `json:"unit,omitempty"`
-	Properties  map[string]interface{} `json:"properties,omitempty"`
-	Tags        []string               `json:"tags,omitempty"`
-	ExpiresAt   *time.Time             `json:"expires_at,omitempty"`
+	ContainerID string         `json:"container_id,omitempty"`
+	Name        *string        `json:"name,omitempty"`
+	Description *string        `json:"description,omitempty"`
+	Location    *string        `json:"location,omitempty"`
+	Quantity    *float64       `json:"quantity,omitempty"`
+	Unit        *string        `json:"unit,omitempty"`
+	Properties  map[string]any `json:"properties,omitempty"`
+	Tags        []string       `json:"tags,omitempty"`
+	ExpiresAt   *time.Time     `json:"expires_at,omitempty"`
 }
 
 func (r *CreateObjectRequest) Validate() error {
 	if len(r.Name) < 1 || len(r.Name) > 255 {
-		return fmt.Errorf("name must be between 1 and 255 characters")
+		return errors.New("name must be between 1 and 255 characters")
 	}
 
 	// Validate object type
@@ -53,7 +53,7 @@ func (r *CreateObjectRequest) Validate() error {
 
 func (r *UpdateObjectRequest) Validate() error {
 	if r.Name != nil && (len(*r.Name) < 1 || len(*r.Name) > 255) {
-		return fmt.Errorf("name must be between 1 and 255 characters")
+		return errors.New("name must be between 1 and 255 characters")
 	}
 	return nil
 }
@@ -90,7 +90,7 @@ func GetObjectIDFromPath(r *http.Request) (entities.ObjectID, error) {
 		idStr = r.PathValue("id")
 	}
 	if idStr == "" {
-		return entities.ObjectID{}, fmt.Errorf("missing object ID in path")
+		return entities.ObjectID{}, errors.New("missing object ID in path")
 	}
 
 	objectID, err := entities.ObjectIDFromHex(idStr)

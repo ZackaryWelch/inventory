@@ -95,7 +95,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
-		assert.Len(t, resp.Collections, 0)
+		assert.Empty(t, resp.Collections)
 	})
 
 	t.Run("error - collection not found", func(t *testing.T) {

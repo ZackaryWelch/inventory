@@ -151,7 +151,7 @@ func (s *AuthentikAuthService) ValidateToken(ctx context.Context, tokenString st
 		// Validate token expiration
 		if time.Now().Unix() > claims.ExpiresAt {
 			s.logger.Warn("Token has expired", slog.Int64("exp", claims.ExpiresAt))
-			lastErr = fmt.Errorf("token has expired")
+			lastErr = errors.New("token has expired")
 			continue
 		}
 
@@ -171,7 +171,7 @@ func (s *AuthentikAuthService) ValidateToken(ctx context.Context, tokenString st
 // getClientByRedirectURL finds the appropriate OAuth client based on the redirect_uri
 func (s *AuthentikAuthService) getClientByRedirectURL(redirectURI string) (*clientProvider, error) {
 	if redirectURI == "" {
-		return nil, fmt.Errorf("redirect_uri is required")
+		return nil, errors.New("redirect_uri is required")
 	}
 
 	// Try exact match first
@@ -216,7 +216,7 @@ func (s *AuthentikAuthService) getClientByRedirectURL(redirectURI string) (*clie
 // getClientByClientID finds the appropriate OAuth client based on client_id
 func (s *AuthentikAuthService) getClientByClientID(clientID string) (*clientProvider, error) {
 	if clientID == "" {
-		return nil, fmt.Errorf("client_id is required")
+		return nil, errors.New("client_id is required")
 	}
 
 	client, ok := s.clients[clientID]
@@ -279,27 +279,27 @@ func (s *AuthentikAuthService) ParseTokenClaims(tokenString string) (*jwt.MapCla
 		return &claims, nil
 	}
 
-	return nil, fmt.Errorf("invalid token claims")
+	return nil, errors.New("invalid token claims")
 }
 
 // Authentik API response structures
 type AuthentikGroup struct {
-	ID          string                 `json:"pk"`
-	Name        string                 `json:"name"`
-	ParentName  string                 `json:"parent_name"`
-	IsSuperuser bool                   `json:"is_superuser"`
-	NumPK       int                    `json:"num_pk"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	ID          string         `json:"pk"`
+	Name        string         `json:"name"`
+	ParentName  string         `json:"parent_name"`
+	IsSuperuser bool           `json:"is_superuser"`
+	NumPK       int            `json:"num_pk"`
+	Attributes  map[string]any `json:"attributes"`
 }
 
 type AuthentikUser struct {
-	ID         string                 `json:"pk"`
-	Username   string                 `json:"username"`
-	Email      string                 `json:"email"`
-	Name       string                 `json:"name"`
-	IsActive   bool                   `json:"is_active"`
-	Avatar     string                 `json:"avatar"`
-	Attributes map[string]interface{} `json:"attributes"`
+	ID         string         `json:"pk"`
+	Username   string         `json:"username"`
+	Email      string         `json:"email"`
+	Name       string         `json:"name"`
+	IsActive   bool           `json:"is_active"`
+	Avatar     string         `json:"avatar"`
+	Attributes map[string]any `json:"attributes"`
 }
 
 type AuthentikGroupsResponse struct {
@@ -337,7 +337,7 @@ func (s *AuthentikAuthService) GetUserGroups(ctx context.Context, userToken, use
 	// Extract groups from claims
 	var groupNames []string
 	if groupsRaw, ok := (*rawClaims)["groups"]; ok {
-		if groupsSlice, ok := groupsRaw.([]interface{}); ok {
+		if groupsSlice, ok := groupsRaw.([]any); ok {
 			for _, g := range groupsSlice {
 				if groupName, ok := g.(string); ok {
 					groupNames = append(groupNames, groupName)
@@ -464,12 +464,12 @@ func (s *AuthentikAuthService) CreateGroup(ctx context.Context, userToken, name 
 		slog.String("creator_id", creatorID))
 
 	// Create group request with nishiki role attribute
-	attributes := map[string]interface{}{
+	attributes := map[string]any{
 		"role": "nishiki",
 	}
 	groupRequest := api.GroupRequest{
 		Name:        name,
-		IsSuperuser: api.PtrBool(false),
+		IsSuperuser: new(false),
 		Attributes:  attributes,
 	}
 
@@ -762,10 +762,10 @@ func (s *AuthentikAuthService) UpdateGroup(ctx context.Context, userToken, group
 			slog.Any("error", err),
 			slog.Int("status_code", status))
 		if httpResp != nil && httpResp.StatusCode == http.StatusForbidden {
-			return nil, fmt.Errorf("authentication failed: insufficient permissions to update group")
+			return nil, errors.New("authentication failed: insufficient permissions to update group")
 		}
 		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
-			return nil, fmt.Errorf("group not found")
+			return nil, errors.New("group not found")
 		}
 		return nil, fmt.Errorf("failed to update group: %w", err)
 	}
@@ -799,10 +799,10 @@ func (s *AuthentikAuthService) DeleteGroup(ctx context.Context, userToken, group
 			slog.Any("error", err),
 			slog.Int("status_code", status))
 		if httpResp != nil && httpResp.StatusCode == http.StatusForbidden {
-			return fmt.Errorf("authentication failed: insufficient permissions to delete group")
+			return errors.New("authentication failed: insufficient permissions to delete group")
 		}
 		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("group not found")
+			return errors.New("group not found")
 		}
 		return fmt.Errorf("failed to delete group: %w", err)
 	}
@@ -810,7 +810,7 @@ func (s *AuthentikAuthService) DeleteGroup(ctx context.Context, userToken, group
 }
 
 // GetOIDCConfig fetches OIDC discovery configuration from Authentik and modifies token endpoint
-func (s *AuthentikAuthService) GetOIDCConfig(ctx context.Context, clientID string) (map[string]interface{}, error) {
+func (s *AuthentikAuthService) GetOIDCConfig(ctx context.Context, clientID string) (map[string]any, error) {
 	// Get the appropriate client
 	client, err := s.getClientByClientID(clientID)
 	if err != nil {
@@ -826,7 +826,7 @@ func (s *AuthentikAuthService) GetOIDCConfig(ctx context.Context, clientID strin
 		slog.String("provider_name", client.config.ProviderName))
 
 	// Make request to Authentik
-	req, err := http.NewRequestWithContext(ctx, "GET", discoveryURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, discoveryURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -852,7 +852,7 @@ func (s *AuthentikAuthService) GetOIDCConfig(ctx context.Context, clientID strin
 	}
 
 	// Parse JSON response
-	var oidcConfig map[string]interface{}
+	var oidcConfig map[string]any
 	if err := json.Unmarshal(body, &oidcConfig); err != nil {
 		s.logger.Error("Failed to parse OIDC config JSON", slog.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to parse OIDC configuration: %w", err)
@@ -863,7 +863,7 @@ func (s *AuthentikAuthService) GetOIDCConfig(ctx context.Context, clientID strin
 	if backendURL == "" {
 		backendURL = "http://localhost:3001" // Default fallback
 	}
-	oidcConfig["token_endpoint"] = fmt.Sprintf("%s/auth/token", backendURL)
+	oidcConfig["token_endpoint"] = backendURL + "/auth/token"
 
 	s.logger.Debug("OIDC config fetched successfully",
 		slog.String("token_endpoint", oidcConfig["token_endpoint"].(string)),
@@ -873,7 +873,7 @@ func (s *AuthentikAuthService) GetOIDCConfig(ctx context.Context, clientID strin
 }
 
 // ProxyTokenExchange forwards token exchange requests to Authentik with client credentials
-func (s *AuthentikAuthService) ProxyTokenExchange(ctx context.Context, tokenRequest map[string]interface{}) ([]byte, int, error) {
+func (s *AuthentikAuthService) ProxyTokenExchange(ctx context.Context, tokenRequest map[string]any) ([]byte, int, error) {
 	s.logger.Debug("Processing token exchange request",
 		slog.String("grant_type", fmt.Sprintf("%v", tokenRequest["grant_type"])))
 
@@ -888,7 +888,7 @@ func (s *AuthentikAuthService) ProxyTokenExchange(ctx context.Context, tokenRequ
 	} else if clientIDParam != "" {
 		client, clientLookupErr = s.getClientByClientID(clientIDParam)
 	} else {
-		return nil, http.StatusBadRequest, fmt.Errorf("failed to determine OAuth client: no redirect_uri or client_id provided")
+		return nil, http.StatusBadRequest, errors.New("failed to determine OAuth client: no redirect_uri or client_id provided")
 	}
 	if clientLookupErr != nil {
 		s.logger.Error("Failed to determine OAuth client", slog.String("error", clientLookupErr.Error()))

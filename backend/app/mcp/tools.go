@@ -14,28 +14,29 @@ import (
 	"github.com/nishiki/backend/domain/usecases"
 )
 
-func boolPtr(b bool) *bool { return &b }
+//go:fix inline
+func boolPtr(b bool) *bool { return new(b) }
 
 // Common tool annotation patterns.
 var (
 	readOnlyAnnotations = &mcp.ToolAnnotations{
 		ReadOnlyHint:    true,
 		IdempotentHint:  true,
-		DestructiveHint: boolPtr(false),
-		OpenWorldHint:   boolPtr(false),
+		DestructiveHint: new(false),
+		OpenWorldHint:   new(false),
 	}
 	createAnnotations = &mcp.ToolAnnotations{
-		DestructiveHint: boolPtr(false),
-		OpenWorldHint:   boolPtr(false),
+		DestructiveHint: new(false),
+		OpenWorldHint:   new(false),
 	}
 	updateAnnotations = &mcp.ToolAnnotations{
 		IdempotentHint:  true,
-		DestructiveHint: boolPtr(false),
-		OpenWorldHint:   boolPtr(false),
+		DestructiveHint: new(false),
+		OpenWorldHint:   new(false),
 	}
 	deleteAnnotations = &mcp.ToolAnnotations{
 		IdempotentHint: true,
-		OpenWorldHint:  boolPtr(false),
+		OpenWorldHint:  new(false),
 	}
 )
 
@@ -347,16 +348,16 @@ func registerContainerTools(s *mcp.Server, mctx *MCPContext) {
 
 func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 	type CreateObjectInput struct {
-		ContainerID  string                 `json:"container_id,omitempty" jsonschema:"ID of the container to add the object to (optional)"`
-		CollectionID string                 `json:"collection_id,omitempty" jsonschema:"ID of the collection (required when container_id is omitted)"`
-		Name         string                 `json:"name" jsonschema:"Name of the object"`
-		Description  string                 `json:"description,omitempty" jsonschema:"Description (optional)"`
-		ObjectType   string                 `json:"object_type" jsonschema:"Object type matching the collection: food, book, videogame, music, boardgame, general"`
-		Quantity     *float64               `json:"quantity,omitempty" jsonschema:"Quantity (optional)"`
-		Unit         string                 `json:"unit,omitempty" jsonschema:"Unit of quantity e.g. kg, pieces (optional)"`
-		Properties   map[string]interface{} `json:"properties,omitempty" jsonschema:"Type-specific properties e.g. author, ISBN, brand (optional)"`
-		Tags         []string               `json:"tags,omitempty" jsonschema:"Tags (optional)"`
-		ExpiresAt    string                 `json:"expires_at,omitempty" jsonschema:"Expiration date in RFC3339 format (optional, mainly for food)"`
+		ContainerID  string         `json:"container_id,omitempty" jsonschema:"ID of the container to add the object to (optional)"`
+		CollectionID string         `json:"collection_id,omitempty" jsonschema:"ID of the collection (required when container_id is omitted)"`
+		Name         string         `json:"name" jsonschema:"Name of the object"`
+		Description  string         `json:"description,omitempty" jsonschema:"Description (optional)"`
+		ObjectType   string         `json:"object_type" jsonschema:"Object type matching the collection: food, book, videogame, music, boardgame, general"`
+		Quantity     *float64       `json:"quantity,omitempty" jsonschema:"Quantity (optional)"`
+		Unit         string         `json:"unit,omitempty" jsonschema:"Unit of quantity e.g. kg, pieces (optional)"`
+		Properties   map[string]any `json:"properties,omitempty" jsonschema:"Type-specific properties e.g. author, ISBN, brand (optional)"`
+		Tags         []string       `json:"tags,omitempty" jsonschema:"Tags (optional)"`
+		ExpiresAt    string         `json:"expires_at,omitempty" jsonschema:"Expiration date in RFC3339 format (optional, mainly for food)"`
 	}
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "create_object",
@@ -460,11 +461,11 @@ func registerObjectTools(s *mcp.Server, mctx *MCPContext) {
 	})
 
 	type UpdateObjectInput struct {
-		ContainerID string                 `json:"container_id,omitempty" jsonschema:"ID of the container to move the object to (optional, keeps current if omitted)"`
-		ObjectID    string                 `json:"object_id" jsonschema:"ID of the object to update"`
-		Name        string                 `json:"name,omitempty" jsonschema:"New name (optional)"`
-		Properties  map[string]interface{} `json:"properties,omitempty" jsonschema:"New properties (optional, replaces existing)"`
-		Tags        []string               `json:"tags,omitempty" jsonschema:"New tags (optional, replaces existing)"`
+		ContainerID string         `json:"container_id,omitempty" jsonschema:"ID of the container to move the object to (optional, keeps current if omitted)"`
+		ObjectID    string         `json:"object_id" jsonschema:"ID of the object to update"`
+		Name        string         `json:"name,omitempty" jsonschema:"New name (optional)"`
+		Properties  map[string]any `json:"properties,omitempty" jsonschema:"New properties (optional, replaces existing)"`
+		Tags        []string       `json:"tags,omitempty" jsonschema:"New tags (optional, replaces existing)"`
 	}
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "update_object",
@@ -626,7 +627,7 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 		Description: "Join a group using an invite code (currently unavailable — backend returns 501)",
 		Annotations: createAnnotations,
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input JoinGroupInput) (*mcp.CallToolResult, any, error) {
-		r, _ := errorResult(fmt.Errorf("backend unimplemented: JoinGroup returns 501. Fix planned in Phase 2"))
+		r, _ := errorResult(errors.New("backend unimplemented: JoinGroup returns 501. Fix planned in Phase 2"))
 		return r, nil, nil
 	})
 
@@ -703,14 +704,14 @@ func registerGroupTools(s *mcp.Server, mctx *MCPContext) {
 
 func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 	type BulkImportInput struct {
-		CollectionID      string                   `json:"collection_id" jsonschema:"ID of the collection to import into"`
-		Data              []map[string]interface{} `json:"data" jsonschema:"Array of objects to import, each must have a 'name' field"`
-		DistributionMode  string                   `json:"distribution_mode,omitempty" jsonschema:"How to distribute objects: automatic, location, target, or manual (default)"`
-		TargetContainerID string                   `json:"target_container_id,omitempty" jsonschema:"Container ID for target distribution mode (optional)"`
-		DefaultTags       []string                 `json:"default_tags,omitempty" jsonschema:"Tags to apply to all imported objects (optional)"`
-		LocationColumn    string                   `json:"location_column,omitempty" jsonschema:"Column name used for container mapping in 'location' mode (default: 'location')"`
-		NameColumn        string                   `json:"name_column,omitempty" jsonschema:"Column name override for object name (optional, auto-detected by default)"`
-		InferSchema       bool                     `json:"infer_schema,omitempty" jsonschema:"Run type inference and save schema to collection (optional)"`
+		CollectionID      string           `json:"collection_id" jsonschema:"ID of the collection to import into"`
+		Data              []map[string]any `json:"data" jsonschema:"Array of objects to import, each must have a 'name' field"`
+		DistributionMode  string           `json:"distribution_mode,omitempty" jsonschema:"How to distribute objects: automatic, location, target, or manual (default)"`
+		TargetContainerID string           `json:"target_container_id,omitempty" jsonschema:"Container ID for target distribution mode (optional)"`
+		DefaultTags       []string         `json:"default_tags,omitempty" jsonschema:"Tags to apply to all imported objects (optional)"`
+		LocationColumn    string           `json:"location_column,omitempty" jsonschema:"Column name used for container mapping in 'location' mode (default: 'location')"`
+		NameColumn        string           `json:"name_column,omitempty" jsonschema:"Column name override for object name (optional, auto-detected by default)"`
+		InferSchema       bool             `json:"infer_schema,omitempty" jsonschema:"Run type inference and save schema to collection (optional)"`
 	}
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "bulk_import",
@@ -793,7 +794,7 @@ func registerImportTools(s *mcp.Server, mctx *MCPContext) {
 			return r, nil, nil
 		}
 		if len(data) == 0 {
-			r, _ := errorResult(fmt.Errorf("CSV contains no data rows"))
+			r, _ := errorResult(errors.New("CSV contains no data rows"))
 			return r, nil, nil
 		}
 
@@ -965,22 +966,22 @@ func registerExportTools(s *mcp.Server, mctx *MCPContext) {
 }
 
 // parseCSVString parses a raw CSV string into rows and returns (data, headers, error).
-func parseCSVString(csvData string) ([]map[string]interface{}, []string, error) {
+func parseCSVString(csvData string) ([]map[string]any, []string, error) {
 	reader := csv.NewReader(strings.NewReader(csvData))
 	records, err := reader.ReadAll()
 	if err != nil {
 		return nil, nil, err
 	}
 	if len(records) < 2 {
-		return nil, nil, fmt.Errorf("CSV must have at least a header row and one data row")
+		return nil, nil, errors.New("CSV must have at least a header row and one data row")
 	}
 	headers := records[0]
 	for i, h := range headers {
 		headers[i] = strings.TrimSpace(h)
 	}
-	data := make([]map[string]interface{}, 0, len(records)-1)
+	data := make([]map[string]any, 0, len(records)-1)
 	for _, record := range records[1:] {
-		row := make(map[string]interface{}, len(headers))
+		row := make(map[string]any, len(headers))
 		for i, h := range headers {
 			if i < len(record) {
 				v := strings.TrimSpace(record[i])
@@ -1023,7 +1024,7 @@ func registerSchemaTools(s *mcp.Server, mctx *MCPContext) {
 			UserToken:    token,
 		})
 		if err != nil || len(resp.Collections) == 0 {
-			r, _ := errorResult(fmt.Errorf("collection not found"))
+			r, _ := errorResult(errors.New("collection not found"))
 			return r, nil, nil
 		}
 		collection := resp.Collections[0]

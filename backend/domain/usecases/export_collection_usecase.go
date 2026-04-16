@@ -69,7 +69,7 @@ func (uc *ExportCollectionUseCase) Execute(ctx context.Context, req ExportCollec
 		}
 	}
 	if !hasAccess {
-		return nil, fmt.Errorf("access denied: user does not have access to this collection")
+		return nil, errors.New("access denied: user does not have access to this collection")
 	}
 
 	objects := collection.GetAllObjects()

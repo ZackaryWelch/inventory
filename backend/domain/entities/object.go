@@ -2,6 +2,8 @@ package entities
 
 import (
 	"errors"
+	"maps"
+	"slices"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -208,9 +210,7 @@ func (o *Object) Properties() map[string]TypedValue {
 	}
 	// Return a copy to prevent external modifications
 	result := make(map[string]TypedValue)
-	for k, v := range o.properties {
-		result[k] = v
-	}
+	maps.Copy(result, o.properties)
 	return result
 }
 
@@ -239,12 +239,7 @@ func (o *Object) GetProperty(key string) (TypedValue, bool) {
 }
 
 func (o *Object) HasTag(tag string) bool {
-	for _, t := range o.tags {
-		if t == tag {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(o.tags, tag)
 }
 
 func (o *Object) UpdateName(name ObjectName) error {

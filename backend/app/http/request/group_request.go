@@ -23,21 +23,21 @@ type JoinGroupRequest struct {
 
 func (r *CreateGroupRequest) Validate() error {
 	if len(r.Name) < 1 || len(r.Name) > 255 {
-		return fmt.Errorf("name must be between 1 and 255 characters")
+		return errors.New("name must be between 1 and 255 characters")
 	}
 	return nil
 }
 
 func (r *UpdateGroupRequest) Validate() error {
 	if len(r.Name) < 1 || len(r.Name) > 255 {
-		return fmt.Errorf("name must be between 1 and 255 characters")
+		return errors.New("name must be between 1 and 255 characters")
 	}
 	return nil
 }
 
 func (r *JoinGroupRequest) Validate() error {
 	if len(r.InvitationHash) == 0 {
-		return fmt.Errorf("invitation hash is required")
+		return errors.New("invitation hash is required")
 	}
 	return nil
 }
@@ -47,7 +47,7 @@ func (r *JoinGroupRequest) Validate() error {
 func GetGroupMemberIDFromPath(r *http.Request) (string, error) {
 	id := r.PathValue("user_id")
 	if id == "" {
-		return "", fmt.Errorf("missing user_id in path")
+		return "", errors.New("missing user_id in path")
 	}
 	return id, nil
 }
@@ -55,7 +55,7 @@ func GetGroupMemberIDFromPath(r *http.Request) (string, error) {
 func GetGroupIDFromPath(r *http.Request) (entities.GroupID, error) {
 	idStr := r.PathValue("id")
 	if idStr == "" {
-		return entities.GroupID{}, fmt.Errorf("missing group ID in path")
+		return entities.GroupID{}, errors.New("missing group ID in path")
 	}
 
 	groupID, err := entities.GroupIDFromString(idStr)

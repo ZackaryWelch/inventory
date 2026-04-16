@@ -29,7 +29,7 @@ type GoogleImageSearchService struct {
 
 func NewGoogleImageSearchService(cfg config.ImagesConfig, logger *slog.Logger) (*GoogleImageSearchService, error) {
 	if cfg.GoogleAPIKey == "" || cfg.GoogleSearchEngineID == "" {
-		return nil, fmt.Errorf("google_api_key and google_search_engine_id are required when images are enabled")
+		return nil, errors.New("google_api_key and google_search_engine_id are required when images are enabled")
 	}
 
 	// Ensure cache directory exists
@@ -86,7 +86,7 @@ func (s *GoogleImageSearchService) searchImage(ctx context.Context, query string
 		url.QueryEscape(query),
 	)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, http.NoBody)
 	if err != nil {
 		return "", err
 	}
@@ -115,7 +115,7 @@ func (s *GoogleImageSearchService) searchImage(ctx context.Context, query string
 }
 
 func (s *GoogleImageSearchService) downloadToCache(ctx context.Context, imageURL string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, imageURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, imageURL, http.NoBody)
 	if err != nil {
 		return "", err
 	}

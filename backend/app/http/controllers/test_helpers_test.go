@@ -37,7 +37,7 @@ func newTestContainer(t *testing.T) (*container.Container, *testMocks) {
 		AuthService:    m.AuthService,
 	}
 	c.SetConfig(&config.Config{})
-	c.SetLogger(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	c.SetLogger(slog.New(slog.DiscardHandler))
 
 	return c, m
 }

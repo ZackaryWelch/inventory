@@ -22,13 +22,13 @@ const (
 // Val holds native Go types: time.Time for dates, float64 for numbers, bool for booleans, string otherwise.
 type TypedValue struct {
 	Type     PropertyType `bson:"type" json:"type"`
-	Val      interface{}  `bson:"val" json:"val"`
+	Val      any          `bson:"val" json:"val"`
 	Approx   bool         `bson:"approx,omitempty" json:"approx,omitempty"`
 	Currency string       `bson:"cur,omitempty" json:"cur,omitempty"`
 }
 
 // NewTypedValue creates a TypedValue with the given type and value.
-func NewTypedValue(t PropertyType, val interface{}) TypedValue {
+func NewTypedValue(t PropertyType, val any) TypedValue {
 	return TypedValue{Type: t, Val: val}
 }
 

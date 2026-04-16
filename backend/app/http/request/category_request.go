@@ -23,14 +23,14 @@ type UpdateCategoryRequest struct {
 
 func (r *CreateCategoryRequest) Validate() error {
 	if len(r.Name) < 1 || len(r.Name) > 255 {
-		return fmt.Errorf("name must be between 1 and 255 characters")
+		return errors.New("name must be between 1 and 255 characters")
 	}
 	return nil
 }
 
 func (r *UpdateCategoryRequest) Validate() error {
 	if r.Name != nil && (len(*r.Name) < 1 || len(*r.Name) > 255) {
-		return fmt.Errorf("name must be between 1 and 255 characters")
+		return errors.New("name must be between 1 and 255 characters")
 	}
 	return nil
 }
@@ -38,7 +38,7 @@ func (r *UpdateCategoryRequest) Validate() error {
 func GetCategoryIDFromPath(r *http.Request) (entities.CategoryID, error) {
 	idStr := r.PathValue("id")
 	if idStr == "" {
-		return entities.CategoryID{}, fmt.Errorf("missing category ID in path")
+		return entities.CategoryID{}, errors.New("missing category ID in path")
 	}
 
 	categoryID, err := entities.CategoryIDFromHex(idStr)

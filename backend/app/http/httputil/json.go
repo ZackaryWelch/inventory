@@ -6,7 +6,7 @@ import (
 )
 
 // JSON writes a JSON response with the given status code
-func JSON(w http.ResponseWriter, statusCode int, data interface{}) {
+func JSON(w http.ResponseWriter, statusCode int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if data != nil {
@@ -23,7 +23,7 @@ func Error(w http.ResponseWriter, statusCode int, message string) {
 }
 
 // DecodeJSON decodes JSON from the request body into the target
-func DecodeJSON(r *http.Request, target interface{}) error {
+func DecodeJSON(r *http.Request, target any) error {
 	return json.NewDecoder(r.Body).Decode(target)
 }
 

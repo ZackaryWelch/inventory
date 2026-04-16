@@ -50,13 +50,13 @@ func TestAuthentikAuthService_GetGroupUsers(t *testing.T) {
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v3/core/users/" && r.URL.Query().Get("groups_by_pk") == "group-uuid-1" {
-			response := map[string]interface{}{
-				"results": []map[string]interface{}{
-					{"pk": 1, "username": "alice", "email": &email1, "name": "Alice", "date_joined": "2024-01-01T00:00:00Z", "avatar": "", "is_superuser": false, "groups_obj": []interface{}{}},
-					{"pk": 2, "username": "bob", "email": &email2, "name": "Bob", "date_joined": "2024-01-01T00:00:00Z", "avatar": "", "is_superuser": false, "groups_obj": []interface{}{}},
+			response := map[string]any{
+				"results": []map[string]any{
+					{"pk": 1, "username": "alice", "email": &email1, "name": "Alice", "date_joined": "2024-01-01T00:00:00Z", "avatar": "", "is_superuser": false, "groups_obj": []any{}},
+					{"pk": 2, "username": "bob", "email": &email2, "name": "Bob", "date_joined": "2024-01-01T00:00:00Z", "avatar": "", "is_superuser": false, "groups_obj": []any{}},
 				},
-				"pagination":   map[string]interface{}{},
-				"autocomplete": map[string]interface{}{},
+				"pagination":   map[string]any{},
+				"autocomplete": map[string]any{},
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
@@ -88,9 +88,9 @@ func TestAuthentikAuthService_GetUserByID(t *testing.T) {
 
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v3/core/users/42/" {
-			response := map[string]interface{}{
+			response := map[string]any{
 				"pk": 42, "username": "alice", "email": &email, "name": "Alice",
-				"date_joined": "2024-01-01T00:00:00Z", "avatar": "", "is_superuser": false, "groups_obj": []interface{}{},
+				"date_joined": "2024-01-01T00:00:00Z", "avatar": "", "is_superuser": false, "groups_obj": []any{},
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
@@ -119,9 +119,9 @@ func TestAuthentikAuthService_GetUserByID(t *testing.T) {
 func TestAuthentikAuthService_GetGroupByID(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v3/core/groups/group-uuid-1/" {
-			response := map[string]interface{}{
+			response := map[string]any{
 				"pk": "group-uuid-1", "num_pk": 1, "name": "Admins",
-				"users_obj": []interface{}{},
+				"users_obj": []any{},
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
@@ -150,7 +150,7 @@ func TestAuthentikAuthService_GetGroupByID(t *testing.T) {
 func TestAuthentikAuthService_GetOIDCConfig(t *testing.T) {
 	tests := []struct {
 		name           string
-		serverResponse map[string]interface{}
+		serverResponse map[string]any
 		serverStatus   int
 		backendURL     string
 		expectError    bool
@@ -158,7 +158,7 @@ func TestAuthentikAuthService_GetOIDCConfig(t *testing.T) {
 	}{
 		{
 			name: "successful_oidc_config_retrieval",
-			serverResponse: map[string]interface{}{
+			serverResponse: map[string]any{
 				"issuer":                 "https://auth.example.com/application/o/nishiki/",
 				"authorization_endpoint": "https://auth.example.com/application/o/nishiki/auth/",
 				"token_endpoint":         "https://auth.example.com/application/o/nishiki/token/",
@@ -271,8 +271,8 @@ func TestAuthentikAuthService_ProxyTokenExchange(t *testing.T) {
 
 	tests := []struct {
 		name              string
-		inputRequest      map[string]interface{}
-		serverResponse    map[string]interface{}
+		inputRequest      map[string]any
+		serverResponse    map[string]any
 		serverStatus      int
 		expectError       bool
 		expectedStatus    int
@@ -280,12 +280,12 @@ func TestAuthentikAuthService_ProxyTokenExchange(t *testing.T) {
 	}{
 		{
 			name: "successful_authorization_code_exchange",
-			inputRequest: map[string]interface{}{
+			inputRequest: map[string]any{
 				"grant_type":   "authorization_code",
 				"code":         "test-auth-code",
 				"redirect_uri": "http://localhost:3000/callback",
 			},
-			serverResponse: map[string]interface{}{
+			serverResponse: map[string]any{
 				"access_token":  "access-token-123",
 				"token_type":    "Bearer",
 				"expires_in":    3600,
@@ -299,11 +299,11 @@ func TestAuthentikAuthService_ProxyTokenExchange(t *testing.T) {
 		},
 		{
 			name: "successful_refresh_token_exchange",
-			inputRequest: map[string]interface{}{
+			inputRequest: map[string]any{
 				"grant_type":    "refresh_token",
 				"refresh_token": "refresh-token-123",
 			},
-			serverResponse: map[string]interface{}{
+			serverResponse: map[string]any{
 				"access_token":  "new-access-token-456",
 				"token_type":    "Bearer",
 				"expires_in":    3600,
@@ -317,11 +317,11 @@ func TestAuthentikAuthService_ProxyTokenExchange(t *testing.T) {
 		},
 		{
 			name: "server_error_invalid_grant",
-			inputRequest: map[string]interface{}{
+			inputRequest: map[string]any{
 				"grant_type": "authorization_code",
 				"code":       "invalid-code",
 			},
-			serverResponse: map[string]interface{}{
+			serverResponse: map[string]any{
 				"error":             "invalid_grant",
 				"error_description": "Authorization code is invalid",
 			},
@@ -406,7 +406,7 @@ func TestAuthentikAuthService_ProxyTokenExchange(t *testing.T) {
 			}
 
 			// Assert response body is valid JSON
-			var actualResponse map[string]interface{}
+			var actualResponse map[string]any
 			if err := json.Unmarshal(responseBody, &actualResponse); err != nil {
 				t.Errorf("Response body is not valid JSON: %v", err)
 				return

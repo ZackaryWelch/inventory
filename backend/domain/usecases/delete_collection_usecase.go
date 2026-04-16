@@ -35,17 +35,17 @@ func (uc *DeleteCollectionUseCase) Execute(ctx context.Context, req DeleteCollec
 	// Get collection to validate ownership
 	collection, err := uc.collectionRepo.GetByID(ctx, req.CollectionID)
 	if err != nil {
-		return nil, fmt.Errorf("collection not found")
+		return nil, errors.New("collection not found")
 	}
 
 	// Validate access - only owner can delete
 	if !collection.UserID().Equals(req.UserID) {
-		return nil, fmt.Errorf("access denied: only collection owner can delete")
+		return nil, errors.New("access denied: only collection owner can delete")
 	}
 
 	// If collection has containers, require force flag
 	if collection.ContainerCount() > 0 && !req.Force {
-		return nil, fmt.Errorf("collection has containers: use force to delete collection and all its containers and objects")
+		return nil, errors.New("collection has containers: use force to delete collection and all its containers and objects")
 	}
 
 	// Cascade-delete containers (and their embedded objects)

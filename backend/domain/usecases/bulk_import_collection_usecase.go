@@ -17,7 +17,7 @@ type BulkImportCollectionRequest struct {
 	CollectionID      entities.CollectionID
 	TargetContainerID *entities.ContainerID // Optional: specific container to import to
 	DistributionMode  string                // "automatic", "manual", "target", "location"
-	Data              []map[string]interface{}
+	Data              []map[string]any
 	DefaultTags       []string
 	UserToken         string
 	LocationColumn    string // column name for container mapping (default: "location")
@@ -98,7 +98,7 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 	}
 
 	if !hasAccess {
-		return nil, fmt.Errorf("access denied")
+		return nil, errors.New("access denied")
 	}
 
 	// Run type inference if requested
@@ -141,7 +141,7 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 	case "target":
 		// Import to specific container
 		if req.TargetContainerID == nil {
-			return nil, fmt.Errorf("target container ID required for target distribution mode")
+			return nil, errors.New("target container ID required for target distribution mode")
 		}
 		container, err := uc.containerRepo.GetByID(ctx, *req.TargetContainerID)
 		if err != nil {
@@ -149,7 +149,7 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		}
 		// Verify container belongs to this collection
 		if !container.CollectionID().Equals(req.CollectionID) {
-			return nil, fmt.Errorf("target container does not belong to this collection")
+			return nil, errors.New("target container does not belong to this collection")
 		}
 		targetContainers = append(targetContainers, container)
 
@@ -190,7 +190,7 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		}
 
 		if distributionPlan.AssignedObjects == 0 {
-			return nil, fmt.Errorf("no containers available for automatic distribution")
+			return nil, errors.New("no containers available for automatic distribution")
 		}
 
 		// Get containers for assignment
@@ -273,7 +273,7 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 		tags := resolveTagsField(item, req.DefaultTags)
 
 		// Extract and coerce properties (all fields except reserved columns)
-		rawProps := make(map[string]interface{})
+		rawProps := make(map[string]any)
 		for key, value := range item {
 			nk := services.ToSnakeCase(key)
 			if !uc.typeInference.IsReserved(nk) {
@@ -381,7 +381,7 @@ func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.
 		tags := resolveTagsField(item, req.DefaultTags)
 
 		// Extract and coerce properties (all fields except reserved columns)
-		rawProps := make(map[string]interface{})
+		rawProps := make(map[string]any)
 		for key, value := range item {
 			nk := services.ToSnakeCase(key)
 			if !uc.typeInference.IsReserved(nk) {
@@ -613,7 +613,7 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 		tags := resolveTagsField(item, req.DefaultTags)
 
 		// Build and coerce properties (exclude reserved columns and location column)
-		rawProps := make(map[string]interface{})
+		rawProps := make(map[string]any)
 		for key, value := range item {
 			nk := services.ToSnakeCase(key)
 			if uc.typeInference.IsReserved(nk) {
@@ -683,7 +683,7 @@ func (uc *BulkImportCollectionUseCase) executeLocationDistribution(
 // resolveReservedFields extracts description and quantity from a data row.
 // These are reserved columns that get stripped from properties but need to be
 // mapped to top-level Object fields.
-func resolveReservedFields(item map[string]interface{}) (description string, quantity *float64) {
+func resolveReservedFields(item map[string]any) (description string, quantity *float64) {
 	// Try case-insensitive lookup for description
 	for k, v := range item {
 		if strings.EqualFold(k, "description") {
@@ -711,11 +711,11 @@ func resolveReservedFields(item map[string]interface{}) (description string, qua
 }
 
 // resolveTagsField extracts tags from a data row, combining with default tags.
-func resolveTagsField(item map[string]interface{}, defaultTags []string) []string {
+func resolveTagsField(item map[string]any, defaultTags []string) []string {
 	tags := append([]string(nil), defaultTags...)
 
 	// Check for tags as []interface{} (from JSON)
-	if itemTags, ok := item["tags"].([]interface{}); ok {
+	if itemTags, ok := item["tags"].([]any); ok {
 		for _, tag := range itemTags {
 			if tagStr, ok := tag.(string); ok {
 				tags = append(tags, tagStr)
@@ -726,7 +726,7 @@ func resolveTagsField(item map[string]interface{}, defaultTags []string) []strin
 	for k, v := range item {
 		if strings.EqualFold(k, "tags") {
 			if tagStr, ok := v.(string); ok && tagStr != "" {
-				for _, t := range strings.Split(tagStr, ",") {
+				for t := range strings.SplitSeq(tagStr, ",") {
 					t = strings.TrimSpace(t)
 					if t != "" {
 						tags = append(tags, t)
@@ -742,10 +742,10 @@ func resolveTagsField(item map[string]interface{}, defaultTags []string) []strin
 
 // resolveNameField finds the object name from a data row using explicit nameCol or auto-detection.
 // getRowValue returns the value for a column name using case-insensitive key matching.
-func getRowValue(row map[string]interface{}, col string) (interface{}, bool) {
+func getRowValue(row map[string]any, col string) (any, bool) {
 	colLower := strings.ToLower(col)
 	for k, v := range row {
-		if strings.ToLower(k) == colLower {
+		if strings.EqualFold(k, colLower) {
 			return v, true
 		}
 	}
@@ -768,7 +768,7 @@ func (uc *BulkImportCollectionUseCase) searchObjectImage(ctx context.Context, ob
 	}
 }
 
-func resolveNameField(item map[string]interface{}, nameCol string) (string, bool) {
+func resolveNameField(item map[string]any, nameCol string) (string, bool) {
 	if nameCol != "" {
 		if v, ok := getRowValue(item, nameCol); ok {
 			name := strings.TrimSpace(fmt.Sprintf("%v", v))

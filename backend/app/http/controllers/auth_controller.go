@@ -114,7 +114,7 @@ func (ctrl *AuthController) GetOIDCConfig(w http.ResponseWriter, r *http.Request
 // @Router /auth/token [post]
 func (ctrl *AuthController) ProxyTokenExchange(w http.ResponseWriter, r *http.Request) {
 	// Get request body - handle both form-encoded and JSON
-	var requestBody map[string]interface{}
+	var requestBody map[string]any
 
 	contentType := r.Header.Get("Content-Type")
 	if contentType == "application/x-www-form-urlencoded" {
@@ -126,7 +126,7 @@ func (ctrl *AuthController) ProxyTokenExchange(w http.ResponseWriter, r *http.Re
 		}
 
 		// Handle form-encoded data (standard OAuth)
-		requestBody = make(map[string]interface{})
+		requestBody = make(map[string]any)
 		for key, values := range r.PostForm {
 			if len(values) == 1 {
 				requestBody[key] = values[0]

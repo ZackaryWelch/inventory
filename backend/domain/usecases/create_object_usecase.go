@@ -20,7 +20,7 @@ type CreateObjectRequest struct {
 	Quantity      *float64
 	Unit          string
 	Properties    map[string]entities.TypedValue // for direct callers (bulk import)
-	RawProperties map[string]interface{}         // for HTTP/MCP callers; coerced in Execute()
+	RawProperties map[string]any                 // for HTTP/MCP callers; coerced in Execute()
 	Tags          []string
 	ExpiresAt     *time.Time
 	UserID        entities.UserID
@@ -74,7 +74,7 @@ func (uc *CreateObjectUseCase) Execute(ctx context.Context, req CreateObjectRequ
 			return nil, fmt.Errorf("failed to get default container: %w", err)
 		}
 	} else {
-		return nil, fmt.Errorf("either container_id or collection_id is required")
+		return nil, errors.New("either container_id or collection_id is required")
 	}
 
 	// Check user access to collection
@@ -95,7 +95,7 @@ func (uc *CreateObjectUseCase) Execute(ctx context.Context, req CreateObjectRequ
 	}
 
 	if !hasAccess {
-		return nil, fmt.Errorf("access denied: user does not have access to this collection")
+		return nil, errors.New("access denied: user does not have access to this collection")
 	}
 
 	// Create object name value object

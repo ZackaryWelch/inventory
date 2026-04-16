@@ -1,6 +1,5 @@
 #file: noinspection SpellCheckingInspection
 # See https://golangci-lint.run/usage/integrations/ for editor integrations
-# Supports VSCode and vim-go
 version: "2"
 run:
   concurrency: 8
@@ -9,7 +8,7 @@ run:
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
-  fix: false
+  fix: true
 
 linters:
   default: all
@@ -53,20 +52,6 @@ linters:
     mnd:
       ignored-numbers:
         - '2'
-        - '5'
-        - '10'
-        - '30'
-
-    tagliatelle:
-      case:
-        rules:
-          json: snake
-          yaml: snake
-        overrides:
-          - pkg: app/config
-            ignored-fields:
-              - DBConfig
-              - AppConfig
 
     godot:
       period: false
@@ -85,6 +70,12 @@ linters:
       local-variables-are-used: false
       generated-is-used: false
       field-writes-are-uses: false
+
+    tagliatelle:
+      case:
+        rules:
+          json: snake
+          yaml: snake
 
     revive:
       enable-default-rules: true

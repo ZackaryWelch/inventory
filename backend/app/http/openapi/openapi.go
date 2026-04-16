@@ -58,7 +58,7 @@ func GenerateOpenAPISpec() []byte {
 		}
 
 		// Inject MCP x-extensions into the spec
-		var specMap map[string]interface{}
+		var specMap map[string]any
 		if err := json.Unmarshal(baseSpec, &specMap); err != nil {
 			openAPISpec = baseSpec
 			return
@@ -750,12 +750,12 @@ func mcpPromptsDocs() []mcpPrompt {
 	}
 }
 
-func mcpConfigExample() map[string]interface{} {
-	return map[string]interface{}{
+func mcpConfigExample() map[string]any {
+	return map[string]any{
 		"description": "Add to your MCP client config (e.g. ~/.claude/claude_desktop_config.json). Get NISHIKI_TOKEN by authenticating at your Authentik instance.",
-		"example": map[string]interface{}{
-			"mcpServers": map[string]interface{}{
-				"nishiki": map[string]interface{}{
+		"example": map[string]any{
+			"mcpServers": map[string]any{
+				"nishiki": map[string]any{
 					"command": "/path/to/nishiki",
 					"args":    []string{"--mcp"},
 					"env": map[string]string{

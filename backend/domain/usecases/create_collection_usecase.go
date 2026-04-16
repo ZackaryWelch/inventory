@@ -53,7 +53,7 @@ func (uc *CreateCollectionUseCase) Execute(ctx context.Context, req CreateCollec
 		}
 
 		if !isMember {
-			return nil, fmt.Errorf("user is not a member of the group")
+			return nil, errors.New("user is not a member of the group")
 		}
 	}
 

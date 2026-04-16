@@ -74,7 +74,7 @@ func (uc *UpdateContainerUseCase) Execute(ctx context.Context, req UpdateContain
 	}
 
 	if !hasAccess {
-		return nil, fmt.Errorf("access denied: user does not have access to this container")
+		return nil, errors.New("access denied: user does not have access to this container")
 	}
 
 	// Update name if provided
@@ -116,11 +116,11 @@ func (uc *UpdateContainerUseCase) Execute(ctx context.Context, req UpdateContain
 			}
 			// Check if parent container is in the same collection
 			if !parentContainer.CollectionID().Equals(container.CollectionID()) {
-				return nil, fmt.Errorf("parent container must be in the same collection")
+				return nil, errors.New("parent container must be in the same collection")
 			}
 			// Prevent circular reference
 			if parentContainer.ID().Equals(container.ID()) {
-				return nil, fmt.Errorf("container cannot be its own parent")
+				return nil, errors.New("container cannot be its own parent")
 			}
 			newParentID = *req.ParentContainerID
 		}

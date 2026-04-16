@@ -175,7 +175,7 @@ func ToSnakeCase(s string) string {
 }
 
 // InferSchema infers a PropertySchema from CSV headers and sample data rows.
-func (s *TypeInferenceService) InferSchema(headers []string, data []map[string]interface{}) *entities.PropertySchema {
+func (s *TypeInferenceService) InferSchema(headers []string, data []map[string]any) *entities.PropertySchema {
 	if len(data) == 0 || len(headers) == 0 {
 		return nil
 	}
@@ -225,7 +225,7 @@ func (s *TypeInferenceService) InferSchema(headers []string, data []map[string]i
 
 // CoerceValue converts a raw value to a TypedValue for the given PropertyType.
 // On failure it returns the original value as a text TypedValue.
-func (s *TypeInferenceService) CoerceValue(value interface{}, targetType entities.PropertyType) entities.TypedValue {
+func (s *TypeInferenceService) CoerceValue(value any, targetType entities.PropertyType) entities.TypedValue {
 	if value == nil {
 		return entities.TypedValue{Type: targetType, Val: nil}
 	}
@@ -277,7 +277,7 @@ func (s *TypeInferenceService) CoerceValue(value interface{}, targetType entitie
 
 // CoerceValueWithDef converts a raw value to a TypedValue using a PropertyDefinition,
 // which also sets the Currency field for currency-typed properties.
-func (s *TypeInferenceService) CoerceValueWithDef(value interface{}, def *entities.PropertyDefinition) entities.TypedValue {
+func (s *TypeInferenceService) CoerceValueWithDef(value any, def *entities.PropertyDefinition) entities.TypedValue {
 	tv := s.CoerceValue(value, def.Type)
 	if def.Type == entities.PropertyTypeCurrency && def.CurrencyCode != "" {
 		tv.Currency = def.CurrencyCode
@@ -288,7 +288,7 @@ func (s *TypeInferenceService) CoerceValueWithDef(value interface{}, def *entiti
 // CoerceRawProperties coerces a raw map[string]interface{} into map[string]TypedValue
 // using the collection's PropertySchema. Schema-defined keys use their definition's type;
 // unknown keys are wrapped as text.
-func (s *TypeInferenceService) CoerceRawProperties(raw map[string]interface{}, schema *entities.PropertySchema) map[string]entities.TypedValue {
+func (s *TypeInferenceService) CoerceRawProperties(raw map[string]any, schema *entities.PropertySchema) map[string]entities.TypedValue {
 	result := make(map[string]entities.TypedValue, len(raw))
 	for k, v := range raw {
 		if schema != nil {
@@ -304,8 +304,8 @@ func (s *TypeInferenceService) CoerceRawProperties(raw map[string]interface{}, s
 
 // NormalizeRowKeys rewrites every key in a data row to its snake_case equivalent.
 // This ensures row keys match the snake_case keys stored in PropertySchema.Definitions.
-func (s *TypeInferenceService) NormalizeRowKeys(row map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{}, len(row))
+func (s *TypeInferenceService) NormalizeRowKeys(row map[string]any) map[string]any {
+	result := make(map[string]any, len(row))
 	for k, v := range row {
 		result[ToSnakeCase(k)] = v
 	}
@@ -313,7 +313,7 @@ func (s *TypeInferenceService) NormalizeRowKeys(row map[string]interface{}) map[
 }
 
 // CoerceRow applies CoerceValueWithDef to schema-defined keys and wraps unknown keys as text TypedValues.
-func (s *TypeInferenceService) CoerceRow(row map[string]interface{}, schema *entities.PropertySchema) map[string]entities.TypedValue {
+func (s *TypeInferenceService) CoerceRow(row map[string]any, schema *entities.PropertySchema) map[string]entities.TypedValue {
 	result := make(map[string]entities.TypedValue, len(row))
 	for k, v := range row {
 		if schema != nil {

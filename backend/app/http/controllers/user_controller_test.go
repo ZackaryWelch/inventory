@@ -60,7 +60,7 @@ func TestUserController_GetUser(t *testing.T) {
 		// Assert response
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 		assert.Equal(t, testUser.ID().String(), response["id"])
 		assert.Equal(t, testUser.Username().String(), response["name"])
@@ -102,7 +102,7 @@ func TestUserController_GetUser(t *testing.T) {
 		// Assert response
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 		assert.Equal(t, "user not found", response["error"])
 	})
@@ -135,7 +135,7 @@ func TestUserController_GetUser(t *testing.T) {
 		// Assert response
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 		assert.Contains(t, response["error"], "missing")
 	})
@@ -173,13 +173,13 @@ func TestUserController_GetUser(t *testing.T) {
 		// Assert response
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 		assert.Equal(t, "failed to get user", response["error"])
 	})
 }
 
-func newTestRequest(method, path string, requestBody interface{}) *http.Request {
+func newTestRequest(method, path string, requestBody any) *http.Request {
 	var body *bytes.Buffer
 	if requestBody != nil {
 		reqBodyBytes, err := json.Marshal(requestBody)

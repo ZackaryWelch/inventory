@@ -8,10 +8,10 @@ import (
 
 // TypedValueResponse mirrors entities.TypedValue for the HTTP/frontend layer.
 type TypedValueResponse struct {
-	Type     string      `json:"type"`
-	Val      interface{} `json:"val"`
-	Approx   bool        `json:"approx,omitempty"`
-	Currency string      `json:"cur,omitempty"`
+	Type     string `json:"type"`
+	Val      any    `json:"val"`
+	Approx   bool   `json:"approx,omitempty"`
+	Currency string `json:"cur,omitempty"`
 }
 
 type ObjectResponse struct {

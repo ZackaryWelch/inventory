@@ -60,7 +60,7 @@ type UpdatePropertySchemaRequest struct {
 
 func (r *CreateCollectionRequest) Validate() error {
 	if len(r.Name) < 1 || len(r.Name) > 255 {
-		return fmt.Errorf("name must be between 1 and 255 characters")
+		return errors.New("name must be between 1 and 255 characters")
 	}
 	// ObjectType is optional; defaults to "general" if empty.
 	// Custom types (e.g. "electronic_supplies") are allowed.
@@ -69,7 +69,7 @@ func (r *CreateCollectionRequest) Validate() error {
 
 func (r *UpdateCollectionRequest) Validate() error {
 	if len(r.Name) < 1 || len(r.Name) > 255 {
-		return fmt.Errorf("name must be between 1 and 255 characters")
+		return errors.New("name must be between 1 and 255 characters")
 	}
 	return nil
 }
@@ -96,7 +96,7 @@ func (r *CreateCollectionRequest) GetObjectType() entities.ObjectType {
 func GetCollectionIDFromPath(r *http.Request) (entities.CollectionID, error) {
 	idStr := r.PathValue("collection_id")
 	if idStr == "" {
-		return entities.CollectionID{}, fmt.Errorf("missing collection ID in path")
+		return entities.CollectionID{}, errors.New("missing collection ID in path")
 	}
 
 	collectionID, err := entities.CollectionIDFromString(idStr)

@@ -81,8 +81,8 @@ func (r *MongoContainerRepository) GetByID(ctx context.Context, id entities.Cont
 
 	err := r.collection.FindOne(ctx, bson.M{"_id": id.String()}).Decode(&doc)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("container not found")
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("container not found")
 		}
 		return nil, fmt.Errorf("failed to get container: %w", err)
 	}
@@ -113,7 +113,7 @@ func (r *MongoContainerRepository) Update(ctx context.Context, container *entiti
 	}
 
 	if result.MatchedCount == 0 {
-		return fmt.Errorf("container not found")
+		return errors.New("container not found")
 	}
 
 	log.Printf("[ContainerRepo] Successfully updated container %s in MongoDB (matched: %d, modified: %d)", container.ID().String(), result.MatchedCount, result.ModifiedCount)
@@ -130,7 +130,7 @@ func (r *MongoContainerRepository) Delete(ctx context.Context, id entities.Conta
 	}
 
 	if result.DeletedCount == 0 {
-		return fmt.Errorf("container not found")
+		return errors.New("container not found")
 	}
 
 	return nil
@@ -384,7 +384,7 @@ func (r *MongoContainerRepository) AddObject(ctx context.Context, containerID en
 		return fmt.Errorf("failed to add object to container: %w", err)
 	}
 	if result.MatchedCount == 0 {
-		return fmt.Errorf("container not found")
+		return errors.New("container not found")
 	}
 	return nil
 }
@@ -398,7 +398,7 @@ func (r *MongoContainerRepository) RemoveObject(ctx context.Context, containerID
 		return fmt.Errorf("failed to remove object from container: %w", err)
 	}
 	if result.MatchedCount == 0 {
-		return fmt.Errorf("container not found")
+		return errors.New("container not found")
 	}
 	return nil
 }
@@ -526,7 +526,7 @@ func (r *MongoContainerRepository) FindByObjectID(ctx context.Context, objectID 
 	err := r.collection.FindOne(ctx, bson.M{"objects.id": objectID.String()}).Decode(&doc)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("container not found")
+			return nil, errors.New("container not found")
 		}
 		return nil, fmt.Errorf("failed to find container by object ID: %w", err)
 	}

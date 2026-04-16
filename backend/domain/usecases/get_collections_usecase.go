@@ -36,7 +36,7 @@ func (uc *GetCollectionsUseCase) Execute(ctx context.Context, req GetCollections
 		// Get single collection with access validation
 		collection, err := uc.collectionRepo.GetByID(ctx, *req.CollectionID)
 		if err != nil {
-			return nil, fmt.Errorf("collection not found")
+			return nil, errors.New("collection not found")
 		}
 
 		// Validate access
@@ -76,5 +76,5 @@ func (uc *GetCollectionsUseCase) validateCollectionAccess(ctx context.Context, c
 		}
 	}
 
-	return fmt.Errorf("access denied")
+	return errors.New("access denied")
 }

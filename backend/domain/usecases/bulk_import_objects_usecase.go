@@ -76,7 +76,7 @@ func (uc *BulkImportObjectsUseCase) Execute(ctx context.Context, req BulkImportO
 	}
 
 	if !hasAccess {
-		return nil, fmt.Errorf("access denied: user does not have access to this collection")
+		return nil, errors.New("access denied: user does not have access to this collection")
 	}
 
 	response := &BulkImportObjectsResponse{

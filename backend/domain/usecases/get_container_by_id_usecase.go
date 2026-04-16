@@ -64,7 +64,7 @@ func (uc *GetContainerByIDUseCase) Execute(ctx context.Context, req GetContainer
 	}
 
 	if !hasAccess {
-		return nil, fmt.Errorf("access denied: user does not have access to this container's collection")
+		return nil, errors.New("access denied: user does not have access to this container's collection")
 	}
 
 	return &GetContainerByIDResponse{

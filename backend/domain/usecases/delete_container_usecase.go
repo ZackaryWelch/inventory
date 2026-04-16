@@ -37,7 +37,7 @@ func (uc *DeleteContainerUseCase) Execute(ctx context.Context, req DeleteContain
 	// Get container
 	container, err := uc.containerRepo.GetByID(ctx, req.ContainerID)
 	if err != nil {
-		return nil, fmt.Errorf("container not found")
+		return nil, errors.New("container not found")
 	}
 
 	// Verify user access via collection ownership or group membership
@@ -48,7 +48,7 @@ func (uc *DeleteContainerUseCase) Execute(ctx context.Context, req DeleteContain
 
 	collection, err := uc.collectionRepo.GetByID(ctx, container.CollectionID())
 	if err != nil {
-		return nil, fmt.Errorf("collection not found")
+		return nil, errors.New("collection not found")
 	}
 
 	hasAccess := collection.UserID().Equals(req.UserID)
@@ -62,7 +62,7 @@ func (uc *DeleteContainerUseCase) Execute(ctx context.Context, req DeleteContain
 	}
 
 	if !hasAccess {
-		return nil, fmt.Errorf("access denied: user does not have access to this container")
+		return nil, errors.New("access denied: user does not have access to this container")
 	}
 
 	// Business rule: cannot delete a container that has child containers
@@ -71,7 +71,7 @@ func (uc *DeleteContainerUseCase) Execute(ctx context.Context, req DeleteContain
 		return nil, fmt.Errorf("failed to check child containers: %w", err)
 	}
 	if len(children) > 0 {
-		return nil, fmt.Errorf("cannot delete container with child containers: remove all children first")
+		return nil, errors.New("cannot delete container with child containers: remove all children first")
 	}
 
 	// Remove container reference from collection

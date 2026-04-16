@@ -307,8 +307,8 @@ func registerResources(s *mcp.Server, mctx *MCPContext) {
 // e.g., extractID("nishiki://groups/abc/users", "nishiki://groups/") → "abc"
 func extractID(uri, prefix string) string {
 	rest := strings.TrimPrefix(uri, prefix)
-	if idx := strings.Index(rest, "/"); idx >= 0 {
-		return rest[:idx]
+	if before, _, ok := strings.Cut(rest, "/"); ok {
+		return before
 	}
 	return rest
 }

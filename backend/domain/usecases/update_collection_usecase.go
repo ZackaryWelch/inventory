@@ -39,12 +39,12 @@ func (uc *UpdateCollectionUseCase) Execute(ctx context.Context, req UpdateCollec
 	// Get collection
 	collection, err := uc.collectionRepo.GetByID(ctx, req.CollectionID)
 	if err != nil {
-		return nil, fmt.Errorf("collection not found")
+		return nil, errors.New("collection not found")
 	}
 
 	// Validate access - only owner can update
 	if !collection.UserID().Equals(req.UserID) {
-		return nil, fmt.Errorf("access denied: only collection owner can update")
+		return nil, errors.New("access denied: only collection owner can update")
 	}
 
 	// Update name if provided

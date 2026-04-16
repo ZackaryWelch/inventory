@@ -18,11 +18,11 @@ const (
 )
 
 // SetContextValue returns a new request with the value added to its context
-func SetContextValue(r *http.Request, key ContextKey, value interface{}) *http.Request {
+func SetContextValue(r *http.Request, key ContextKey, value any) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), key, value))
 }
 
 // GetContextValue retrieves a value from the request context
-func GetContextValue(r *http.Request, key ContextKey) interface{} {
+func GetContextValue(r *http.Request, key ContextKey) any {
 	return r.Context().Value(key)
 }

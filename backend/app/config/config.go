@@ -133,7 +133,8 @@ func Load() (*Config, error) {
 
 	// Read config file
 	if err := v.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if errors.As(err, &configFileNotFoundError) {
 			return nil, fmt.Errorf("error reading config file: %w", err)
 		}
 		// Config file not found, continue with defaults and env vars
@@ -198,24 +199,24 @@ func setDefaults(v *viper.Viper) {
 
 func validate(config *Config) error {
 	if config.Server.Port <= 0 || config.Server.Port > 65535 {
-		return fmt.Errorf("server port must be between 1 and 65535")
+		return errors.New("server port must be between 1 and 65535")
 	}
 
 	// Validate database configuration
 	if config.Database.URI == "" && config.Database.Host == "" {
-		return fmt.Errorf("either database URI or host must be provided")
+		return errors.New("either database URI or host must be provided")
 	}
 
 	if config.Database.Database == "" {
-		return fmt.Errorf("database name is required")
+		return errors.New("database name is required")
 	}
 
 	if config.Auth.AuthentikURL == "" {
-		return fmt.Errorf("authentik URL is required")
+		return errors.New("authentik URL is required")
 	}
 
 	if len(config.Auth.Clients) == 0 {
-		return fmt.Errorf("at least one OAuth client must be configured")
+		return errors.New("at least one OAuth client must be configured")
 	}
 
 	// Validate each OAuth client

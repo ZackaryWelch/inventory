@@ -32,7 +32,7 @@ func TestObjectController_CreateObject(t *testing.T) {
 			ContainerID: containerID.String(),
 			Name:        "Test Object",
 			ObjectType:  "general",
-			Properties:  map[string]interface{}{"description": "Test description"},
+			Properties:  map[string]any{"description": "Test description"},
 			Tags:        []string{"test", "example"},
 		}
 
@@ -81,7 +81,7 @@ func TestObjectController_CreateObject(t *testing.T) {
 	t.Run("error - invalid request body", func(t *testing.T) {
 		testUser := randomUser()
 
-		requestBody := map[string]interface{}{
+		requestBody := map[string]any{
 			"name": "",
 		}
 
@@ -284,7 +284,7 @@ func TestObjectController_BulkImport(t *testing.T) {
 			ContainerID: containerID.String(),
 			Format:      "json",
 			ObjectType:  "general",
-			Data: []map[string]interface{}{
+			Data: []map[string]any{
 				{"name": "Object 1", "description": "First object"},
 				{"name": "Object 2", "description": "Second object"},
 			},
@@ -342,7 +342,7 @@ func TestObjectController_BulkImport(t *testing.T) {
 			ContainerID: containerID.String(),
 			Format:      "json",
 			ObjectType:  "general",
-			Data:        []map[string]interface{}{},
+			Data:        []map[string]any{},
 		}
 
 		req := newTestRequest(http.MethodPost, "/accounts/"+testUser.ID().String()+"/import", requestBody)

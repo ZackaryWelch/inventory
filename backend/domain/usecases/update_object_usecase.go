@@ -18,7 +18,7 @@ type UpdateObjectRequest struct {
 	Quantity      *float64
 	Unit          *string
 	Properties    map[string]entities.TypedValue // for direct callers
-	RawProperties map[string]interface{}         // for HTTP/MCP callers; coerced in Execute()
+	RawProperties map[string]any                 // for HTTP/MCP callers; coerced in Execute()
 	Tags          []string
 	UserID        entities.UserID
 	UserToken     string
@@ -73,7 +73,7 @@ func (uc *UpdateObjectUseCase) Execute(ctx context.Context, req UpdateObjectRequ
 		}
 	}
 	if !hasAccess {
-		return nil, fmt.Errorf("access denied: user does not have access to this collection")
+		return nil, errors.New("access denied: user does not have access to this collection")
 	}
 
 	// Get existing object from current container

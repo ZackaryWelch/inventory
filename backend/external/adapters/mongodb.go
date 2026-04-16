@@ -66,7 +66,7 @@ func (m *MongoDatabase) Disconnect(ctx context.Context) error {
 
 func (m *MongoDatabase) Health(ctx context.Context) error {
 	if m.client == nil {
-		return fmt.Errorf("MongoDB client not connected")
+		return errors.New("MongoDB client not connected")
 	}
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -77,7 +77,7 @@ func (m *MongoDatabase) Health(ctx context.Context) error {
 
 func (m *MongoDatabase) StartTransaction(ctx context.Context) (adapters.Transaction, error) {
 	if m.client == nil {
-		return nil, fmt.Errorf("MongoDB client not connected")
+		return nil, errors.New("MongoDB client not connected")
 	}
 
 	session, err := m.client.StartSession()

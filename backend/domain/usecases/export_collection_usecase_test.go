@@ -169,8 +169,8 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 		require.NoError(t, err)
 		rows := parseCSV(t, resp.CSV)
 		require.Len(t, rows, 2)
-		assert.Equal(t, "", rows[1][2]) // quantity
-		assert.Equal(t, "", rows[1][5]) // expires_at
+		assert.Empty(t, rows[1][2]) // quantity
+		assert.Empty(t, rows[1][5]) // expires_at
 	})
 
 	t.Run("error - auth service failure", func(t *testing.T) {

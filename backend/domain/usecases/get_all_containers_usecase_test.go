@@ -63,7 +63,7 @@ func TestGetAllContainersUseCase_Execute(t *testing.T) {
 		resp, err := useCase.Execute(ctx, GetAllContainersRequest{UserID: userID, UserToken: userToken})
 
 		require.NoError(t, err)
-		assert.Len(t, resp.Containers, 0)
+		assert.Empty(t, resp.Containers)
 	})
 
 	t.Run("Success - Group with no containers", func(t *testing.T) {
@@ -73,7 +73,7 @@ func TestGetAllContainersUseCase_Execute(t *testing.T) {
 		resp, err := useCase.Execute(ctx, GetAllContainersRequest{UserID: userID, UserToken: userToken})
 
 		require.NoError(t, err)
-		assert.Len(t, resp.Containers, 0)
+		assert.Empty(t, resp.Containers)
 	})
 
 	t.Run("Error - Auth service fails to get user groups", func(t *testing.T) {

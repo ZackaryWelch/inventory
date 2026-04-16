@@ -39,7 +39,7 @@ func DistributeObjects(
 	ctx context.Context,
 	containerRepo repositories.ContainerRepository,
 	collectionID entities.CollectionID,
-	objects []map[string]interface{},
+	objects []map[string]any,
 	objectType entities.ObjectType,
 ) (*DistributionPlan, error) {
 
@@ -94,7 +94,7 @@ func DistributeObjects(
 }
 
 // EstimateObjectSize estimates the size of an object for capacity planning
-func EstimateObjectSize(obj map[string]interface{}, objectType entities.ObjectType) float64 {
+func EstimateObjectSize(obj map[string]any, objectType entities.ObjectType) float64 {
 	// For books, estimate based on page count
 	if objectType == entities.ObjectTypeBook {
 		if pages, ok := obj["pages"].(float64); ok {
@@ -216,7 +216,7 @@ func FindLeafContainers(roots []*ContainerWithCapacity) []*ContainerWithCapacity
 
 // DistributeToContainers assigns objects to specific containers based on capacity
 func DistributeToContainers(
-	objects []map[string]interface{},
+	objects []map[string]any,
 	containers []*ContainerWithCapacity,
 	objectType entities.ObjectType,
 ) []ObjectAssignment {

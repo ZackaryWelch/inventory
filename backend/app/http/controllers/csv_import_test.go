@@ -28,7 +28,7 @@ func dataDir() string {
 
 // parseCSVFile reads a CSV file and returns rows as []map[string]interface{},
 // matching the format expected by the bulk import endpoints.
-func parseCSVFile(t *testing.T, path string) []map[string]interface{} {
+func parseCSVFile(t *testing.T, path string) []map[string]any {
 	t.Helper()
 	f, err := os.Open(path)
 	require.NoError(t, err)
@@ -41,9 +41,9 @@ func parseCSVFile(t *testing.T, path string) []map[string]interface{} {
 	require.Greater(t, len(records), 1, "CSV must have header + at least one data row")
 
 	headers := records[0]
-	var rows []map[string]interface{}
+	var rows []map[string]any
 	for _, record := range records[1:] {
-		row := make(map[string]interface{}, len(headers))
+		row := make(map[string]any, len(headers))
 		for i, header := range headers {
 			if i < len(record) {
 				row[header] = record[i]
@@ -87,7 +87,7 @@ func TestBulkImportToCollection_ElectronicSuppliesCSV(t *testing.T) {
 	require.NotEmpty(t, data)
 
 	// Filter out rows with empty Name (the CSV has a blank row)
-	var filtered []map[string]interface{}
+	var filtered []map[string]any
 	for _, row := range data {
 		if name, _ := row["Name"].(string); name != "" {
 			filtered = append(filtered, row)
@@ -441,7 +441,7 @@ func TestBulkImport_ElectronicSuppliesCSV(t *testing.T) {
 	require.NotEmpty(t, data)
 
 	// Filter out blank-name rows
-	var filtered []map[string]interface{}
+	var filtered []map[string]any
 	for _, row := range data {
 		if name, _ := row["Name"].(string); name != "" {
 			filtered = append(filtered, row)
@@ -458,9 +458,9 @@ func TestBulkImport_ElectronicSuppliesCSV(t *testing.T) {
 		containerID := entities.NewContainerID()
 
 		// Rename "Name" key to "name" so the BulkImport controller can find it
-		normalizedData := make([]map[string]interface{}, len(data))
+		normalizedData := make([]map[string]any, len(data))
 		for i, row := range data {
-			normalized := make(map[string]interface{}, len(row))
+			normalized := make(map[string]any, len(row))
 			for k, v := range row {
 				if k == "Name" {
 					normalized["name"] = v
@@ -527,7 +527,7 @@ func TestBulkImportToCollection_ValidationErrors(t *testing.T) {
 
 		requestBody := request.BulkImportCollectionRequest{
 			Format: "csv",
-			Data:   []map[string]interface{}{},
+			Data:   []map[string]any{},
 		}
 
 		req := newTestRequest(http.MethodPost,
@@ -550,7 +550,7 @@ func TestBulkImportToCollection_ValidationErrors(t *testing.T) {
 
 		requestBody := request.BulkImportCollectionRequest{
 			Format: "xml",
-			Data:   []map[string]interface{}{{"name": "test"}},
+			Data:   []map[string]any{{"name": "test"}},
 		}
 
 		req := newTestRequest(http.MethodPost,
@@ -574,7 +574,7 @@ func TestBulkImportToCollection_ValidationErrors(t *testing.T) {
 		requestBody := request.BulkImportCollectionRequest{
 			Format:           "csv",
 			DistributionMode: "invalid",
-			Data:             []map[string]interface{}{{"name": "test"}},
+			Data:             []map[string]any{{"name": "test"}},
 		}
 
 		req := newTestRequest(http.MethodPost,

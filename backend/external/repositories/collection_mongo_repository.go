@@ -74,8 +74,8 @@ func (r *MongoCollectionRepository) GetByID(ctx context.Context, id entities.Col
 
 	err := r.collection.FindOne(ctx, bson.M{"_id": id.String()}).Decode(&doc)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("collection not found")
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("collection not found")
 		}
 		return nil, fmt.Errorf("failed to get collection: %w", err)
 	}
@@ -88,8 +88,8 @@ func (r *MongoCollectionRepository) GetByIDSummary(ctx context.Context, id entit
 
 	err := r.collection.FindOne(ctx, bson.M{"_id": id.String()}).Decode(&doc)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("collection not found")
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("collection not found")
 		}
 		return nil, fmt.Errorf("failed to get collection: %w", err)
 	}
@@ -109,7 +109,7 @@ func (r *MongoCollectionRepository) Update(ctx context.Context, collection *enti
 	}
 
 	if result.MatchedCount == 0 {
-		return fmt.Errorf("collection not found")
+		return errors.New("collection not found")
 	}
 
 	return nil
@@ -124,7 +124,7 @@ func (r *MongoCollectionRepository) Delete(ctx context.Context, id entities.Coll
 	}
 
 	if result.DeletedCount == 0 {
-		return fmt.Errorf("collection not found")
+		return errors.New("collection not found")
 	}
 
 	return nil

@@ -10,7 +10,7 @@ import (
 func GetUserIDFromPath(r *http.Request) (entities.UserID, error) {
 	idStr := r.PathValue("id")
 	if idStr == "" {
-		return entities.UserID{}, fmt.Errorf("missing user ID in path")
+		return entities.UserID{}, errors.New("missing user ID in path")
 	}
 
 	userID, err := entities.UserIDFromString(idStr)

@@ -55,8 +55,8 @@ func (r *MongoCategoryRepository) GetByID(ctx context.Context, id entities.Categ
 
 	err := r.collection.FindOne(ctx, bson.M{"_id": id.ObjectID()}).Decode(&doc)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("category not found")
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("category not found")
 		}
 		return nil, fmt.Errorf("failed to get category: %w", err)
 	}
@@ -69,8 +69,8 @@ func (r *MongoCategoryRepository) GetByName(ctx context.Context, name entities.C
 
 	err := r.collection.FindOne(ctx, bson.M{"name": name.String()}).Decode(&doc)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("category not found")
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("category not found")
 		}
 		return nil, fmt.Errorf("failed to get category: %w", err)
 	}
@@ -128,7 +128,7 @@ func (r *MongoCategoryRepository) Update(ctx context.Context, category *entities
 	}
 
 	if result.MatchedCount == 0 {
-		return fmt.Errorf("category not found")
+		return errors.New("category not found")
 	}
 
 	return nil
@@ -143,7 +143,7 @@ func (r *MongoCategoryRepository) Delete(ctx context.Context, id entities.Catego
 	}
 
 	if result.DeletedCount == 0 {
-		return fmt.Errorf("category not found")
+		return errors.New("category not found")
 	}
 
 	return nil

@@ -132,7 +132,7 @@ func TestCollectionController_GetCollections(t *testing.T) {
 		testUser := randomUser()
 
 		collections := []*entities.Collection{}
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			collectionName, _ := entities.NewCollectionName(fake.Company())
 			collection := entities.ReconstructCollection(
 				entities.NewCollectionID(),

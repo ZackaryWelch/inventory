@@ -106,7 +106,7 @@ func main() {
 			logger.Info("Starting HTTP server", slog.Int("port", cfg.Server.Port))
 			err = restServer.ListenAndServe()
 		}
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("REST server failed", slog.Any("error", err))
 			os.Exit(1)
 		}
@@ -114,7 +114,7 @@ func main() {
 
 	go func() {
 		logger.Info("Starting MCP Streamable HTTP server", slog.Int("port", cfg.Server.MCPPort))
-		if err := mcpHTTPServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := mcpHTTPServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("MCP HTTP server failed", slog.Any("error", err))
 			os.Exit(1)
 		}
@@ -122,7 +122,7 @@ func main() {
 
 	go func() {
 		logger.Info("Starting MCP SSE server", slog.Int("port", cfg.Server.MCPSSEPort))
-		if err := mcpSSEServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := mcpSSEServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("MCP SSE server failed", slog.Any("error", err))
 			os.Exit(1)
 		}

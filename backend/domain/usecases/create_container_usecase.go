@@ -67,7 +67,7 @@ func (uc *CreateContainerUseCase) Execute(ctx context.Context, req CreateContain
 	}
 
 	if !hasAccess {
-		return nil, fmt.Errorf("access denied: user does not have access to this collection")
+		return nil, errors.New("access denied: user does not have access to this collection")
 	}
 
 	// Create container name value object
@@ -88,7 +88,7 @@ func (uc *CreateContainerUseCase) Execute(ctx context.Context, req CreateContain
 		}
 		// Check if parent container is in the same collection
 		if !parentContainer.CollectionID().Equals(req.CollectionID) {
-			return nil, fmt.Errorf("parent container must be in the same collection")
+			return nil, errors.New("parent container must be in the same collection")
 		}
 	}
 

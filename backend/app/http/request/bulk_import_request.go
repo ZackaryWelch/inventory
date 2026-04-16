@@ -7,36 +7,36 @@ import (
 )
 
 type BulkImportRequest struct {
-	ContainerID string                   `json:"container_id" binding:"required"`
-	Format      string                   `json:"format" binding:"required"` // "csv" or "json"
-	Data        []map[string]interface{} `json:"data" binding:"required"`
-	ObjectType  string                   `json:"object_type" binding:"required"`
-	DefaultTags []string                 `json:"default_tags,omitempty"`
+	ContainerID string           `json:"container_id" binding:"required"`
+	Format      string           `json:"format" binding:"required"` // "csv" or "json"
+	Data        []map[string]any `json:"data" binding:"required"`
+	ObjectType  string           `json:"object_type" binding:"required"`
+	DefaultTags []string         `json:"default_tags,omitempty"`
 }
 
 type BulkImportCollectionRequest struct {
-	CollectionID      string                   `json:"collection_id,omitempty"` // Optional - collection_id comes from URL path
-	TargetContainerID *string                  `json:"target_container_id,omitempty"`
-	DistributionMode  string                   `json:"distribution_mode,omitempty"` // "automatic", "manual", "target", "location"
-	Format            string                   `json:"format" binding:"required"`   // "csv" or "json"
-	Data              []map[string]interface{} `json:"data" binding:"required"`
-	DefaultTags       []string                 `json:"default_tags,omitempty"`
-	LocationColumn    string                   `json:"location_column,omitempty"` // column name for container mapping (default: "location")
-	NameColumn        string                   `json:"name_column,omitempty"`     // column name override for object name
-	InferSchema       bool                     `json:"infer_schema,omitempty"`    // run type inference and save schema
+	CollectionID      string           `json:"collection_id,omitempty"` // Optional - collection_id comes from URL path
+	TargetContainerID *string          `json:"target_container_id,omitempty"`
+	DistributionMode  string           `json:"distribution_mode,omitempty"` // "automatic", "manual", "target", "location"
+	Format            string           `json:"format" binding:"required"`   // "csv" or "json"
+	Data              []map[string]any `json:"data" binding:"required"`
+	DefaultTags       []string         `json:"default_tags,omitempty"`
+	LocationColumn    string           `json:"location_column,omitempty"` // column name for container mapping (default: "location")
+	NameColumn        string           `json:"name_column,omitempty"`     // column name override for object name
+	InferSchema       bool             `json:"infer_schema,omitempty"`    // run type inference and save schema
 }
 
 func (r *BulkImportRequest) Validate() error {
 	if r.ContainerID == "" {
-		return fmt.Errorf("container_id is required")
+		return errors.New("container_id is required")
 	}
 
 	if r.Format != "csv" && r.Format != "json" {
-		return fmt.Errorf("format must be 'csv' or 'json'")
+		return errors.New("format must be 'csv' or 'json'")
 	}
 
 	if len(r.Data) == 0 {
-		return fmt.Errorf("data is required and cannot be empty")
+		return errors.New("data is required and cannot be empty")
 	}
 
 	// Validate object type
@@ -54,11 +54,11 @@ func (r *BulkImportRequest) Validate() error {
 
 func (r *BulkImportCollectionRequest) Validate() error {
 	if r.Format != "csv" && r.Format != "json" {
-		return fmt.Errorf("format must be 'csv' or 'json'")
+		return errors.New("format must be 'csv' or 'json'")
 	}
 
 	if len(r.Data) == 0 {
-		return fmt.Errorf("data is required and cannot be empty")
+		return errors.New("data is required and cannot be empty")
 	}
 
 	// Note: CollectionID comes from URL path, not validated here
@@ -69,13 +69,13 @@ func (r *BulkImportCollectionRequest) Validate() error {
 		case "automatic", "manual", "target", "location":
 			// Valid modes
 		default:
-			return fmt.Errorf("distribution_mode must be 'automatic', 'manual', 'target', or 'location'")
+			return errors.New("distribution_mode must be 'automatic', 'manual', 'target', or 'location'")
 		}
 	}
 
 	// If distribution mode is "target", require target_container_id
 	if r.DistributionMode == "target" && r.TargetContainerID == nil {
-		return fmt.Errorf("target_container_id is required when distribution_mode is 'target'")
+		return errors.New("target_container_id is required when distribution_mode is 'target'")
 	}
 
 	return nil

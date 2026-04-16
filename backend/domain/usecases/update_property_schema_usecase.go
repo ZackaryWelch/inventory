@@ -29,11 +29,11 @@ func NewUpdatePropertySchemaUseCase(collectionRepo repositories.CollectionReposi
 func (uc *UpdatePropertySchemaUseCase) Execute(ctx context.Context, req UpdatePropertySchemaRequest) (*UpdatePropertySchemaResponse, error) {
 	collection, err := uc.collectionRepo.GetByID(ctx, req.CollectionID)
 	if err != nil {
-		return nil, fmt.Errorf("collection not found")
+		return nil, errors.New("collection not found")
 	}
 
 	if !collection.UserID().Equals(req.UserID) {
-		return nil, fmt.Errorf("access denied: only collection owner can update schema")
+		return nil, errors.New("access denied: only collection owner can update schema")
 	}
 
 	collection.UpdatePropertySchema(req.PropertySchema)

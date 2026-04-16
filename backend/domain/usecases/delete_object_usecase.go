@@ -70,7 +70,7 @@ func (uc *DeleteObjectUseCase) Execute(ctx context.Context, req DeleteObjectRequ
 	}
 
 	if !hasAccess {
-		return nil, fmt.Errorf("access denied: user does not have access to this collection")
+		return nil, errors.New("access denied: user does not have access to this collection")
 	}
 
 	// Atomically remove object from container using $pull

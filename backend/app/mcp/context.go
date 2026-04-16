@@ -37,7 +37,7 @@ func WithMCPUser(ctx context.Context, user *entities.User, token string) context
 func MCPUserFromContext(ctx context.Context) (*entities.User, string, error) {
 	auth, ok := ctx.Value(mcpAuthKey{}).(*mcpAuth)
 	if !ok || auth == nil {
-		return nil, "", fmt.Errorf("unauthorized: no MCP auth in context")
+		return nil, "", errors.New("unauthorized: no MCP auth in context")
 	}
 	return auth.User, auth.Token, nil
 }

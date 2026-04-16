@@ -26,8 +26,8 @@ type AuthService interface {
 	CreateUserFromClaims(ctx context.Context, claims *AuthClaims) (*entities.User, error)
 
 	// OIDC proxy methods for frontend integration (client selection via client_id or redirect_uri)
-	GetOIDCConfig(ctx context.Context, clientID string) (map[string]interface{}, error)
-	ProxyTokenExchange(ctx context.Context, tokenRequest map[string]interface{}) ([]byte, int, error)
+	GetOIDCConfig(ctx context.Context, clientID string) (map[string]any, error)
+	ProxyTokenExchange(ctx context.Context, tokenRequest map[string]any) ([]byte, int, error)
 
 	// Group and user fetching from Authentik (now requires user's JWT token)
 	CreateGroup(ctx context.Context, userToken, name string, creatorID string) (*entities.Group, error)
