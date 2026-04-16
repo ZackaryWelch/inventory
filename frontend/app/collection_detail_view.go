@@ -26,8 +26,12 @@ import (
 type ObjectViewLayout string
 
 const (
-	ObjectViewList ObjectViewLayout = "list"
-	ObjectViewGrid ObjectViewLayout = "grid"
+	ObjectViewList    ObjectViewLayout = "list"
+	ObjectViewGrid    ObjectViewLayout = "grid"
+	ObjectViewGallery ObjectViewLayout = "gallery"
+	ObjectViewCompact ObjectViewLayout = "compact"
+	ObjectViewTable   ObjectViewLayout = "table"
+	ObjectViewTree    ObjectViewLayout = "tree"
 )
 
 // Container type constants
@@ -151,12 +155,27 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 		ga.containerViewMode = "grouped"
 	}
 
-	// Handle object layout toggle (list vs grid)
+	// Handle object layout toggle
 	if ga.widgetState.objectViewListBtn.Clicked(gtx) {
 		ga.objectViewLayout = ObjectViewList
 	}
 	if ga.widgetState.objectViewGridBtn.Clicked(gtx) {
 		ga.objectViewLayout = ObjectViewGrid
+	}
+	if ga.widgetState.objectViewGalleryBtn.Clicked(gtx) {
+		ga.objectViewLayout = ObjectViewGallery
+	}
+	if ga.widgetState.objectViewCompactBtn.Clicked(gtx) {
+		ga.objectViewLayout = ObjectViewCompact
+	}
+	if ga.widgetState.objectViewTableBtn.Clicked(gtx) {
+		ga.objectViewLayout = ObjectViewTable
+	}
+	if ga.widgetState.objectViewTreeBtn.Clicked(gtx) {
+		ga.objectViewLayout = ObjectViewTree
+	}
+	if ga.widgetState.statsToggleBtn.Clicked(gtx) {
+		ga.showStatsPanel = !ga.showStatsPanel
 	}
 
 	// Ensure we have widget states
@@ -462,7 +481,15 @@ func (ga *GioApp) renderObjectsColumn(gtx layout.Context) layout.Dimensions {
 			})
 		}),
 
-		// Objects list/grid (or loading indicator)
+		// Stats panel (toggled independently)
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			if ga.showStatsPanel {
+				return ga.renderCollectionStats(gtx)
+			}
+			return layout.Dimensions{}
+		}),
+
+		// Objects list/grid/etc (or loading indicator)
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			if ga.loadingContainersObjects {
 				return ga.renderLoadingIndicator(gtx, "Loading objects...")
@@ -470,10 +497,20 @@ func (ga *GioApp) renderObjectsColumn(gtx layout.Context) layout.Dimensions {
 			if ga.objectGroupByField != "" {
 				return ga.renderObjectsGroupedByField(gtx)
 			}
-			if ga.objectViewLayout == ObjectViewGrid {
+			switch ga.objectViewLayout {
+			case ObjectViewGrid:
 				return ga.renderObjectsGrid(gtx)
+			case ObjectViewGallery:
+				return ga.renderObjectsGallery(gtx)
+			case ObjectViewCompact:
+				return ga.renderObjectsCompact(gtx)
+			case ObjectViewTable:
+				return ga.renderObjectsTable(gtx)
+			case ObjectViewTree:
+				return ga.renderObjectsTree(gtx)
+			default:
+				return ga.renderObjectsList(gtx)
 			}
-			return ga.renderObjectsList(gtx)
 		}),
 	)
 }
@@ -939,18 +976,14 @@ func (ga *GioApp) renderObjectsGroupedByContainer(gtx layout.Context) layout.Dim
 	}
 
 	// Build ordered container list (only those with matching objects)
-	type containerGroup struct {
-		name    string
-		indices []int
-	}
-	var groups []containerGroup
+	var groups []objectGroup
 	for _, c := range ga.containers {
 		if indices, ok := containerObjects[c.ID]; ok && len(indices) > 0 {
-			groups = append(groups, containerGroup{name: c.Name, indices: indices})
+			groups = append(groups, objectGroup{name: c.Name, indices: indices})
 		}
 	}
 	if len(unassigned) > 0 {
-		groups = append(groups, containerGroup{name: "Unassigned", indices: unassigned})
+		groups = append(groups, objectGroup{name: "Unassigned", indices: unassigned})
 	}
 
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
@@ -1007,73 +1040,7 @@ func (ga *GioApp) renderObjectsGroupedByContainer(gtx layout.Context) layout.Dim
 				})
 			}
 
-			// Flatten groups into a list of items (separators + headers + objects)
-			type listItem struct {
-				isHeader    bool
-				isSeparator bool
-				header      string
-				objIndex    int
-			}
-			var items []listItem
-			for gi, g := range groups {
-				if gi > 0 {
-					items = append(items, listItem{isSeparator: true})
-				}
-				items = append(items, listItem{isHeader: true, header: fmt.Sprintf("%s (%d)", g.name, len(g.indices))})
-				if ga.objectViewLayout == ObjectViewGrid {
-					// In grid mode, add a single item per group that holds all indices
-					// We use the first object index and mark it; the grid renderer handles the rest
-					items = append(items, listItem{objIndex: gi})
-				} else {
-					for _, idx := range g.indices {
-						items = append(items, listItem{objIndex: idx})
-					}
-				}
-			}
-
-			if ga.objectViewLayout == ObjectViewGrid {
-				// Grid mode with groups: render sequentially
-				list := &ga.widgetState.objectsList
-				list.Axis = layout.Vertical
-				return list.Layout(gtx, len(items), func(gtx layout.Context, index int) layout.Dimensions {
-					item := items[index]
-					if item.isSeparator {
-						return ga.renderGroupSeparator(gtx)
-					}
-					if item.isHeader {
-						return layout.Inset{Top: unit.Dp(theme.Spacing3), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							label := material.Body1(ga.theme.Theme, item.header)
-							label.Font.Weight = font.Bold
-							label.Color = theme.ColorTextSecondary
-							return label.Layout(gtx)
-						})
-					}
-					// item.objIndex is the group index
-					g := groups[item.objIndex]
-					return ga.renderObjectCardGrid(gtx, g.indices)
-				})
-			}
-
-			list := &ga.widgetState.objectsList
-			list.Axis = layout.Vertical
-			return list.Layout(gtx, len(items), func(gtx layout.Context, index int) layout.Dimensions {
-				item := items[index]
-				if item.isSeparator {
-					return ga.renderGroupSeparator(gtx)
-				}
-				if item.isHeader {
-					return layout.Inset{Top: unit.Dp(theme.Spacing3), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						label := material.Body1(ga.theme.Theme, item.header)
-						label.Font.Weight = font.Bold
-						label.Color = theme.ColorTextSecondary
-						return label.Layout(gtx)
-					})
-				}
-				obj := ga.objects[item.objIndex]
-				return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return ga.renderObjectCard(gtx, obj, item.objIndex)
-				})
-			})
+			return ga.renderGroupedItems(gtx, groups)
 		}),
 	)
 }
@@ -1172,86 +1139,50 @@ func (ga *GioApp) renderObjectsGroupedByField(gtx layout.Context) layout.Dimensi
 		groups = append(groups, groupData{key: g.key, indices: g.indices})
 	}
 
-	// Flatten into separator + header + object items
-	type listItem struct {
-		isHeader    bool
-		isSeparator bool
-		header      string
-		objIndex    int
-	}
-	var items []listItem
-	for gi, g := range groups {
-		if gi > 0 {
-			items = append(items, listItem{isSeparator: true})
-		}
-		items = append(items, listItem{isHeader: true, header: fmt.Sprintf("%s (%d)", g.key, len(g.indices))})
-		if ga.objectViewLayout == ObjectViewGrid {
-			items = append(items, listItem{objIndex: gi})
-		} else {
-			for _, idx := range g.indices {
-				items = append(items, listItem{objIndex: idx})
-			}
-		}
+	// Convert to objectGroup for shared renderer
+	var objectGroups []objectGroup
+	for _, g := range groups {
+		objectGroups = append(objectGroups, objectGroup{name: g.key, indices: g.indices})
 	}
 
 	ga.ensureObjectItemStates()
-
-	list := &ga.widgetState.objectsList
-	list.Axis = layout.Vertical
-
-	if ga.objectViewLayout == ObjectViewGrid {
-		return list.Layout(gtx, len(items), func(gtx layout.Context, index int) layout.Dimensions {
-			item := items[index]
-			if item.isSeparator {
-				return ga.renderGroupSeparator(gtx)
-			}
-			if item.isHeader {
-				return layout.Inset{Top: unit.Dp(theme.Spacing3), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					label := material.Body1(ga.theme.Theme, item.header)
-					label.Font.Weight = font.Bold
-					label.Color = theme.ColorTextSecondary
-					return label.Layout(gtx)
-				})
-			}
-			g := groups[item.objIndex]
-			return ga.renderObjectCardGrid(gtx, g.indices)
-		})
-	}
-
-	return list.Layout(gtx, len(items), func(gtx layout.Context, index int) layout.Dimensions {
-		item := items[index]
-		if item.isSeparator {
-			return ga.renderGroupSeparator(gtx)
-		}
-		if item.isHeader {
-			return layout.Inset{Top: unit.Dp(theme.Spacing3), Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				label := material.Body1(ga.theme.Theme, item.header)
-				label.Font.Weight = font.Bold
-				label.Color = theme.ColorTextSecondary
-				return label.Layout(gtx)
-			})
-		}
-		obj := ga.objects[item.objIndex]
-		return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return ga.renderObjectCard(gtx, obj, item.objIndex)
-		})
-	})
+	return ga.renderGroupedItems(gtx, objectGroups)
 }
 
-// renderObjectLayoutToggle renders the list/grid toggle chips.
+// renderObjectLayoutToggle renders the view type toggle chips.
 func (ga *GioApp) renderObjectLayoutToggle(gtx layout.Context) layout.Dimensions {
-	isGrid := ga.objectViewLayout == ObjectViewGrid
+	current := ga.objectViewLayout
+	type viewChip struct {
+		layout ObjectViewLayout
+		label  string
+		btn    *widget.Clickable
+	}
+	chips := []viewChip{
+		{ObjectViewList, "List", &ga.widgetState.objectViewListBtn},
+		{ObjectViewGrid, "Grid", &ga.widgetState.objectViewGridBtn},
+		{ObjectViewCompact, "Compact", &ga.widgetState.objectViewCompactBtn},
+		{ObjectViewTable, "Table", &ga.widgetState.objectViewTableBtn},
+		{ObjectViewGallery, "Gallery", &ga.widgetState.objectViewGalleryBtn},
+		{ObjectViewTree, "Tree", &ga.widgetState.objectViewTreeBtn},
+	}
 	return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+		children := make([]layout.FlexChild, len(chips)+1)
+		for i, c := range chips {
+			c := c
+			isActive := current == c.layout || (current == "" && c.layout == ObjectViewList)
+			children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Right: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return ga.renderFilterChip(gtx, &ga.widgetState.objectViewListBtn, "List", !isGrid)
+					return ga.renderFilterChip(gtx, c.btn, c.label, isActive)
 				})
-			}),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return ga.renderFilterChip(gtx, &ga.widgetState.objectViewGridBtn, "Grid", isGrid)
-			}),
-		)
+			})
+		}
+		// Stats toggle at the end
+		children[len(chips)] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{Left: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return ga.renderFilterChip(gtx, &ga.widgetState.statsToggleBtn, "Stats", ga.showStatsPanel)
+			})
+		})
+		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx, children...)
 	})
 }
 
@@ -1278,7 +1209,7 @@ func gridColumns(gtx layout.Context) int {
 	return cols
 }
 
-// renderObjectsGrid renders the full (ungrouped) objects list in a grid layout.
+// renderObjectsGrid renders the full (ungrouped) objects list in a scrollable grid layout.
 func (ga *GioApp) renderObjectsGrid(gtx layout.Context) layout.Dimensions {
 	if len(ga.objects) == 0 {
 		return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -1290,74 +1221,91 @@ func (ga *GioApp) renderObjectsGrid(gtx layout.Context) layout.Dimensions {
 	}
 
 	_, filteredIndices := ga.getFilteredObjects()
-	return ga.renderObjectCardGrid(gtx, filteredIndices)
+	cols := gridColumns(gtx)
+
+	// Chunk into rows
+	var gridRows [][]int
+	for i := 0; i < len(filteredIndices); i += cols {
+		end := i + cols
+		if end > len(filteredIndices) {
+			end = len(filteredIndices)
+		}
+		gridRows = append(gridRows, filteredIndices[i:end])
+	}
+
+	list := &ga.widgetState.objectsList
+	list.Axis = layout.Vertical
+	return list.Layout(gtx, len(gridRows), func(gtx layout.Context, index int) layout.Dimensions {
+		return ga.renderObjectCardGridRow(gtx, gridRows[index], cols)
+	})
 }
 
-// renderObjectCardGrid renders a set of object cards (by their indices into ga.objects) in a grid.
+// renderObjectCardGrid renders a set of object cards (by their indices into ga.objects) as a grid block.
+// Used by grouped views where one list item contains an entire group's grid.
 func (ga *GioApp) renderObjectCardGrid(gtx layout.Context, indices []int) layout.Dimensions {
 	cols := gridColumns(gtx)
-	gap := gtx.Dp(unit.Dp(theme.Spacing2))
 
-	// Chunk indices into rows
-	type row struct {
-		indices []int
-	}
-	var rows []row
+	// Chunk into rows
+	var gridRows [][]int
 	for i := 0; i < len(indices); i += cols {
 		end := i + cols
 		if end > len(indices) {
 			end = len(indices)
 		}
-		rows = append(rows, row{indices: indices[i:end]})
+		gridRows = append(gridRows, indices[i:end])
 	}
 
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			var totalHeight int
-			for _, r := range rows {
-				// Calculate per-cell width
-				totalGap := gap * (cols - 1)
-				cellWidth := (gtx.Constraints.Max.X - totalGap) / cols
+	var totalHeight int
+	for _, row := range gridRows {
+		dims := ga.renderObjectCardGridRow(gtx, row, cols)
+		totalHeight += dims.Size.Y
+	}
+	return layout.Dimensions{
+		Size: image.Point{X: gtx.Constraints.Max.X, Y: totalHeight},
+	}
+}
 
-				// First pass: render each card with a macro to measure heights
-				type cellResult struct {
-					call op.CallOp
-					dims layout.Dimensions
-				}
-				cells := make([]cellResult, len(r.indices))
-				maxRowHeight := 0
+// renderObjectCardGridRow renders a single row of object cards side-by-side.
+func (ga *GioApp) renderObjectCardGridRow(gtx layout.Context, rowIndices []int, cols int) layout.Dimensions {
+	gap := gtx.Dp(unit.Dp(theme.Spacing2))
+	totalGap := gap * (cols - 1)
+	cellWidth := (gtx.Constraints.Max.X - totalGap) / cols
 
-				for ci, objIdx := range r.indices {
-					cgtx := gtx
-					cgtx.Constraints.Min.X = cellWidth
-					cgtx.Constraints.Max.X = cellWidth
+	type cellResult struct {
+		call op.CallOp
+		dims layout.Dimensions
+	}
+	cells := make([]cellResult, len(rowIndices))
+	maxRowHeight := 0
 
-					macro := op.Record(cgtx.Ops)
-					dims := layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(cgtx, func(gtx layout.Context) layout.Dimensions {
-						return ga.renderObjectCard(gtx, ga.objects[objIdx], objIdx)
-					})
-					call := macro.Stop()
-					cells[ci] = cellResult{call: call, dims: dims}
-					if dims.Size.Y > maxRowHeight {
-						maxRowHeight = dims.Size.Y
-					}
-				}
+	// First pass: measure each card
+	for ci, objIdx := range rowIndices {
+		cgtx := gtx
+		cgtx.Constraints.Min.X = cellWidth
+		cgtx.Constraints.Max.X = cellWidth
 
-				// Second pass: position each cell
-				for ci, cell := range cells {
-					xOffset := ci * (cellWidth + gap)
-					stack := op.Offset(image.Point{X: xOffset, Y: totalHeight}).Push(gtx.Ops)
-					cell.call.Add(gtx.Ops)
-					stack.Pop()
-				}
+		macro := op.Record(cgtx.Ops)
+		dims := layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(cgtx, func(gtx layout.Context) layout.Dimensions {
+			return ga.renderObjectCard(gtx, ga.objects[objIdx], objIdx)
+		})
+		call := macro.Stop()
+		cells[ci] = cellResult{call: call, dims: dims}
+		if dims.Size.Y > maxRowHeight {
+			maxRowHeight = dims.Size.Y
+		}
+	}
 
-				totalHeight += maxRowHeight
-			}
-			return layout.Dimensions{
-				Size: image.Point{X: gtx.Constraints.Max.X, Y: totalHeight},
-			}
-		}),
-	)
+	// Second pass: position each cell
+	for ci, cell := range cells {
+		xOffset := ci * (cellWidth + gap)
+		stack := op.Offset(image.Point{X: 0 + xOffset, Y: 0}).Push(gtx.Ops)
+		cell.call.Add(gtx.Ops)
+		stack.Pop()
+	}
+
+	return layout.Dimensions{
+		Size: image.Point{X: gtx.Constraints.Max.X, Y: maxRowHeight},
+	}
 }
 
 // --- State mutation helpers (must be called inside ga.do) ---

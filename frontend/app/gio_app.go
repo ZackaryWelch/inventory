@@ -170,6 +170,16 @@ type GioApp struct {
 	cachedContSearchQuery     string
 	cachedContDataLen         int
 
+	// Image cache for async image loading
+	imgCache *imageCache
+
+	// Tree view expanded state
+	treeExpandedNodes  map[string]bool
+	treeNodeClickables map[string]*widget.Clickable
+
+	// Stats panel toggle
+	showStatsPanel bool
+
 	// Gio-specific fields
 	window *app.Window
 	theme  *theme.NishikiTheme
@@ -246,6 +256,11 @@ type WidgetState struct {
 	containerViewGroupBtn  widget.Clickable
 	objectViewListBtn      widget.Clickable
 	objectViewGridBtn      widget.Clickable
+	objectViewGalleryBtn   widget.Clickable
+	objectViewCompactBtn   widget.Clickable
+	objectViewTableBtn     widget.Clickable
+	objectViewTreeBtn      widget.Clickable
+	statsToggleBtn         widget.Clickable
 	containersSearchField  widget.Editor
 	containersList         widget.List
 	containerItems         []ContainerItemState
@@ -477,21 +492,24 @@ func NewGioApp() *GioApp {
 	}
 
 	gioApp := &GioApp{
-		config:            cfg,
-		authService:       authService,
-		currentView:       ViewLoginGio,
-		isSignedIn:        false,
-		logger:            logger,
-		window:            w,
-		theme:             th,
-		ops:               make(chan func(), 10),
-		apiClient:         apiClient,
-		authClient:        authClient,
-		groupsClient:      groupsClient,
-		collectionsClient: collectionsClient,
-		containersClient:  containersClient,
-		objectsClient:     objectsClient,
-		widgetState:       widgetState,
+		config:             cfg,
+		authService:        authService,
+		currentView:        ViewLoginGio,
+		isSignedIn:         false,
+		logger:             logger,
+		imgCache:           newImageCache(),
+		treeExpandedNodes:  make(map[string]bool),
+		treeNodeClickables: make(map[string]*widget.Clickable),
+		window:             w,
+		theme:              th,
+		ops:                make(chan func(), 10),
+		apiClient:          apiClient,
+		authClient:         authClient,
+		groupsClient:       groupsClient,
+		collectionsClient:  collectionsClient,
+		containersClient:   containersClient,
+		objectsClient:      objectsClient,
+		widgetState:        widgetState,
 	}
 
 	// Handle session expiry: any API call that can't obtain a token or receives a 401
