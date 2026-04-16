@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"io"
 	"log/slog"
 	"testing"
 

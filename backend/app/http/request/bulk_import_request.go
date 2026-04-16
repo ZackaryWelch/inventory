@@ -1,6 +1,7 @@
 package request
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/nishiki/backend/domain/entities"

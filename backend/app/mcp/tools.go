@@ -3,6 +3,7 @@ package mcpserver
 import (
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
