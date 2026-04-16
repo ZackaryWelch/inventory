@@ -85,7 +85,7 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 			UserID: entities.NewUserID(), Name: "", ObjectType: entities.ObjectTypeGeneral, UserToken: "test-token",
 		})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "invalid collection name")
 	})
@@ -111,7 +111,7 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 			ObjectType: entities.ObjectTypeGeneral, UserToken: "test-token",
 		})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "user is not a member of the group")
 	})
@@ -134,7 +134,7 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 			ObjectType: entities.ObjectTypeGeneral, UserToken: "test-token",
 		})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "failed to get user groups")
 	})
@@ -154,7 +154,7 @@ func TestCreateCollectionUseCase_Execute(t *testing.T) {
 			ObjectType: entities.ObjectTypeGeneral, UserToken: "test-token",
 		})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "failed to save collection")
 	})

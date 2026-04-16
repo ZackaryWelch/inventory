@@ -15,9 +15,6 @@ import (
 	"github.com/nishiki/backend/domain/usecases"
 )
 
-//go:fix inline
-func boolPtr(b bool) *bool { return new(b) }
-
 // Common tool annotation patterns.
 var (
 	readOnlyAnnotations = &mcp.ToolAnnotations{

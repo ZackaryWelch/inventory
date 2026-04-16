@@ -108,7 +108,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "collection not found")
 	})
@@ -126,7 +126,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "access denied")
 	})
@@ -146,7 +146,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "access denied")
 	})
@@ -166,7 +166,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "failed to get user groups")
 	})
@@ -180,7 +180,7 @@ func TestGetCollectionsUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "failed to get collections")
 	})

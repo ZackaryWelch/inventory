@@ -37,6 +37,7 @@ linters:
         - sloppyReassign # Not useful
         - hugeParam # Value copies in params are negligible vs IO-bound operations
         - rangeValCopy # Same rationale as hugeParam; readability over micro-optimization
+        - commentedOutCode # Catches doc comments
       enable-all: true
       settings:
         ifElseChain:

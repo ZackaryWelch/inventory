@@ -104,7 +104,7 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "collection not found")
 	})
@@ -125,7 +125,7 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "access denied")
 	})
@@ -145,7 +145,7 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "invalid collection name")
 	})
@@ -166,7 +166,7 @@ func TestUpdateCollectionUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "failed to update collection")
 	})

@@ -109,7 +109,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "object not found")
 	})
@@ -138,7 +138,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "object not found in container")
 	})
@@ -169,7 +169,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "access denied")
 	})
@@ -199,7 +199,7 @@ func TestUpdateObjectUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "invalid object name")
 	})

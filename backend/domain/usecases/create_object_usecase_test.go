@@ -107,7 +107,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "container not found")
 	})
@@ -134,7 +134,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "collection not found")
 	})
@@ -164,7 +164,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "access denied")
 	})
@@ -193,7 +193,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "invalid object name")
 	})
@@ -222,7 +222,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "failed to get user groups")
 	})
@@ -252,7 +252,7 @@ func TestCreateObjectUseCase_Execute(t *testing.T) {
 
 		resp, err := useCase.Execute(context.Background(), req)
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "failed to add object to container")
 	})

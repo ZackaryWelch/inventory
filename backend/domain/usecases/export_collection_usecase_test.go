@@ -183,7 +183,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			CollectionID: collectionID, UserID: userID, UserToken: "tok",
 		})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "failed to get user groups")
 	})
@@ -199,7 +199,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			CollectionID: collectionID, UserID: userID, UserToken: "tok",
 		})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "collection not found")
 	})
@@ -217,7 +217,7 @@ func TestExportCollectionUseCase_Execute(t *testing.T) {
 			CollectionID: collection.ID(), UserID: userID, UserToken: "tok",
 		})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, resp)
 		assert.Contains(t, err.Error(), "access denied")
 	})

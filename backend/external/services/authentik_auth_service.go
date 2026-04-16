@@ -827,7 +827,7 @@ func (s *AuthentikAuthService) GetOIDCConfig(ctx context.Context, clientID strin
 		slog.String("provider_name", client.config.ProviderName))
 
 	// Make request to Authentik
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, discoveryURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, discoveryURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
