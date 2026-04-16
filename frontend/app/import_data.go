@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"

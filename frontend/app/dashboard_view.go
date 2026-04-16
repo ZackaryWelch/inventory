@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"image/color"
 
 	"gioui.org/font"
@@ -10,6 +9,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/spf13/cast"
 
 	"github.com/nishiki/frontend/ui/theme"
 	"github.com/nishiki/frontend/ui/widgets"
@@ -163,14 +163,14 @@ func (ga *GioApp) renderStats(gtx layout.Context) layout.Dimensions {
 				// Groups stat
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Right: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ga.renderStatCard(gtx, strconv.Itoa(len(ga.groups)), "Groups", theme.ColorPrimary, theme.ColorWhite)
+						return ga.renderStatCard(gtx, cast.ToString(len(ga.groups)), "Groups", theme.ColorPrimary, theme.ColorWhite)
 					})
 				}),
 
 				// Collections stat
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return layout.Inset{Left: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return ga.renderStatCard(gtx, strconv.Itoa(len(ga.collections)), "Collections", theme.ColorAccent, theme.ColorBlack)
+						return ga.renderStatCard(gtx, cast.ToString(len(ga.collections)), "Collections", theme.ColorAccent, theme.ColorBlack)
 					})
 				}),
 			)

@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 	"testing"
 

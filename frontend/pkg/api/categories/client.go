@@ -1,8 +1,6 @@
 package categories
 
 import (
-	"fmt"
-
 	"github.com/nishiki/frontend/pkg/api/common"
 	"github.com/nishiki/frontend/pkg/types"
 )
