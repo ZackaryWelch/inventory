@@ -146,9 +146,8 @@ type GioApp struct {
 	activeGroupedTextFilters map[string]string
 
 	// Sort/group state for objects listing
-	objectSortField    string // "", "name", "location", or a property key
-	objectSortDir      string // "asc" or "desc" (default "asc")
-	objectGroupByField string // "", "location", "container", or a property key
+	objectSortSpecs    []sortSpec // chained sort specs; [0] is primary
+	objectGroupByField string     // "", "location", "container", or a property key
 
 	// Render caches — invalidated when underlying data changes (see invalidateObjectCaches)
 	cachedGroupedTextValues map[string][]string // collectGroupedTextValues result
@@ -162,13 +161,16 @@ type GioApp struct {
 	cachedObjSearchQuery      string
 	cachedObjFilters          map[string]string // snapshot of activeGroupedTextFilters
 	cachedObjDataLen          int               // len(ga.objects) when cache was built
-	cachedObjSortField        string
-	cachedObjSortDir          string
+	cachedObjSortSpecs        []sortSpec
 	cachedObjGroupField       string
 	cachedFilteredContainers  []Container
 	cachedFilteredContIndices []int
 	cachedContSearchQuery     string
 	cachedContDataLen         int
+
+	// Stats panel render cache — invalidated with the other object caches
+	cachedStats      *statsData
+	cachedStatsValid bool
 
 	// Image cache for async image loading
 	imgCache *imageCache
@@ -296,6 +298,9 @@ type WidgetState struct {
 
 	// Grouped-text filter chips (key = "propKey||value")
 	groupedTextFilterButtons map[string]*widget.Clickable
+
+	// Table header clickables (key = column key)
+	tableHeaderButtons map[string]*widget.Clickable
 
 	// Containers page
 	containersPageButton widget.Clickable

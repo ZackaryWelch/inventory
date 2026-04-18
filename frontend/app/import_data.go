@@ -332,8 +332,7 @@ func (ga *GioApp) executeImport() {
 						}
 					}
 					// Reset sort/group since schema may have changed
-					ga.objectSortField = ""
-					ga.objectSortDir = ""
+					ga.objectSortSpecs = nil
 					ga.objectGroupByField = ""
 					ga.invalidateObjectCaches()
 				})

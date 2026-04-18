@@ -464,8 +464,7 @@ func (ga *GioApp) executeImportCreate() {
 						break
 					}
 				}
-				ga.objectSortField = ""
-				ga.objectSortDir = ""
+				ga.objectSortSpecs = nil
 				ga.objectGroupByField = ""
 				ga.invalidateObjectCaches()
 			})

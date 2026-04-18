@@ -204,8 +204,18 @@ func (ga *GioApp) renderObjectsTable(gtx layout.Context) layout.Dimensions {
 		return ga.renderEmptyObjects(gtx)
 	}
 
-	filteredObjects, filteredIndices := ga.getFilteredObjects()
 	columns := ga.getTableColumns()
+
+	// Process header clicks before computing filtered objects so sort is current this frame.
+	for _, col := range columns {
+		btn := ga.getTableHeaderButton(col.key)
+		if btn.Clicked(gtx) {
+			ga.cycleSort(col.key)
+			ga.invalidateFilteredObjects()
+		}
+	}
+
+	filteredObjects, filteredIndices := ga.getFilteredObjects()
 
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		// Header row
@@ -255,33 +265,53 @@ func (ga *GioApp) getTableColumns() []tableColumn {
 	return cols
 }
 
-// renderTableHeader renders the table column headers.
+// renderTableHeader renders the table column headers. Columns are clickable to toggle sort.
 func (ga *GioApp) renderTableHeader(gtx layout.Context, columns []tableColumn) layout.Dimensions {
+	multi := len(ga.objectSortSpecs) > 1
 	return layout.Inset{
 		Top: unit.Dp(theme.Spacing1), Bottom: unit.Dp(theme.Spacing1),
 		Left: unit.Dp(theme.Spacing2), Right: unit.Dp(theme.Spacing2),
 	}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		children := make([]layout.FlexChild, len(columns))
 		for i, col := range columns {
-			isSortField := ga.objectSortField == col.key
+			rank, dir := ga.findSortRank(col.key)
 			label := col.displayName
-			if isSortField {
-				if ga.objectSortDir == "desc" {
+			if rank >= 0 {
+				if dir == "desc" {
 					label += " ↓"
 				} else {
 					label += " ↑"
 				}
+				if multi {
+					label += fmt.Sprintf(" %d", rank+1)
+				}
 			}
+			btn := ga.getTableHeaderButton(col.key)
 			children[i] = layout.Flexed(col.flex, func(gtx layout.Context) layout.Dimensions {
-				lbl := material.Body2(ga.theme.Theme, label)
-				lbl.Font.Weight = font.Bold
-				lbl.Color = theme.ColorTextSecondary
-				lbl.MaxLines = 1
-				return lbl.Layout(gtx)
+				return btn.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					lbl := material.Body2(ga.theme.Theme, label)
+					lbl.Font.Weight = font.Bold
+					lbl.Color = theme.ColorTextSecondary
+					lbl.MaxLines = 1
+					return lbl.Layout(gtx)
+				})
 			})
 		}
 		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx, children...)
 	})
+}
+
+// getTableHeaderButton lazily creates a clickable for the given column key.
+func (ga *GioApp) getTableHeaderButton(key string) *widget.Clickable {
+	if ga.widgetState.tableHeaderButtons == nil {
+		ga.widgetState.tableHeaderButtons = make(map[string]*widget.Clickable)
+	}
+	if btn, ok := ga.widgetState.tableHeaderButtons[key]; ok {
+		return btn
+	}
+	btn := new(widget.Clickable)
+	ga.widgetState.tableHeaderButtons[key] = btn
+	return btn
 }
 
 // renderTableRow renders a single table data row.
@@ -362,46 +392,59 @@ func galleryColumns(gtx layout.Context) int {
 	return cols
 }
 
-// renderObjectsGallery renders objects as a tight thumbnail grid.
+// renderObjectsGallery renders objects as a scrollable thumbnail grid.
 func (ga *GioApp) renderObjectsGallery(gtx layout.Context) layout.Dimensions {
 	if len(ga.objects) == 0 {
 		return ga.renderEmptyObjects(gtx)
 	}
 
 	_, filteredIndices := ga.getFilteredObjects()
-	return ga.renderGalleryGrid(gtx, filteredIndices)
+	cols := galleryColumns(gtx)
+	gap := gtx.Dp(unit.Dp(theme.Spacing1))
+	thumbSize := (gtx.Constraints.Max.X - gap*(cols-1)) / cols
+	rowCount := (len(filteredIndices) + cols - 1) / cols
+
+	list := &ga.widgetState.objectsList
+	list.Axis = layout.Vertical
+	return list.Layout(gtx, rowCount, func(gtx layout.Context, rowIdx int) layout.Dimensions {
+		start := rowIdx * cols
+		end := min(start+cols, len(filteredIndices))
+		return ga.renderGalleryRow(gtx, filteredIndices[start:end], thumbSize, gap)
+	})
 }
 
-// renderGalleryGrid renders a gallery grid for a set of object indices.
+// renderGalleryRow lays out a single row of gallery thumbnails using op.Offset positioning.
+func (ga *GioApp) renderGalleryRow(gtx layout.Context, indices []int, thumbSize, gap int) layout.Dimensions {
+	cellH := thumbSize + gtx.Dp(unit.Dp(24))
+	for ci, objIdx := range indices {
+		xOffset := ci * (thumbSize + gap)
+		stack := op.Offset(image.Point{X: xOffset, Y: 0}).Push(gtx.Ops)
+		ga.renderObjectThumbnail(gtx, ga.objects[objIdx], objIdx, thumbSize)
+		stack.Pop()
+	}
+	return layout.Dimensions{Size: image.Point{X: gtx.Constraints.Max.X, Y: cellH + gap}}
+}
+
+// renderGalleryGrid renders a complete gallery grid (used inside a grouped-list item,
+// which cannot nest another scrollable List).
 func (ga *GioApp) renderGalleryGrid(gtx layout.Context, indices []int) layout.Dimensions {
 	cols := galleryColumns(gtx)
 	gap := gtx.Dp(unit.Dp(theme.Spacing1))
 	thumbSize := (gtx.Constraints.Max.X - gap*(cols-1)) / cols
 
-	// Chunk into rows
-	type row struct{ indices []int }
-	var rows []row
+	var totalHeight int
+	cellH := thumbSize + gtx.Dp(unit.Dp(24))
 	for i := 0; i < len(indices); i += cols {
 		end := min(i+cols, len(indices))
-		rows = append(rows, row{indices: indices[i:end]})
+		for ci, objIdx := range indices[i:end] {
+			xOffset := ci * (thumbSize + gap)
+			stack := op.Offset(image.Point{X: xOffset, Y: totalHeight}).Push(gtx.Ops)
+			ga.renderObjectThumbnail(gtx, ga.objects[objIdx], objIdx, thumbSize)
+			stack.Pop()
+		}
+		totalHeight += cellH + gap
 	}
-
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			var totalHeight int
-			for _, r := range rows {
-				cellH := thumbSize + gtx.Dp(unit.Dp(24)) // thumbnail + name overlay space
-				for ci, objIdx := range r.indices {
-					xOffset := ci * (thumbSize + gap)
-					stack := op.Offset(image.Point{X: xOffset, Y: totalHeight}).Push(gtx.Ops)
-					ga.renderObjectThumbnail(gtx, ga.objects[objIdx], objIdx, thumbSize)
-					stack.Pop()
-				}
-				totalHeight += cellH + gap
-			}
-			return layout.Dimensions{Size: image.Point{X: gtx.Constraints.Max.X, Y: totalHeight}}
-		}),
-	)
+	return layout.Dimensions{Size: image.Point{X: gtx.Constraints.Max.X, Y: totalHeight}}
 }
 
 // renderObjectThumbnail renders a single gallery thumbnail cell.
@@ -652,6 +695,147 @@ func (ga *GioApp) renderTreeNode(gtx layout.Context, isContainer bool, container
 // Stats / Summary View
 // ============================================================
 
+// statsContainerBar holds a single bar in the container distribution chart.
+type statsContainerBar struct {
+	name  string
+	count int
+}
+
+// statsTagEntry holds a single tag cloud entry.
+type statsTagEntry struct {
+	tag   string
+	count int
+}
+
+// statsPropDist holds a pre-formatted property distribution row.
+type statsPropDist struct {
+	text string
+}
+
+// statsData caches everything renderCollectionStats needs so that unrelated UI
+// interactions (tree expand/collapse, hover, scroll) don't re-run map iteration
+// whose random order can reorder tied values.
+type statsData struct {
+	total            int
+	containerBars    []statsContainerBar
+	containerMaxCnt  int
+	tags             []statsTagEntry
+	propDistributions []statsPropDist
+}
+
+// getStats returns the cached stats, recomputing only when invalidated.
+func (ga *GioApp) getStats() *statsData {
+	if ga.cachedStatsValid {
+		return ga.cachedStats
+	}
+	ga.cachedStats = ga.computeStats()
+	ga.cachedStatsValid = true
+	return ga.cachedStats
+}
+
+// computeStats builds the stats snapshot from ga.objects and ga.selectedCollection.
+// Ties are broken alphabetically so repeated calls produce identical output.
+func (ga *GioApp) computeStats() *statsData {
+	s := &statsData{total: len(ga.objects)}
+
+	// Container distribution
+	containerCounts := make(map[string]int)
+	unassigned := 0
+	for _, obj := range ga.objects {
+		if obj.ContainerID == "" {
+			unassigned++
+		} else {
+			containerCounts[obj.ContainerID]++
+		}
+	}
+	for _, c := range ga.containers {
+		cnt := containerCounts[c.ID]
+		if cnt > 0 {
+			s.containerBars = append(s.containerBars, statsContainerBar{name: c.Name, count: cnt})
+			if cnt > s.containerMaxCnt {
+				s.containerMaxCnt = cnt
+			}
+		}
+	}
+	if unassigned > 0 {
+		s.containerBars = append(s.containerBars, statsContainerBar{name: "Unassigned", count: unassigned})
+		if unassigned > s.containerMaxCnt {
+			s.containerMaxCnt = unassigned
+		}
+	}
+
+	// Tag cloud
+	tagFreq := make(map[string]int)
+	for _, obj := range ga.objects {
+		for _, tag := range obj.Tags {
+			tagFreq[tag]++
+		}
+	}
+	for t, c := range tagFreq {
+		s.tags = append(s.tags, statsTagEntry{tag: t, count: c})
+	}
+	sort.Slice(s.tags, func(i, j int) bool {
+		if s.tags[i].count != s.tags[j].count {
+			return s.tags[i].count > s.tags[j].count
+		}
+		return s.tags[i].tag < s.tags[j].tag
+	})
+	if len(s.tags) > 20 {
+		s.tags = s.tags[:20]
+	}
+
+	// Property distributions (grouped_text)
+	if ga.selectedCollection != nil && ga.selectedCollection.PropertySchema != nil {
+		for _, def := range ga.selectedCollection.PropertySchema.Definitions {
+			if def.Type != "grouped_text" {
+				continue
+			}
+			valFreq := make(map[string]int)
+			for _, obj := range ga.objects {
+				if tv, ok := obj.Properties[def.Key]; ok {
+					v := fmt.Sprintf("%v", tv.Val)
+					if v != "" {
+						valFreq[v]++
+					}
+				}
+			}
+			if len(valFreq) == 0 {
+				continue
+			}
+			type valEntry struct {
+				val   string
+				count int
+			}
+			vals := make([]valEntry, 0, len(valFreq))
+			for v, c := range valFreq {
+				vals = append(vals, valEntry{val: v, count: c})
+			}
+			sort.Slice(vals, func(a, b int) bool {
+				if vals[a].count != vals[b].count {
+					return vals[a].count > vals[b].count
+				}
+				return vals[a].val < vals[b].val
+			})
+			if len(vals) > 5 {
+				vals = vals[:5]
+			}
+			displayName := def.DisplayName
+			if displayName == "" {
+				displayName = snakeToTitleCase(def.Key)
+			}
+			parts := make([]string, len(vals))
+			for j, v := range vals {
+				parts[j] = fmt.Sprintf("%s (%d)", v.val, v.count)
+			}
+			s.propDistributions = append(s.propDistributions, statsPropDist{
+				text: displayName + ": " + strings.Join(parts, ", "),
+			})
+		}
+	}
+
+	return s
+}
+
 // renderCollectionStats renders a stats dashboard above the object list.
 func (ga *GioApp) renderCollectionStats(gtx layout.Context) layout.Dimensions {
 	if len(ga.objects) == 0 {
@@ -663,7 +847,7 @@ func (ga *GioApp) renderCollectionStats(gtx layout.Context) layout.Dimensions {
 			// Total count
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					lbl := material.Body1(ga.theme.Theme, fmt.Sprintf("Total Objects: %d", len(ga.objects)))
+					lbl := material.Body1(ga.theme.Theme, fmt.Sprintf("Total Objects: %d", ga.getStats().total))
 					lbl.Font.Weight = font.Bold
 					return lbl.Layout(gtx)
 				})
@@ -694,46 +878,12 @@ func (ga *GioApp) renderCollectionStats(gtx layout.Context) layout.Dimensions {
 
 // renderContainerDistribution renders a bar chart of objects per container.
 func (ga *GioApp) renderContainerDistribution(gtx layout.Context) layout.Dimensions {
-	if len(ga.containers) == 0 {
+	s := ga.getStats()
+	if len(s.containerBars) == 0 {
 		return layout.Dimensions{}
 	}
-
-	// Count objects per container
-	type bar struct {
-		name  string
-		count int
-	}
-	containerCounts := make(map[string]int)
-	unassigned := 0
-	for _, obj := range ga.objects {
-		if obj.ContainerID == "" {
-			unassigned++
-		} else {
-			containerCounts[obj.ContainerID]++
-		}
-	}
-
-	var bars []bar
-	maxCount := 0
-	for _, c := range ga.containers {
-		cnt := containerCounts[c.ID]
-		if cnt > 0 {
-			bars = append(bars, bar{name: c.Name, count: cnt})
-			if cnt > maxCount {
-				maxCount = cnt
-			}
-		}
-	}
-	if unassigned > 0 {
-		bars = append(bars, bar{name: "Unassigned", count: unassigned})
-		if unassigned > maxCount {
-			maxCount = unassigned
-		}
-	}
-
-	if len(bars) == 0 {
-		return layout.Dimensions{}
-	}
+	bars := s.containerBars
+	maxCount := s.containerMaxCnt
 
 	return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
@@ -782,31 +932,9 @@ func (ga *GioApp) renderContainerDistribution(gtx layout.Context) layout.Dimensi
 
 // renderTagCloud renders frequently used tags.
 func (ga *GioApp) renderTagCloud(gtx layout.Context) layout.Dimensions {
-	// Collect tag frequencies
-	tagFreq := make(map[string]int)
-	for _, obj := range ga.objects {
-		for _, tag := range obj.Tags {
-			tagFreq[tag]++
-		}
-	}
-	if len(tagFreq) == 0 {
+	tags := ga.getStats().tags
+	if len(tags) == 0 {
 		return layout.Dimensions{}
-	}
-
-	// Sort by frequency descending
-	type tagEntry struct {
-		tag   string
-		count int
-	}
-	var tags []tagEntry
-	for t, c := range tagFreq {
-		tags = append(tags, tagEntry{tag: t, count: c})
-	}
-	sort.Slice(tags, func(i, j int) bool { return tags[i].count > tags[j].count })
-
-	// Limit to top 20
-	if len(tags) > 20 {
-		tags = tags[:20]
 	}
 
 	chipGap := gtx.Dp(unit.Dp(theme.Spacing1))
@@ -842,65 +970,16 @@ func (ga *GioApp) renderTagCloud(gtx layout.Context) layout.Dimensions {
 
 // renderPropertyDistributions renders top values for grouped_text properties.
 func (ga *GioApp) renderPropertyDistributions(gtx layout.Context) layout.Dimensions {
-	if ga.selectedCollection == nil || ga.selectedCollection.PropertySchema == nil {
+	dists := ga.getStats().propDistributions
+	if len(dists) == 0 {
 		return layout.Dimensions{}
 	}
 
-	// Find grouped_text properties
-	var propDefs []PropertyDefinition
-	for _, def := range ga.selectedCollection.PropertySchema.Definitions {
-		if def.Type == "grouped_text" {
-			propDefs = append(propDefs, def)
-		}
-	}
-	if len(propDefs) == 0 {
-		return layout.Dimensions{}
-	}
-
-	children := make([]layout.FlexChild, len(propDefs))
-	for i, def := range propDefs {
-		// Count values
-		valFreq := make(map[string]int)
-		for _, obj := range ga.objects {
-			if tv, ok := obj.Properties[def.Key]; ok {
-				v := fmt.Sprintf("%v", tv.Val)
-				if v != "" {
-					valFreq[v]++
-				}
-			}
-		}
-		if len(valFreq) == 0 {
-			children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Dimensions{}
-			})
-			continue
-		}
-
-		type valEntry struct {
-			val   string
-			count int
-		}
-		var vals []valEntry
-		for v, c := range valFreq {
-			vals = append(vals, valEntry{val: v, count: c})
-		}
-		sort.Slice(vals, func(a, b int) bool { return vals[a].count > vals[b].count })
-		if len(vals) > 5 {
-			vals = vals[:5]
-		}
-
-		displayName := def.DisplayName
-		if displayName == "" {
-			displayName = snakeToTitleCase(def.Key)
-		}
-
+	children := make([]layout.FlexChild, len(dists))
+	for i, d := range dists {
 		children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return layout.Inset{Bottom: unit.Dp(theme.Spacing1)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				parts := make([]string, len(vals))
-				for j, v := range vals {
-					parts[j] = fmt.Sprintf("%s (%d)", v.val, v.count)
-				}
-				lbl := material.Caption(ga.theme.Theme, displayName+": "+strings.Join(parts, ", "))
+				lbl := material.Caption(ga.theme.Theme, d.text)
 				lbl.Color = theme.ColorTextSecondary
 				return lbl.Layout(gtx)
 			})

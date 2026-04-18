@@ -5,6 +5,7 @@ import (
 	"image"
 	"maps"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -89,8 +90,7 @@ func (ga *GioApp) renderCollectionDetailView(gtx layout.Context) layout.Dimensio
 		ga.containers = nil
 		ga.objects = nil
 		ga.activeGroupedTextFilters = nil
-		ga.objectSortField = ""
-		ga.objectSortDir = ""
+		ga.objectSortSpecs = nil
 		ga.objectGroupByField = ""
 		ga.invalidateObjectCaches()
 		ga.showContainersPanel = false
@@ -589,8 +589,7 @@ func (ga *GioApp) getFilteredObjects() ([]Object, []int) {
 	if ga.cachedFilteredObjects != nil &&
 		ga.cachedObjSearchQuery == searchQuery &&
 		ga.cachedObjDataLen == len(ga.objects) &&
-		ga.cachedObjSortField == ga.objectSortField &&
-		ga.cachedObjSortDir == ga.objectSortDir &&
+		sortSpecsEqual(ga.cachedObjSortSpecs, ga.objectSortSpecs) &&
 		ga.cachedObjGroupField == ga.objectGroupByField &&
 		mapsEqual(ga.cachedObjFilters, ga.activeGroupedTextFilters) {
 		return ga.cachedFilteredObjects, ga.cachedFilteredObjIndices
@@ -612,8 +611,8 @@ func (ga *GioApp) getFilteredObjects() ([]Object, []int) {
 		indices = append(indices, i)
 	}
 
-	// Sort if a sort field is selected
-	if ga.objectSortField != "" {
+	// Sort if any sort spec is active
+	if len(ga.objectSortSpecs) > 0 {
 		ga.sortObjects(filtered, indices)
 	}
 
@@ -621,35 +620,74 @@ func (ga *GioApp) getFilteredObjects() ([]Object, []int) {
 	ga.cachedFilteredObjIndices = indices
 	ga.cachedObjSearchQuery = searchQuery
 	ga.cachedObjDataLen = len(ga.objects)
-	ga.cachedObjSortField = ga.objectSortField
-	ga.cachedObjSortDir = ga.objectSortDir
+	ga.cachedObjSortSpecs = cloneSortSpecs(ga.objectSortSpecs)
 	ga.cachedObjGroupField = ga.objectGroupByField
 	ga.cachedObjFilters = copyStringMap(ga.activeGroupedTextFilters)
 	ga.logger.Info("Recomputed filtered objects", "total", len(ga.objects), "filtered", len(filtered), "elapsed", time.Since(start))
 	return filtered, indices
 }
 
-// sortObjects sorts the filtered/indices slices in place according to objectSortField/objectSortDir.
-func (ga *GioApp) sortObjects(filtered []Object, indices []int) {
-	desc := ga.objectSortDir == "desc"
-	defMap := ga.getPropertyDefMap()
+// sortSpec describes a single column's sort rule.
+type sortSpec struct {
+	field string // "name", "location", or a property key
+	dir   string // "asc" or "desc"
+}
 
-	sort.Sort(&objectSorter{
+// sortSpecsEqual returns true if two sort-spec chains are identical.
+func sortSpecsEqual(a, b []sortSpec) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// cloneSortSpecs returns a shallow copy of the sort-spec chain.
+func cloneSortSpecs(s []sortSpec) []sortSpec {
+	if s == nil {
+		return nil
+	}
+	cp := make([]sortSpec, len(s))
+	copy(cp, s)
+	return cp
+}
+
+// cycleSort toggles a field through asc → desc → unsorted, preserving chain order for other fields.
+func (ga *GioApp) cycleSort(field string) {
+	for i, sp := range ga.objectSortSpecs {
+		if sp.field == field {
+			if sp.dir == "asc" {
+				ga.objectSortSpecs[i].dir = "desc"
+			} else {
+				ga.objectSortSpecs = append(ga.objectSortSpecs[:i], ga.objectSortSpecs[i+1:]...)
+			}
+			return
+		}
+	}
+	ga.objectSortSpecs = append(ga.objectSortSpecs, sortSpec{field: field, dir: "asc"})
+}
+
+// sortObjects sorts the filtered/indices slices in place according to objectSortSpecs.
+func (ga *GioApp) sortObjects(filtered []Object, indices []int) {
+	defMap := ga.getPropertyDefMap()
+	sort.Stable(&objectSorter{
 		objects: filtered,
 		indices: indices,
-		field:   ga.objectSortField,
-		desc:    desc,
+		specs:   ga.objectSortSpecs,
 		defMap:  defMap,
 		locFn:   ga.getObjectEffectiveLocation,
 	})
 }
 
-// objectSorter implements sort.Interface for paired object + index slices.
+// objectSorter implements sort.Interface for paired object + index slices with a chained sort.
 type objectSorter struct {
 	objects []Object
 	indices []int
-	field   string
-	desc    bool
+	specs   []sortSpec
 	defMap  map[string]*PropertyDefinition
 	locFn   func(Object) string
 }
@@ -662,27 +700,168 @@ func (s *objectSorter) Swap(i, j int) {
 }
 
 func (s *objectSorter) Less(i, j int) bool {
-	a := s.sortKey(s.objects[i])
-	b := s.sortKey(s.objects[j])
-	if s.desc {
-		return strings.ToLower(a) > strings.ToLower(b)
+	for _, sp := range s.specs {
+		cmp := s.cmpField(s.objects[i], s.objects[j], sp.field)
+		if cmp == 0 {
+			continue
+		}
+		if sp.dir == "desc" {
+			return cmp > 0
+		}
+		return cmp < 0
 	}
-	return strings.ToLower(a) < strings.ToLower(b)
+	return false
 }
 
-func (s *objectSorter) sortKey(obj Object) string {
-	switch s.field {
+// cmpField compares two objects by a single field in ascending direction.
+// Missing values always sort after present values regardless of direction.
+func (s *objectSorter) cmpField(a, b Object, field string) int {
+	switch s.fieldType(field) {
+	case "numeric", "currency":
+		af, aOk := s.numericValue(a, field)
+		bf, bOk := s.numericValue(b, field)
+		return cmpPresent(aOk, bOk, func() int {
+			switch {
+			case af < bf:
+				return -1
+			case af > bf:
+				return 1
+			}
+			return 0
+		})
+	case "date":
+		at, aOk := s.dateValue(a, field)
+		bt, bOk := s.dateValue(b, field)
+		return cmpPresent(aOk, bOk, func() int {
+			switch {
+			case at.Before(bt):
+				return -1
+			case at.After(bt):
+				return 1
+			}
+			return 0
+		})
+	case "bool":
+		av, aOk := s.boolValue(a, field)
+		bv, bOk := s.boolValue(b, field)
+		return cmpPresent(aOk, bOk, func() int {
+			switch {
+			case !av && bv:
+				return -1
+			case av && !bv:
+				return 1
+			}
+			return 0
+		})
+	default:
+		return strings.Compare(strings.ToLower(s.stringValue(a, field)), strings.ToLower(s.stringValue(b, field)))
+	}
+}
+
+// fieldType returns the logical type used for comparison: "name", "location", "quantity"
+// resolve to built-in types; property keys look up defMap; unknown falls back to "text".
+func (s *objectSorter) fieldType(field string) string {
+	switch field {
+	case "name", "location":
+		return "text"
+	case "quantity":
+		return "numeric"
+	}
+	if def, ok := s.defMap[field]; ok && def != nil {
+		return def.Type
+	}
+	return "text"
+}
+
+func (s *objectSorter) stringValue(obj Object, field string) string {
+	switch field {
 	case "name":
 		return obj.Name
 	case "location":
 		return s.locFn(obj)
-	default:
-		// Schema property key
-		if tv, ok := obj.Properties[s.field]; ok {
-			return RenderPropertyValueFromMap(s.field, tv, s.defMap)
+	case "quantity":
+		if obj.Quantity == nil {
+			return ""
 		}
-		return ""
+		return strconv.FormatFloat(*obj.Quantity, 'f', -1, 64)
 	}
+	if tv, ok := obj.Properties[field]; ok {
+		return RenderPropertyValueFromMap(field, tv, s.defMap)
+	}
+	return ""
+}
+
+func (s *objectSorter) numericValue(obj Object, field string) (float64, bool) {
+	if field == "quantity" {
+		if obj.Quantity == nil {
+			return 0, false
+		}
+		return *obj.Quantity, true
+	}
+	tv, ok := obj.Properties[field]
+	if !ok || tv.Val == nil {
+		return 0, false
+	}
+	f, err := toFloat(tv.Val)
+	if err != nil {
+		return 0, false
+	}
+	return f, true
+}
+
+func (s *objectSorter) dateValue(obj Object, field string) (time.Time, bool) {
+	tv, ok := obj.Properties[field]
+	if !ok || tv.Val == nil {
+		return time.Time{}, false
+	}
+	switch v := tv.Val.(type) {
+	case string:
+		if t, err := time.Parse(time.RFC3339, v); err == nil {
+			return t, true
+		}
+		if t, err := time.Parse("2006-01-02", v); err == nil {
+			return t, true
+		}
+		return time.Time{}, false
+	case float64:
+		return time.UnixMilli(int64(v)).UTC(), true
+	}
+	return time.Time{}, false
+}
+
+func (s *objectSorter) boolValue(obj Object, field string) (bool, bool) {
+	tv, ok := obj.Properties[field]
+	if !ok || tv.Val == nil {
+		return false, false
+	}
+	switch v := tv.Val.(type) {
+	case bool:
+		return v, true
+	case string:
+		if strings.EqualFold(v, "true") || v == "1" {
+			return true, true
+		}
+		if strings.EqualFold(v, "false") || v == "0" || v == "" {
+			return false, true
+		}
+	}
+	if f, err := toFloat(tv.Val); err == nil {
+		return f != 0, true
+	}
+	return false, false
+}
+
+// cmpPresent places missing values after present values and otherwise defers to cmp.
+func cmpPresent(aOk, bOk bool, cmp func() int) int {
+	switch {
+	case !aOk && !bOk:
+		return 0
+	case !aOk:
+		return 1
+	case !bOk:
+		return -1
+	}
+	return cmp()
 }
 
 // renderObjectsList renders the list of objects
@@ -1581,6 +1760,8 @@ func (ga *GioApp) invalidateObjectCaches() {
 	ga.cachedFilteredObjIndices = nil
 	ga.cachedFilteredContainers = nil
 	ga.cachedFilteredContIndices = nil
+	ga.cachedStatsValid = false
+	ga.cachedStats = nil
 }
 
 // mapsEqual returns true if two string→string maps have identical entries.
@@ -1857,19 +2038,7 @@ func (ga *GioApp) renderSortRow(gtx layout.Context) layout.Dimensions {
 		chipKey := "sort||" + f.key
 		btn := ga.getGroupedTextChipButton(chipKey)
 		if btn.Clicked(gtx) {
-			if ga.objectSortField == f.key {
-				// Toggle direction on re-click
-				if ga.objectSortDir == "desc" {
-					// Third click: clear sort
-					ga.objectSortField = ""
-					ga.objectSortDir = ""
-				} else {
-					ga.objectSortDir = "desc"
-				}
-			} else {
-				ga.objectSortField = f.key
-				ga.objectSortDir = "asc"
-			}
+			ga.cycleSort(f.key)
 			ga.invalidateFilteredObjects()
 		}
 	}
@@ -1890,21 +2059,36 @@ func (ga *GioApp) renderSortRow(gtx layout.Context) layout.Dimensions {
 				for _, f := range fields {
 					chipKey := "sort||" + f.key
 					btn := ga.getGroupedTextChipButton(chipKey)
-					isActive := ga.objectSortField == f.key
+					rank, dir := ga.findSortRank(f.key)
 					label := f.displayName
-					if isActive && ga.objectSortDir == "desc" {
-						label += " ↓"
-					} else if isActive {
-						label += " ↑"
+					if rank >= 0 {
+						if dir == "desc" {
+							label += " ↓"
+						} else {
+							label += " ↑"
+						}
+						if len(ga.objectSortSpecs) > 1 {
+							label += fmt.Sprintf(" %d", rank+1)
+						}
 					}
 					chips = append(chips, func(gtx layout.Context) layout.Dimensions {
-						return ga.renderFilterChip(gtx, btn, label, isActive)
+						return ga.renderFilterChip(gtx, btn, label, rank >= 0)
 					})
 				}
 				return layoutFlowWrap(gtx, chipGap, chipGap, chips...)
 			}),
 		)
 	})
+}
+
+// findSortRank returns the spec index and direction for a field, or (-1, "") if not sorted.
+func (ga *GioApp) findSortRank(field string) (int, string) {
+	for i, sp := range ga.objectSortSpecs {
+		if sp.field == field {
+			return i, sp.dir
+		}
+	}
+	return -1, ""
 }
 
 // renderGroupRow renders the group-by chip row.
