@@ -448,11 +448,10 @@ func (ga *GioApp) renderGroupSelector(gtx layout.Context) layout.Dimensions {
 	if noneBtn.Clicked(gtx) {
 		ga.selectedGroupID = nil
 	}
-	chips := []layout.Widget{
-		func(gtx layout.Context) layout.Dimensions {
-			return ga.renderFilterChip(gtx, noneBtn, "None", ga.selectedGroupID == nil)
-		},
-	}
+	chips := make([]layout.Widget, 0, 1+len(ga.groups))
+	chips = append(chips, func(gtx layout.Context) layout.Dimensions {
+		return ga.renderFilterChip(gtx, noneBtn, "None", ga.selectedGroupID == nil)
+	})
 	for _, group := range ga.groups {
 		grp := group
 		btn := ga.widgetState.collectionGroupButtons[grp.ID]

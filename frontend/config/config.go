@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/spf13/viper"
 )
@@ -26,14 +27,14 @@ func LoadConfig() *Config {
 	viper.SetEnvPrefix("NISHIKI")
 	viper.AutomaticEnv()
 
-	fmt.Println("Loading config from filesystem")
+	slog.Info("Loading config from filesystem")
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Printf("Config file not found, using defaults: %v\n", err)
+		slog.Warn("config file not found, using defaults", "error", err)
 	}
 
 	var config Config
 	if err := viper.Unmarshal(&config); err != nil {
-		fmt.Printf("Error unmarshaling config: %v\n", err)
+		slog.Error("unmarshaling config", "error", err)
 	}
 
 	// Auto-generate redirect URL based on port if not explicitly set
@@ -41,9 +42,11 @@ func LoadConfig() *Config {
 		config.RedirectURL = fmt.Sprintf("http://localhost:%s/auth/callback", config.Port)
 	}
 
-	// Debug: Print loaded config
-	fmt.Printf("Loaded config: AuthURL=%s, ClientID=%s, RedirectURL=%s, Port=%s\n",
-		config.AuthURL, config.ClientID, config.RedirectURL, config.Port)
+	slog.Info("Loaded config",
+		"auth_url", config.AuthURL,
+		"client_id", config.ClientID,
+		"redirect_url", config.RedirectURL,
+		"port", config.Port)
 
 	return &config
 }

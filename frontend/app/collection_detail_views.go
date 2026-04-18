@@ -459,7 +459,8 @@ func (ga *GioApp) renderObjectThumbnail(gtx layout.Context, obj Object, index in
 
 	// Background
 	bgRect := image.Rectangle{Max: image.Point{X: size, Y: cellH}}
-	defer clip.RRect{Rect: bgRect, SE: gtx.Dp(unit.Dp(theme.RadiusDefault)), SW: gtx.Dp(unit.Dp(theme.RadiusDefault)), NW: gtx.Dp(unit.Dp(theme.RadiusDefault)), NE: gtx.Dp(unit.Dp(theme.RadiusDefault))}.Push(gtx.Ops).Pop()
+	radius := gtx.Dp(unit.Dp(theme.RadiusDefault))
+	defer clip.RRect{Rect: bgRect, SE: radius, SW: radius, NW: radius, NE: radius}.Push(gtx.Ops).Pop()
 	paint.ColorOp{Color: theme.ColorSurfaceAlt}.Add(gtx.Ops)
 	paint.PaintOp{}.Add(gtx.Ops)
 
@@ -948,7 +949,7 @@ func (ga *GioApp) renderTagCloud(gtx layout.Context) layout.Dimensions {
 				return lbl.Layout(gtx)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				var widgets []layout.Widget
+				widgets := make([]layout.Widget, 0, len(tags))
 				for _, t := range tags {
 					widgets = append(widgets, func(gtx layout.Context) layout.Dimensions {
 						lbl := material.Caption(ga.theme.Theme, fmt.Sprintf("%s (%d)", t.tag, t.count))

@@ -183,7 +183,6 @@ func ApplyPalette(p Palette) {
 
 // Font sizes (in sp - scale-independent pixels)
 const (
-	FontSize2XS  = 10 // 0.625rem - text-2xs
 	FontSizeXS   = 12 // 0.75rem - text-xs
 	FontSizeSM   = 14 // 0.875rem - text-sm
 	FontSizeBase = 16 // 1rem - text-base
@@ -193,22 +192,11 @@ const (
 	FontSize3XL  = 30 // 1.875rem - text-3xl
 )
 
-// Line heights
-const (
-	LineHeightNone    = 1.0   // leading-none
-	LineHeightTight   = 1.25  // leading-tight
-	LineHeightSnug    = 1.375 // leading-snug
-	LineHeightNormal  = 1.5   // leading-normal
-	LineHeightRelaxed = 1.625 // leading-relaxed
-	LineHeightLoose   = 2.0   // leading-loose
-)
-
 // ====================================================================================
 // Spacing System (in dp - density-independent pixels)
 // ====================================================================================
 
-const (
-	Spacing0  = 0  // 0
+const ( // 0
 	Spacing1  = 4  // 0.25rem
 	Spacing2  = 8  // 0.5rem
 	Spacing3  = 12 // 0.75rem
@@ -235,7 +223,5 @@ const (
 	RadiusMD      = 6    // 0.375rem - rounded-md
 	RadiusLG      = 8    // 0.5rem - rounded-lg
 	RadiusXL      = 12   // 0.75rem - rounded-xl
-	Radius2XL     = 16   // 1rem - rounded-2xl
-	Radius3XL     = 24   // 1.5rem - rounded-3xl
 	RadiusFull    = 9999 // rounded-full (fully rounded)
 )

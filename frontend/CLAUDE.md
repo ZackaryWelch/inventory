@@ -102,12 +102,12 @@ cmd/
 Only files that use `syscall/js` or `//go:embed` carry build tags.
 All Gio UI code is cross-platform (no build tag required).
 
-| File pattern | Build tag |
-|---|---|
-| `js_helpers.go`, `auth_service.go`, `import_handler.go` | `js && wasm` |
-| `config_wasm.go` | `js && wasm` |
-| `*_desktop.go`, `login_desktop.go` | `!js \|\| !wasm` |
-| All view files, `gio_app.go`, `import_data.go` | none (cross-platform) |
+| File pattern                                            | Build tag             |
+|---------------------------------------------------------|-----------------------|
+| `js_helpers.go`, `auth_service.go`, `import_handler.go` | `js && wasm`          |
+| `config_wasm.go`                                        | `js && wasm`          |
+| `*_desktop.go`, `login_desktop.go`                      | `!js \|\| !wasm`      |
+| All view files, `gio_app.go`, `import_data.go`          | none (cross-platform) |
 
 ## Authentication Flow (OAuth2 PKCE)
 

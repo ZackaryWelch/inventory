@@ -316,8 +316,7 @@ func (ga *GioApp) renderPreviewItem(gtx layout.Context, item map[string]any, ind
 
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					text := fmt.Sprintf("%d. %s", index, name)
-					label := material.Body2(ga.theme.Theme, text)
+					label := material.Body2(ga.theme.Theme, fmt.Sprintf("%d. %s", index, name))
 					label.Font.Weight = font.Bold
 					return label.Layout(gtx)
 				}),

@@ -1886,7 +1886,7 @@ func layoutFlowWrap(gtx layout.Context, hGap, vGap int, widgets ...layout.Widget
 		pos  image.Point
 		size image.Point
 	}
-	var items []positioned
+	items := make([]positioned, 0, len(widgets))
 
 	for _, w := range widgets {
 		// Use min width 0 so widgets shrink-wrap their content instead of
@@ -2055,7 +2055,7 @@ func (ga *GioApp) renderSortRow(gtx layout.Context) layout.Dimensions {
 				})
 			}),
 			layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-				var chips []layout.Widget
+				chips := make([]layout.Widget, 0, len(fields))
 				for _, f := range fields {
 					chipKey := "sort||" + f.key
 					btn := ga.getGroupedTextChipButton(chipKey)

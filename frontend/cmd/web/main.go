@@ -1,19 +1,20 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
 
 func main() {
-	fmt.Println("Building Gio app for WebAssembly...")
+	slog.Info("Building Gio app for WebAssembly...")
 
 	// Get current working directory (should be frontend root)
 	cwd, err := os.Getwd()
 	if err != nil {
-		fmt.Printf("Error getting current working directory: %v\n", err)
+		slog.Error("getting current working directory", "error", err)
 		os.Exit(1)
 	}
 
@@ -24,19 +25,18 @@ func main() {
 
 	// Verify we're in the right place
 	if _, err := os.Stat(webMainDir); os.IsNotExist(err) {
-		fmt.Printf("Error: cmd/gio-webmain directory not found. Please run this command from the frontend root directory.\n")
-		fmt.Printf("Current directory: %s\n", cwd)
+		slog.Error("cmd/gio-webmain directory not found; run from the frontend root", "cwd", cwd)
 		os.Exit(1)
 	}
 
 	// Create output directory
 	if err := os.MkdirAll(webOutputDir, 0755); err != nil {
-		fmt.Printf("Error creating output directory: %v\n", err)
+		slog.Error("creating output directory", "error", err)
 		os.Exit(1)
 	}
 
 	// Build the WASM binary
-	cmd := exec.Command("go", "build",
+	cmd := exec.CommandContext(context.Background(), "go", "build",
 		"-o", wasmOutput,
 		"./cmd/gio-webmain")
 
@@ -47,10 +47,10 @@ func main() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	fmt.Println("Running: GOOS=js GOARCH=wasm go build -o", wasmOutput, "./cmd/gio-webmain")
+	slog.Info("Running go build", "cmd", "GOOS=js GOARCH=wasm go build -o "+wasmOutput+" ./cmd/gio-webmain")
 
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("Error building WASM: %v\n", err)
+		slog.Error("building WASM", "error", err)
 		os.Exit(1)
 	}
 
@@ -58,10 +58,10 @@ func main() {
 	goRoot := os.Getenv("GOROOT")
 	if goRoot == "" {
 		// Try to get GOROOT from go env
-		cmd := exec.Command("go", "env", "GOROOT")
+		cmd := exec.CommandContext(context.Background(), "go", "env", "GOROOT")
 		output, err := cmd.Output()
 		if err != nil {
-			fmt.Printf("Error getting GOROOT: %v\n", err)
+			slog.Error("getting GOROOT", "error", err)
 			os.Exit(1)
 		}
 		goRoot = string(output[:len(output)-1]) // Remove trailing newline
@@ -73,12 +73,12 @@ func main() {
 
 	input, err := os.ReadFile(wasmExecSrc)
 	if err != nil {
-		fmt.Printf("Error reading wasm_exec.js from %s: %v\n", wasmExecSrc, err)
+		slog.Error("reading wasm_exec.js", "src", wasmExecSrc, "error", err)
 		os.Exit(1)
 	}
 
 	if err := os.WriteFile(wasmExecDst, input, 0644); err != nil {
-		fmt.Printf("Error writing wasm_exec.js: %v\n", err)
+		slog.Error("writing wasm_exec.js", "error", err)
 		os.Exit(1)
 	}
 
@@ -86,26 +86,22 @@ func main() {
 	vendorDir := filepath.Join(webOutputDir, "vendor")
 	redocPath := filepath.Join(vendorDir, "redoc.standalone.js")
 	if _, err := os.Stat(redocPath); os.IsNotExist(err) {
-		fmt.Println("Vendor assets missing, running update-vendor.sh...")
-		vendorCmd := exec.Command("bash", filepath.Join(webOutputDir, "update-vendor.sh"))
+		slog.Info("Vendor assets missing, running update-vendor.sh...")
+		vendorCmd := exec.CommandContext(context.Background(), "bash", filepath.Join(webOutputDir, "update-vendor.sh"))
 		vendorCmd.Stdout = os.Stdout
 		vendorCmd.Stderr = os.Stderr
 		if err := vendorCmd.Run(); err != nil {
-			fmt.Printf("Warning: failed to update vendor assets: %v\n", err)
+			slog.Warn("failed to update vendor assets", "error", err)
 		}
 	} else {
-		fmt.Println("✓ Vendor assets up to date")
+		slog.Info("Vendor assets up to date")
 	}
 
-	fmt.Println("✓ WASM build completed successfully!")
-	fmt.Printf("✓ Output: %s\n", wasmOutput)
-	fmt.Printf("✓ WASM size: ")
+	slog.Info("WASM build completed successfully", "output", wasmOutput)
 
 	if stat, err := os.Stat(wasmOutput); err == nil {
-		fmt.Printf("%.2f MB\n", float64(stat.Size())/(1024*1024))
+		slog.Info("WASM size", "mb", float64(stat.Size())/(1024*1024))
 	}
 
-	fmt.Println("\nNext steps:")
-	fmt.Println("1. Create index.html in the gio-web directory")
-	fmt.Println("2. Serve the application with: go run cmd/serve/main.go")
+	slog.Info("Next steps: 1) create index.html in gio-web; 2) serve with `go run cmd/serve/main.go`")
 }

@@ -1,9 +1,9 @@
 package app
 
 import (
-	"fmt"
 	"image/color"
 	"log/slog"
+	"os"
 	"strings"
 
 	"gioui.org/app"
@@ -28,9 +28,6 @@ import (
 	"github.com/nishiki/frontend/ui/widgets"
 )
 
-// Type aliases
-type Config = config.Config
-
 // Type aliases for backend response types
 type (
 	User               = response.UserResponse
@@ -50,11 +47,11 @@ type consoleWriter struct{}
 
 func (cw consoleWriter) Write(p []byte) (n int, err error) {
 	// Remove the newline at the end if present for cleaner console output
-	msg := string(p)
-	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
-		msg = msg[:len(msg)-1]
+	trimmed := p
+	if len(trimmed) > 0 && trimmed[len(trimmed)-1] == '\n' {
+		trimmed = trimmed[:len(trimmed)-1]
 	}
-	fmt.Print(string(p))
+	_, _ = os.Stdout.Write(trimmed)
 	return len(p), nil
 }
 
@@ -459,7 +456,7 @@ func (ga *GioApp) drainOps() {
 
 // NewGioApp creates a new Gio-based application instance
 func NewGioApp() *GioApp {
-	cfg := LoadConfig()
+	cfg := config.LoadConfig()
 
 	// Create logger (console output for WebAssembly)
 	logger := slog.New(slog.NewJSONHandler(consoleWriter{}, &slog.HandlerOptions{

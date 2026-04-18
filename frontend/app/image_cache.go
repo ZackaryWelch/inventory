@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"image"
+	// Register JPEG and PNG decoders for image.Decode.
 	_ "image/jpeg"
 	_ "image/png"
 	"sync"

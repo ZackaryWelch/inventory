@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/nishiki/frontend/config"
+
 	"golang.org/x/oauth2"
 )
 
@@ -32,7 +34,7 @@ type AuthService struct {
 type TokenStorage struct{}
 
 // NewAuthService creates a desktop authentication service.
-func NewAuthService(config *Config, logger *slog.Logger) *AuthService {
+func NewAuthService(config *config.Config, logger *slog.Logger) *AuthService {
 	return &AuthService{
 		config:      newOAuth2Config(config),
 		redirectURL: config.RedirectURL,
@@ -66,14 +68,15 @@ func (as *AuthService) DesktopLogin() (*oauth2.Token, error) {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprint(w, `<html><body><h2>Authentication successful!</h2>
+		_, _ = fmt.Fprint(w, `<html><body><h2>Authentication successful!</h2>
 <p>You can close this window and return to Nishiki.</p></body></html>`)
 		codeCh <- code
 	})
 
 	// Derive host:port from the configured redirect URL
 	listenAddr := as.redirectListenAddr()
-	listener, err := net.Listen("tcp", listenAddr)
+	var lc net.ListenConfig
+	listener, err := lc.Listen(context.Background(), "tcp", listenAddr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start OAuth callback server on %s: %w", listenAddr, err)
 	}
@@ -83,7 +86,7 @@ func (as *AuthService) DesktopLogin() (*oauth2.Token, error) {
 			as.logger.Error("OAuth callback server error", "error", err)
 		}
 	}()
-	defer server.Close()
+	defer func() { _ = server.Close() }()
 
 	authURL := as.config.AuthCodeURL(state,
 		oauth2.SetAuthURLParam("code_challenge", codeChallenge),

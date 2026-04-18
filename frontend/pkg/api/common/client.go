@@ -2,6 +2,7 @@ package common
 
 import (
 	"bytes"
+	"context"
 	"encoding/json/v2"
 	"fmt"
 	"io"
@@ -48,7 +49,7 @@ func (c *Client) Request(method, endpoint string, body any) (*http.Response, err
 		reqBody = bytes.NewBuffer(jsonBody)
 	}
 
-	req, err := http.NewRequest(method, c.BaseURL+endpoint, reqBody)
+	req, err := http.NewRequestWithContext(context.Background(), method, c.BaseURL+endpoint, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

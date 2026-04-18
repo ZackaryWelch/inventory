@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -133,7 +134,7 @@ func getContentType(path string) string {
 }
 
 func main() {
-	fmt.Println("Starting Nishiki Gio web server...")
+	slog.Info("Starting Nishiki Gio web server...")
 
 	// Load frontend configuration to get port
 	frontendConfig := nishikiConfig.LoadConfig()
@@ -141,7 +142,7 @@ func main() {
 	// Get current working directory (should be frontend root)
 	cwd, err := os.Getwd()
 	if err != nil {
-		fmt.Printf("Error getting current working directory: %v\n", err)
+		slog.Error("getting current working directory", "error", err)
 		os.Exit(1)
 	}
 
@@ -150,15 +151,14 @@ func main() {
 
 	// Verify we're in the right place and gio-web directory exists
 	if _, err := os.Stat(webOutputDir); os.IsNotExist(err) {
-		fmt.Printf("Error: gio-web directory not found. Please build first with: go run cmd/gio-web/main.go\n")
-		fmt.Printf("Current directory: %s\n", cwd)
-		fmt.Printf("Expected gio-web directory: %s\n", webOutputDir)
+		slog.Error("gio-web directory not found; build first with: go run cmd/gio-web/main.go",
+			"cwd", cwd, "expected", webOutputDir)
 		os.Exit(1)
 	}
 
 	indexPath := filepath.Join(webOutputDir, "index.html")
 	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
-		fmt.Printf("Error: index.html not found at %s\n", indexPath)
+		slog.Error("index.html not found", "path", indexPath)
 		os.Exit(1)
 	}
 
@@ -176,9 +176,10 @@ func main() {
 	}
 
 	addr := ":" + port
-	fmt.Printf("Serving Gio app from: %s\n", webOutputDir)
-	fmt.Printf("Server available at: http://localhost:%s\n", port)
-	fmt.Println("SPA routing enabled - press Ctrl+C to stop")
+	slog.Info("Serving Gio app",
+		"dir", webOutputDir,
+		"url", "http://localhost:"+port,
+		"note", "SPA routing enabled — press Ctrl+C to stop")
 
 	if err := http.ListenAndServe(addr, spa); err != nil {
 		log.Fatalf("Error serving web application: %v\n", err)

@@ -329,7 +329,7 @@ func (ga *GioApp) renderPropertyTypeChips(gtx layout.Context, row *SchemaRowStat
 		pos  image.Point
 		size image.Point
 	}
-	var items []positioned
+	items := make([]positioned, 0, len(propertyTypes))
 
 	chipInset := layout.Inset{
 		Top:    unit.Dp(theme.Spacing1),

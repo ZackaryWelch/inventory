@@ -4,13 +4,12 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
-	"time"
 
+	"github.com/nishiki/frontend/config"
 	"golang.org/x/oauth2"
 )
 
-func newOAuth2Config(config *Config) *oauth2.Config {
+func newOAuth2Config(config *config.Config) *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:    config.ClientID,
 		RedirectURL: config.RedirectURL,
@@ -25,10 +24,8 @@ func newOAuth2Config(config *Config) *oauth2.Config {
 
 func generateRandomString(length int) string {
 	bytes := make([]byte, length)
-	if _, err := rand.Read(bytes); err != nil {
-		fmt.Printf("Warning: crypto/rand failed, using fallback: %v\n", err)
-		return fmt.Sprintf("%d_%d", time.Now().UnixNano(), length)
-	}
+	// Never actually returns an error
+	_, _ = rand.Read(bytes)
 	return base64.RawURLEncoding.EncodeToString(bytes)
 }
 

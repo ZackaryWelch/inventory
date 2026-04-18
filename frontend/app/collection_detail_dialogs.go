@@ -435,8 +435,7 @@ func (ga *GioApp) renderParentContainerSelector(gtx layout.Context) layout.Dimen
 		}
 		btn := ga.getParentContainerButton(c.ID)
 		if btn.Clicked(gtx) {
-			cid := c.ID
-			ga.selectedParentContainerID = &cid
+			ga.selectedParentContainerID = new(c.ID)
 		}
 		active := ga.selectedParentContainerID != nil && *ga.selectedParentContainerID == c.ID
 		chips = append(chips, func(gtx layout.Context) layout.Dimensions {
@@ -476,8 +475,7 @@ func (ga *GioApp) renderObjectContainerSelector(gtx layout.Context) layout.Dimen
 	for _, c := range ga.containers {
 		btn := ga.getObjectContainerButton(c.ID)
 		if btn.Clicked(gtx) {
-			cid := c.ID
-			ga.selectedContainerID = &cid
+			ga.selectedContainerID = new(c.ID)
 		}
 		active := ga.selectedContainerID != nil && *ga.selectedContainerID == c.ID
 		chips = append(chips, func(gtx layout.Context) layout.Dimensions {
@@ -578,8 +576,7 @@ func (ga *GioApp) handleContainerUpdate() {
 		parentID = ga.selectedParentContainerID
 	} else if ga.selectedContainer != nil && ga.selectedContainer.ParentContainerID != nil {
 		// User explicitly selected "(none)" to remove parent
-		empty := ""
-		parentID = &empty
+		parentID = new("")
 	}
 
 	go func() {
@@ -646,7 +643,6 @@ func (ga *GioApp) handleObjectCreate() {
 	name := ga.widgetState.objectNameEditor.Text()
 	description := ga.widgetState.objectDescriptionEditor.Text()
 	quantityText := ga.widgetState.objectQuantityEditor.Text()
-	unit := ga.widgetState.objectUnitEditor.Text()
 
 	if name == "" {
 		ga.logger.Warn("Object name is required")
@@ -675,7 +671,7 @@ func (ga *GioApp) handleObjectCreate() {
 			Description: description,
 			ObjectType:  objectType,
 			Quantity:    quantity,
-			Unit:        unit,
+			Unit:        ga.widgetState.objectUnitEditor.Text(),
 			Properties:  properties,
 			Tags:        []string{},
 		}
@@ -711,7 +707,7 @@ func (ga *GioApp) handleObjectUpdate() {
 	name := ga.widgetState.objectNameEditor.Text()
 	description := ga.widgetState.objectDescriptionEditor.Text()
 	quantityText := ga.widgetState.objectQuantityEditor.Text()
-	unit := ga.widgetState.objectUnitEditor.Text()
+	objectUnit := ga.widgetState.objectUnitEditor.Text()
 
 	if name == "" {
 		ga.logger.Warn("Object name is required")
@@ -758,7 +754,7 @@ func (ga *GioApp) handleObjectUpdate() {
 			Name:        &name,
 			Description: &description,
 			Quantity:    quantity,
-			Unit:        &unit,
+			Unit:        &objectUnit,
 			Properties:  rawProps,
 			Tags:        tags,
 		}

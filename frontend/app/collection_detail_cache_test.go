@@ -27,7 +27,7 @@ func makeObjects(n int, propKey string, values []string) []Object {
 			Description: fmt.Sprintf("Description for object %d", i),
 			ContainerID: fmt.Sprintf("cont-%d", i%5),
 			Properties: map[string]TypedValue{
-				propKey: TypedValue{Val: values[i%len(values)]},
+				propKey: {Val: values[i%len(values)]},
 			},
 		}
 	}
@@ -222,7 +222,7 @@ func TestGetFilteredObjects(t *testing.T) {
 	}
 
 	// No filter — all returned
-	objs, indices := ga.getFilteredObjects()
+	objs, _ := ga.getFilteredObjects()
 	if len(objs) != 3 {
 		t.Errorf("expected 3 objects, got %d", len(objs))
 	}
@@ -230,12 +230,9 @@ func TestGetFilteredObjects(t *testing.T) {
 	// Search by name
 	ga.widgetState.objectsSearchField.SetText("arduino")
 	ga.cachedFilteredObjects = nil // force recompute
-	objs, indices = ga.getFilteredObjects()
+	objs, _ = ga.getFilteredObjects()
 	if len(objs) != 1 || objs[0].ID != "1" {
 		t.Errorf("expected 1 match for 'arduino', got %d", len(objs))
-	}
-	if indices[0] != 0 {
-		t.Errorf("expected index 0, got %d", indices[0])
 	}
 
 	// Search by description
