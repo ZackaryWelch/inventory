@@ -21,10 +21,15 @@ func (ga *GioApp) renderImportPreviewDialog(gtx layout.Context) layout.Dimension
 		return layout.Dimensions{}
 	}
 
-	// Handle execute button
+	// Handle execute button: "Import" when inferring, "Next" when the user
+	// will set the schema manually in the following step.
 	if ga.widgetState.importExecuteButton.Clicked(gtx) {
-		ga.logger.Info("Executing import")
-		go ga.executeImport()
+		if ga.widgetState.importInferSchemaCheck.Value {
+			ga.logger.Info("Executing import")
+			go ga.executeImport()
+		} else {
+			ga.openSchemaEditorForImport("preview")
+		}
 		return layout.Dimensions{}
 	}
 
@@ -153,7 +158,11 @@ func (ga *GioApp) renderImportPreviewDialog(gtx layout.Context) layout.Dimension
 								label.Color = theme.ColorTextSecondary
 								return label.Layout(gtx)
 							}
-							return widgets.PrimaryButton(ga.theme.Theme, &ga.widgetState.importExecuteButton, "Import")(gtx)
+							buttonText := "Import"
+							if !ga.widgetState.importInferSchemaCheck.Value {
+								buttonText = "Next"
+							}
+							return widgets.PrimaryButton(ga.theme.Theme, &ga.widgetState.importExecuteButton, buttonText)(gtx)
 						}),
 					)
 				})
@@ -365,12 +374,46 @@ func (ga *GioApp) getImportLocationColButton(col string) *widget.Clickable {
 	return btn
 }
 
+func (ga *GioApp) getImportOmitColButton(col string) *widget.Clickable {
+	if btn, ok := ga.widgetState.importOmitColumnButtons[col]; ok {
+		return btn
+	}
+	btn := new(widget.Clickable)
+	ga.widgetState.importOmitColumnButtons[col] = btn
+	return btn
+}
+
+// toggleOmittedColumn flips the omitted state for col. When a column that is
+// currently acting as Name or Location is omitted, that role is also cleared.
+func (ga *GioApp) toggleOmittedColumn(col string) {
+	if ga.importOmittedColumns == nil {
+		ga.importOmittedColumns = make(map[string]bool)
+	}
+	if ga.importOmittedColumns[col] {
+		delete(ga.importOmittedColumns, col)
+		return
+	}
+	ga.importOmittedColumns[col] = true
+	if ga.importNameColumn == col {
+		ga.importNameColumn = ""
+	}
+	if ga.importLocationColumn != nil && *ga.importLocationColumn == col {
+		ga.importLocationColumn = nil
+	}
+	if ga.importContainerCol != nil && *ga.importContainerCol == col {
+		ga.importContainerCol = nil
+	}
+}
+
 // renderImportColumnMapping renders the column mapping section of the import dialog.
 func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimensions {
 	cols := importColumns(ga.importData.Data)
 	if len(cols) == 0 {
 		return layout.Dimensions{}
 	}
+
+	// Non-omitted columns are eligible for Name/Location role assignment.
+	availableCols := nonOmittedColumns(ga.importData.Data, ga.importOmittedColumns)
 
 	// Build name column chips
 	autoBtn := ga.getImportNameColButton("")
@@ -382,7 +425,7 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 			return ga.renderFilterChip(gtx, autoBtn, "(auto)", ga.importNameColumn == "")
 		},
 	}
-	for _, col := range cols {
+	for _, col := range availableCols {
 		btn := ga.getImportNameColButton(col)
 		if btn.Clicked(gtx) {
 			ga.importNameColumn = col
@@ -403,7 +446,7 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 			return ga.renderFilterChip(gtx, noneBtn, "(none)", ga.importLocationColumn == nil)
 		},
 	}
-	for _, col := range cols {
+	for _, col := range availableCols {
 		btn := ga.getImportLocationColButton(col)
 		if btn.Clicked(gtx) {
 			c := col
@@ -411,6 +454,19 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 		}
 		active := ga.importLocationColumn != nil && *ga.importLocationColumn == col
 		locationChips = append(locationChips, func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, btn, col, active)
+		})
+	}
+
+	// Build omit column chips (multi-select toggles; show every column).
+	omitChips := make([]layout.Widget, 0, len(cols))
+	for _, col := range cols {
+		btn := ga.getImportOmitColButton(col)
+		if btn.Clicked(gtx) {
+			ga.toggleOmittedColumn(col)
+		}
+		active := ga.importOmittedColumns[col]
+		omitChips = append(omitChips, func(gtx layout.Context) layout.Dimensions {
 			return ga.renderFilterChip(gtx, btn, col, active)
 		})
 	}
@@ -431,6 +487,10 @@ func (ga *GioApp) renderImportColumnMapping(gtx layout.Context) layout.Dimension
 
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return ga.renderChipSelector(gtx, "Location column:", locationChips)
+		}),
+
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return ga.renderChipSelector(gtx, "Omit columns:", omitChips)
 		}),
 
 		// Infer schema checkbox

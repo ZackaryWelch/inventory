@@ -60,6 +60,74 @@ func (ga *GioApp) openSchemaEditor() {
 	ga.showSchemaDialog = true
 }
 
+// openSchemaEditorForImport opens the schema editor as a handoff step in the
+// import flow, pre-populating rows from the non-omitted import columns.
+// returnTo is "preview" or "create", selecting which import dialog to restore
+// if the user cancels the schema editor.
+func (ga *GioApp) openSchemaEditorForImport(returnTo string) {
+	if ga.importData == nil {
+		return
+	}
+	cols := nonOmittedColumns(ga.importData.Data, ga.importOmittedColumns)
+	rows := make([]SchemaRowState, 0, len(cols))
+	for _, col := range cols {
+		row := SchemaRowState{
+			selectedType: "text",
+			typeButtons:  make(map[string]*widget.Clickable),
+		}
+		row.nameEditor.SetText(col)
+		rows = append(rows, row)
+	}
+	ga.widgetState.schemaRows = rows
+	ga.widgetState.schemaDialog.Reset()
+	ga.schemaEditorForImport = true
+	ga.importSchemaReturnTo = returnTo
+	ga.showSchemaDialog = true
+	// Hide originating dialogs so schema editor is the only modal.
+	ga.showImportPreview = false
+	ga.showImportCreateDialog = false
+}
+
+// buildSchemaRequestFromRows converts current schema editor rows into a schema
+// request. Rows with empty names are dropped.
+func (ga *GioApp) buildSchemaRequestFromRows() *types.PropertySchemaRequest {
+	defs := make([]types.PropertyDefinitionRequest, 0, len(ga.widgetState.schemaRows))
+	for _, row := range ga.widgetState.schemaRows {
+		name := strings.TrimSpace(row.nameEditor.Text())
+		if name == "" {
+			continue
+		}
+		propType := row.selectedType
+		if propType == "" {
+			propType = "text"
+		}
+		defs = append(defs, types.PropertyDefinitionRequest{
+			Key:         toSnakeCase(name),
+			DisplayName: name,
+			Type:        propType,
+			Required:    row.requiredCheck.Value,
+		})
+	}
+	return &types.PropertySchemaRequest{Definitions: defs}
+}
+
+// closeSchemaEditorAndRestoreImport hides the schema editor and re-opens the
+// originating import dialog (preview or create) so the user can continue.
+func (ga *GioApp) closeSchemaEditorAndRestoreImport() {
+	returnTo := ga.importSchemaReturnTo
+	ga.showSchemaDialog = false
+	ga.widgetState.schemaRows = nil
+	ga.widgetState.schemaDialog.Reset()
+	ga.schemaEditorForImport = false
+	ga.importSchemaReturnTo = ""
+	switch returnTo {
+	case "preview":
+		ga.showImportPreview = true
+	case "create":
+		ga.showImportCreateDialog = true
+	}
+}
+
 // renderSchemaEditorDialog renders the schema editor dialog overlay.
 func (ga *GioApp) renderSchemaEditorDialog(gtx layout.Context) layout.Dimensions {
 	if !ga.showSchemaDialog {
@@ -68,16 +136,24 @@ func (ga *GioApp) renderSchemaEditorDialog(gtx layout.Context) layout.Dimensions
 
 	// Handle submit button
 	if ga.widgetState.schemaDialogSubmit.Clicked(gtx) {
-		ga.handleSchemaUpdate()
+		if ga.schemaEditorForImport {
+			ga.handleImportSchemaContinue()
+		} else {
+			ga.handleSchemaUpdate()
+		}
 		ga.widgetState.schemaDialog.Reset()
 		return layout.Dimensions{}
 	}
 
 	// Handle cancel button
 	if ga.widgetState.schemaDialogCancel.Clicked(gtx) {
-		ga.showSchemaDialog = false
-		ga.widgetState.schemaRows = nil
-		ga.widgetState.schemaDialog.Reset()
+		if ga.schemaEditorForImport {
+			ga.closeSchemaEditorAndRestoreImport()
+		} else {
+			ga.showSchemaDialog = false
+			ga.widgetState.schemaRows = nil
+			ga.widgetState.schemaDialog.Reset()
+		}
 		return layout.Dimensions{}
 	}
 
@@ -92,7 +168,11 @@ func (ga *GioApp) renderSchemaEditorDialog(gtx layout.Context) layout.Dimensions
 	// Collect row deletions during list rendering
 	var deleteIndices []int
 
-	dialogStyle := widgets.DefaultDialogStyle(ga.widgetState.schemaDialog, "Edit Schema")
+	title := "Edit Schema"
+	if ga.schemaEditorForImport {
+		title = "Define Import Schema"
+	}
+	dialogStyle := widgets.DefaultDialogStyle(ga.widgetState.schemaDialog, title)
 	dialogStyle.Width = unit.Dp(700)
 
 	dims, dismissed := dialogStyle.Layout(gtx, ga.theme.Theme, func(gtx layout.Context) layout.Dimensions {
@@ -143,7 +223,11 @@ func (ga *GioApp) renderSchemaEditorDialog(gtx layout.Context) layout.Dimensions
 						})
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return widgets.PrimaryButton(ga.theme.Theme, &ga.widgetState.schemaDialogSubmit, "Save Schema")(gtx)
+						submitText := "Save Schema"
+						if ga.schemaEditorForImport {
+							submitText = "Import"
+						}
+						return widgets.PrimaryButton(ga.theme.Theme, &ga.widgetState.schemaDialogSubmit, submitText)(gtx)
 					}),
 				)
 			}),
@@ -161,9 +245,13 @@ func (ga *GioApp) renderSchemaEditorDialog(gtx layout.Context) layout.Dimensions
 	}
 
 	if dismissed {
-		ga.showSchemaDialog = false
-		ga.widgetState.schemaRows = nil
-		ga.widgetState.schemaDialog.Reset()
+		if ga.schemaEditorForImport {
+			ga.closeSchemaEditorAndRestoreImport()
+		} else {
+			ga.showSchemaDialog = false
+			ga.widgetState.schemaRows = nil
+			ga.widgetState.schemaDialog.Reset()
+		}
 	}
 
 	return dims
@@ -317,32 +405,14 @@ func (ga *GioApp) handleSchemaUpdate() {
 		return
 	}
 
-	defs := make([]types.PropertyDefinitionRequest, 0, len(ga.widgetState.schemaRows))
-	for _, row := range ga.widgetState.schemaRows {
-		name := strings.TrimSpace(row.nameEditor.Text())
-		if name == "" {
-			continue
-		}
-		propType := row.selectedType
-		if propType == "" {
-			propType = "text"
-		}
-		defs = append(defs, types.PropertyDefinitionRequest{
-			Key:         toSnakeCase(name),
-			DisplayName: name,
-			Type:        propType,
-			Required:    row.requiredCheck.Value,
-		})
-	}
+	schemaReq := ga.buildSchemaRequestFromRows()
 
 	collectionID := ga.selectedCollection.ID
 	accountID := ga.currentUser.ID
 
 	go func() {
 		err := ga.collectionsClient.UpdateSchema(accountID, collectionID, types.UpdatePropertySchemaRequest{
-			PropertySchema: types.PropertySchemaRequest{
-				Definitions: defs,
-			},
+			PropertySchema: *schemaReq,
 		})
 		if err != nil {
 			ga.logger.Error("Failed to update schema", "error", err)
@@ -356,12 +426,51 @@ func (ga *GioApp) handleSchemaUpdate() {
 			ga.logger.Error("Failed to refresh collection after schema update", "error", err)
 			return
 		}
-		ga.selectedCollection = updated
-		ga.window.Invalidate()
+		ga.do(func() {
+			ga.selectedCollection = updated
+			for i, c := range ga.collections {
+				if c.ID == updated.ID {
+					ga.collections[i] = *updated
+					break
+				}
+			}
+			// The schema drives object rendering (types, sort keys, grouping);
+			// drop the sort/group selections and render caches so the view
+			// rebuilds from the new schema.
+			ga.objectSortSpecs = nil
+			ga.objectGroupByField = ""
+			ga.invalidateObjectCaches()
+		})
+		// Refetch objects so any re-coercion the backend applied is reflected.
+		ga.fetchContainersAndObjects()
 	}()
 
 	ga.showSchemaDialog = false
 	ga.widgetState.schemaRows = nil
+	ga.window.Invalidate()
+}
+
+// handleImportSchemaContinue is invoked when the user clicks the primary button
+// in the schema editor dialog while it was opened from an import flow. It stores
+// the user-defined schema as a pending import schema and resumes the import.
+func (ga *GioApp) handleImportSchemaContinue() {
+	schemaReq := ga.buildSchemaRequestFromRows()
+	ga.pendingImportSchema = schemaReq
+
+	returnTo := ga.importSchemaReturnTo
+	ga.schemaEditorForImport = false
+	ga.importSchemaReturnTo = ""
+	ga.showSchemaDialog = false
+	ga.widgetState.schemaRows = nil
+
+	switch returnTo {
+	case "preview":
+		// Run the import against the existing collection using the user schema.
+		go ga.executeImport()
+	case "create":
+		// Resume the import-create flow with the user schema.
+		go ga.executeImportCreate()
+	}
 	ga.window.Invalidate()
 }
 

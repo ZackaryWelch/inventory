@@ -25,6 +25,9 @@ func (ga *GioApp) dismissImportCreate() {
 	ga.importCreateRunning = false
 	ga.importCreateError = ""
 	ga.importContainerCol = nil
+	ga.importOmittedColumns = nil
+	ga.schemaEditorForImport = false
+	ga.importSchemaReturnTo = ""
 }
 
 func (ga *GioApp) getImportCreateNameColButton(col string) *widget.Clickable {
@@ -51,11 +54,16 @@ func (ga *GioApp) renderImportCreateDialog(gtx layout.Context) layout.Dimensions
 		return layout.Dimensions{}
 	}
 
-	// Handle execute button
+	// Handle execute button: "Create & Import" when inferring, "Next" when
+	// the user will set the schema manually in the following step.
 	if ga.widgetState.importCreateExecuteButton.Clicked(gtx) {
 		name := strings.TrimSpace(ga.widgetState.importCreateNameEditor.Text())
 		if name != "" && !ga.importCreateRunning {
-			go ga.executeImportCreate()
+			if ga.widgetState.importCreateInferSchemaCheck.Value {
+				go ga.executeImportCreate()
+			} else {
+				ga.openSchemaEditorForImport("create")
+			}
 		}
 		return layout.Dimensions{}
 	}
@@ -208,7 +216,11 @@ func (ga *GioApp) renderImportCreateDialog(gtx layout.Context) layout.Dimensions
 								label.Color = theme.ColorTextSecondary
 								return label.Layout(gtx)
 							}
-							return widgets.PrimaryButton(ga.theme.Theme, &ga.widgetState.importCreateExecuteButton, "Create & Import")(gtx)
+							buttonText := "Create & Import"
+							if !ga.widgetState.importCreateInferSchemaCheck.Value {
+								buttonText = "Next"
+							}
+							return widgets.PrimaryButton(ga.theme.Theme, &ga.widgetState.importCreateExecuteButton, buttonText)(gtx)
 						}),
 					)
 				})
@@ -230,6 +242,8 @@ func (ga *GioApp) renderImportCreateColumnMapping(gtx layout.Context) layout.Dim
 		return layout.Dimensions{}
 	}
 
+	availableCols := nonOmittedColumns(ga.importData.Data, ga.importOmittedColumns)
+
 	// Build name column chips
 	autoBtn := ga.getImportCreateNameColButton("")
 	if autoBtn.Clicked(gtx) {
@@ -240,7 +254,7 @@ func (ga *GioApp) renderImportCreateColumnMapping(gtx layout.Context) layout.Dim
 			return ga.renderFilterChip(gtx, autoBtn, "(auto)", ga.importNameColumn == "")
 		},
 	}
-	for _, col := range cols {
+	for _, col := range availableCols {
 		btn := ga.getImportCreateNameColButton(col)
 		if btn.Clicked(gtx) {
 			ga.importNameColumn = col
@@ -261,7 +275,7 @@ func (ga *GioApp) renderImportCreateColumnMapping(gtx layout.Context) layout.Dim
 			return ga.renderFilterChip(gtx, noneContainerBtn, "(none)", ga.importContainerCol == nil)
 		},
 	}
-	for _, col := range cols {
+	for _, col := range availableCols {
 		btn := ga.getImportCreateContainerColButton(col)
 		if btn.Clicked(gtx) {
 			c := col
@@ -269,6 +283,19 @@ func (ga *GioApp) renderImportCreateColumnMapping(gtx layout.Context) layout.Dim
 		}
 		active := ga.importContainerCol != nil && *ga.importContainerCol == col
 		containerChips = append(containerChips, func(gtx layout.Context) layout.Dimensions {
+			return ga.renderFilterChip(gtx, btn, col, active)
+		})
+	}
+
+	// Omit column chips (multi-select toggles; show every column).
+	omitChips := make([]layout.Widget, 0, len(cols))
+	for _, col := range cols {
+		btn := ga.getImportOmitColButton(col)
+		if btn.Clicked(gtx) {
+			ga.toggleOmittedColumn(col)
+		}
+		active := ga.importOmittedColumns[col]
+		omitChips = append(omitChips, func(gtx layout.Context) layout.Dimensions {
 			return ga.renderFilterChip(gtx, btn, col, active)
 		})
 	}
@@ -289,6 +316,10 @@ func (ga *GioApp) renderImportCreateColumnMapping(gtx layout.Context) layout.Dim
 		// Container column
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return ga.renderChipSelector(gtx, "Container column:", containerChips)
+		}),
+		// Omit columns
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return ga.renderChipSelector(gtx, "Omit columns:", omitChips)
 		}),
 	}
 
@@ -331,11 +362,19 @@ func (ga *GioApp) executeImportCreate() {
 	inferSchema := ga.widgetState.importCreateInferSchemaCheck.Value
 	userID := ga.currentUser.ID
 
+	// A user-defined schema supplied via the schema editor overrides inference.
+	userSchema := ga.pendingImportSchema
+	if userSchema != nil {
+		inferSchema = false
+	}
+	ga.pendingImportSchema = nil
+
 	// Step 1: Create collection
 	createReq := types.CreateCollectionRequest{
-		Name:       name,
-		ObjectType: objectType,
-		GroupID:    groupID,
+		Name:           name,
+		ObjectType:     objectType,
+		GroupID:        groupID,
+		PropertySchema: userSchema,
 	}
 	// Only set location when no container column (container col creates containers instead)
 	if containerCol == nil {
@@ -359,9 +398,10 @@ func (ga *GioApp) executeImportCreate() {
 		distMode = "location"
 	}
 
+	filteredData := filterOmittedColumns(ga.importData.Data, ga.importOmittedColumns)
 	importReq := map[string]any{
 		"format":            ga.importData.Format,
-		"data":              ga.importData.Data,
+		"data":              filteredData,
 		"distribution_mode": distMode,
 		"infer_schema":      inferSchema,
 	}
@@ -452,8 +492,8 @@ func (ga *GioApp) executeImportCreate() {
 		ga.dismissImportCreate()
 	})
 
-	// Refetch collection to get inferred schema, then fetch containers/objects
-	if inferSchema {
+	// Refetch collection to pick up the schema (inferred or user-defined).
+	if inferSchema || userSchema != nil {
 		updated, err := ga.collectionsClient.Get(userID, collectionID)
 		if err == nil {
 			ga.do(func() {

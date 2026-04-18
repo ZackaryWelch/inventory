@@ -23,6 +23,7 @@ import (
 	containersAPI "github.com/nishiki/frontend/pkg/api/containers"
 	groupsAPI "github.com/nishiki/frontend/pkg/api/groups"
 	objectsAPI "github.com/nishiki/frontend/pkg/api/objects"
+	"github.com/nishiki/frontend/pkg/types"
 	"github.com/nishiki/frontend/ui/theme"
 	"github.com/nishiki/frontend/ui/widgets"
 )
@@ -120,6 +121,13 @@ type GioApp struct {
 
 	// Schema editor state
 	showSchemaDialog bool
+	// schemaEditorForImport is set when the schema editor was opened from an
+	// import flow ("Next" path). Save triggers the pending import instead of a
+	// plain schema update; Cancel re-opens the originating import dialog.
+	schemaEditorForImport bool
+	// importSchemaReturnTo is "preview" or "create" — which import dialog to
+	// restore when the schema editor closes in the import handoff flow.
+	importSchemaReturnTo string
 
 	// Import state
 	showImportPreview    bool
@@ -129,6 +137,13 @@ type GioApp struct {
 	importLocationColumn *string // nil = no location column (automatic distribution)
 	importRunning        bool
 	importResult         *importResult
+	// importOmittedColumns tracks columns the user has marked to exclude from
+	// the import. Applies to both import dialogs.
+	importOmittedColumns map[string]bool
+	// pendingImportSchema is populated by the schema editor when it is invoked
+	// from an import flow and consumed by the subsequent import. nil means no
+	// user-defined schema override.
+	pendingImportSchema *types.PropertySchemaRequest
 
 	// Import & Create Collection state
 	importCreateMode       bool // flag: file picker opens import-create dialog
@@ -281,6 +296,7 @@ type WidgetState struct {
 	// Import column mapping
 	importNameColumnButtons     map[string]*widget.Clickable
 	importLocationColumnButtons map[string]*widget.Clickable
+	importOmitColumnButtons     map[string]*widget.Clickable
 	importInferSchemaCheck      widget.Bool
 
 	// Import & Create Collection dialog
@@ -475,6 +491,7 @@ func NewGioApp() *GioApp {
 		containerTypeButtons:            make(map[string]*widget.Clickable),
 		importNameColumnButtons:         make(map[string]*widget.Clickable),
 		importLocationColumnButtons:     make(map[string]*widget.Clickable),
+		importOmitColumnButtons:         make(map[string]*widget.Clickable),
 		importCreateNameColButtons:      make(map[string]*widget.Clickable),
 		importCreateContainerColButtons: make(map[string]*widget.Clickable),
 		groupedTextFilterButtons:        make(map[string]*widget.Clickable),
@@ -613,6 +630,9 @@ func (ga *GioApp) render(gtx layout.Context) layout.Dimensions {
 				}
 				if ga.showImportCreateDialog {
 					return ga.renderImportCreateDialog(gtx)
+				}
+				if ga.showSchemaDialog {
+					return ga.renderSchemaEditorDialog(gtx)
 				}
 			}
 			return layout.Dimensions{}

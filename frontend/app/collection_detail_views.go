@@ -716,10 +716,10 @@ type statsPropDist struct {
 // interactions (tree expand/collapse, hover, scroll) don't re-run map iteration
 // whose random order can reorder tied values.
 type statsData struct {
-	total            int
-	containerBars    []statsContainerBar
-	containerMaxCnt  int
-	tags             []statsTagEntry
+	total             int
+	containerBars     []statsContainerBar
+	containerMaxCnt   int
+	tags              []statsTagEntry
 	propDistributions []statsPropDist
 }
 

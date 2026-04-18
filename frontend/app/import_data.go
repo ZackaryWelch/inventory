@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/nishiki/frontend/pkg/types"
 )
 
 // ImportData represents parsed import data.
@@ -30,6 +32,9 @@ func (ga *GioApp) dismissImport() {
 	ga.importFilename = ""
 	ga.importRunning = false
 	ga.importResult = nil
+	ga.importOmittedColumns = nil
+	ga.schemaEditorForImport = false
+	ga.importSchemaReturnTo = ""
 }
 
 // handleImportFileContent processes file content and stores it as import data.
@@ -55,6 +60,7 @@ func (ga *GioApp) handleImportFileContent(content string, filename string) {
 
 	ga.importData = importData
 	ga.importFilename = filename
+	ga.importOmittedColumns = make(map[string]bool)
 
 	// Initialize column mapping with auto-detected values
 	ga.importNameColumn = detectNameColumn(importData.Data)
@@ -150,6 +156,48 @@ func (ga *GioApp) parseJSON(content string) (*ImportData, error) {
 	return data, nil
 }
 
+// filterOmittedColumns returns a deep copy of data with omitted columns removed.
+// If no columns are omitted, the original slice is returned unchanged.
+func filterOmittedColumns(data []map[string]any, omitted map[string]bool) []map[string]any {
+	anyOmitted := false
+	for _, v := range omitted {
+		if v {
+			anyOmitted = true
+			break
+		}
+	}
+	if !anyOmitted {
+		return data
+	}
+	out := make([]map[string]any, len(data))
+	for i, row := range data {
+		filtered := make(map[string]any, len(row))
+		for k, v := range row {
+			if omitted[k] {
+				continue
+			}
+			filtered[k] = v
+		}
+		out[i] = filtered
+	}
+	return out
+}
+
+// nonOmittedColumns returns the columns sorted, filtered by the omit set.
+func nonOmittedColumns(data []map[string]any, omitted map[string]bool) []string {
+	all := importColumns(data)
+	if len(omitted) == 0 {
+		return all
+	}
+	out := make([]string, 0, len(all))
+	for _, c := range all {
+		if !omitted[c] {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // findStringField returns the first string value found for any of the given
 // field names, matched case-insensitively against the map keys.
 func findStringField(m map[string]any, fields ...string) string {
@@ -233,6 +281,29 @@ func (ga *GioApp) executeImport() {
 		locationCol := ga.importLocationColumn
 		nameCol := ga.importNameColumn
 		inferSchema := ga.widgetState.importInferSchemaCheck.Value
+		filteredData := filterOmittedColumns(ga.importData.Data, ga.importOmittedColumns)
+		// schemaChanged covers both inferred and user-supplied schemas; either
+		// one means the in-memory collection is now stale and must be refetched.
+		schemaChanged := inferSchema
+
+		// A user-defined schema overrides inference: apply it to the collection
+		// first, then run the import without inferring.
+		if ga.pendingImportSchema != nil {
+			inferSchema = false
+			schemaChanged = true
+			if err := ga.collectionsClient.UpdateSchema(ga.currentUser.ID, ga.selectedCollection.ID, types.UpdatePropertySchemaRequest{
+				PropertySchema: *ga.pendingImportSchema,
+			}); err != nil {
+				ga.do(func() {
+					ga.importRunning = false
+					if ga.importData != nil {
+						ga.importData.Errors = []string{fmt.Sprintf("Failed to save schema: %v", err)}
+					}
+				})
+				return
+			}
+			ga.pendingImportSchema = nil
+		}
 
 		distMode := "automatic"
 		if locationCol != nil {
@@ -241,7 +312,7 @@ func (ga *GioApp) executeImport() {
 
 		req := map[string]any{
 			"format":            ga.importData.Format,
-			"data":              ga.importData.Data,
+			"data":              filteredData,
 			"distribution_mode": distMode,
 			"infer_schema":      inferSchema,
 		}
@@ -315,8 +386,8 @@ func (ga *GioApp) executeImport() {
 			ga.dismissImport()
 		}
 
-		// Refetch collection to pick up inferred schema
-		if inferSchema {
+		// Refetch collection to pick up inferred or user-defined schema
+		if schemaChanged {
 			userID := ga.currentUser.ID
 			collectionID := ga.selectedCollection.ID
 			updated, err := ga.collectionsClient.Get(userID, collectionID)
