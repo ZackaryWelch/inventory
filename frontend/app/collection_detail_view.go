@@ -1443,7 +1443,6 @@ func (ga *GioApp) renderObjectCardGridRow(gtx layout.Context, rowIndices []int, 
 
 	type cellResult struct {
 		call op.CallOp
-		dims layout.Dimensions
 	}
 	cells := make([]cellResult, len(rowIndices))
 	maxRowHeight := 0
@@ -1459,7 +1458,7 @@ func (ga *GioApp) renderObjectCardGridRow(gtx layout.Context, rowIndices []int, 
 			return ga.renderObjectCard(gtx, ga.objects[objIdx], objIdx)
 		})
 		call := macro.Stop()
-		cells[ci] = cellResult{call: call, dims: dims}
+		cells[ci] = cellResult{call: call}
 		if dims.Size.Y > maxRowHeight {
 			maxRowHeight = dims.Size.Y
 		}
@@ -1884,7 +1883,6 @@ func layoutFlowWrap(gtx layout.Context, hGap, vGap int, widgets ...layout.Widget
 	type positioned struct {
 		call op.CallOp
 		pos  image.Point
-		size image.Point
 	}
 	items := make([]positioned, 0, len(widgets))
 
@@ -1906,7 +1904,6 @@ func layoutFlowWrap(gtx layout.Context, hGap, vGap int, widgets ...layout.Widget
 		items = append(items, positioned{
 			call: call,
 			pos:  image.Point{X: x, Y: y},
-			size: dims.Size,
 		})
 
 		x += dims.Size.X + hGap

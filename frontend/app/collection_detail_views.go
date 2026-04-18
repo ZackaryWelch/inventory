@@ -465,14 +465,17 @@ func (ga *GioApp) renderObjectThumbnail(gtx layout.Context, obj Object, index in
 	paint.PaintOp{}.Add(gtx.Ops)
 
 	// Image or placeholder
-	img := ga.getImage(obj.ImageURL)
-	if img != nil {
+	img, imgErr := ga.getImageStatus(obj.ImageURL)
+	switch {
+	case img != nil:
 		imgOp := paint.NewImageOp(img)
 		wImg := widget.Image{Src: imgOp, Fit: widget.Contain, Position: layout.Center}
 		cgtx := gtx
 		cgtx.Constraints = layout.Exact(image.Point{X: size, Y: size})
 		wImg.Layout(cgtx)
-	} else {
+	case imgErr != nil:
+		ga.renderBrokenImagePlaceholder(gtx, size)
+	default:
 		// Placeholder: first letter on colored background
 		ga.renderThumbnailPlaceholder(gtx, obj.Name, size)
 	}
@@ -495,6 +498,27 @@ func (ga *GioApp) renderObjectThumbnail(gtx layout.Context, obj Object, index in
 	})
 
 	return layout.Dimensions{Size: image.Point{X: size, Y: cellH}}
+}
+
+// renderBrokenImagePlaceholder renders a muted danger-tinted rectangle with a
+// "broken image" glyph, used when the image failed to fetch or decode.
+func (ga *GioApp) renderBrokenImagePlaceholder(gtx layout.Context, size int) {
+	bg := theme.ColorDanger
+	bg.A = 50
+
+	rect := image.Rectangle{Max: image.Point{X: size, Y: size}}
+	defer clip.Rect(rect).Push(gtx.Ops).Pop()
+	paint.ColorOp{Color: bg}.Add(gtx.Ops)
+	paint.PaintOp{}.Add(gtx.Ops)
+
+	cgtx := gtx
+	cgtx.Constraints = layout.Exact(image.Point{X: size, Y: size})
+	layout.Center.Layout(cgtx, func(gtx layout.Context) layout.Dimensions {
+		lbl := material.H4(ga.theme.Theme, "⚠")
+		lbl.Color = theme.ColorDangerDark
+		lbl.Alignment = text.Middle
+		return lbl.Layout(gtx)
+	})
 }
 
 // renderThumbnailPlaceholder renders a colored rectangle with the first letter of the name.

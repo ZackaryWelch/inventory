@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"syscall/js"
 
+	"github.com/nishiki/frontend/config"
 	"golang.org/x/oauth2"
 )
 
@@ -27,7 +28,7 @@ type AuthService struct {
 type TokenStorage struct{}
 
 // NewAuthService creates a new authentication service
-func NewAuthService(config *Config, logger *slog.Logger) *AuthService {
+func NewAuthService(config *config.Config, logger *slog.Logger) *AuthService {
 	return &AuthService{
 		config:      newOAuth2Config(config),
 		redirectURL: config.RedirectURL,

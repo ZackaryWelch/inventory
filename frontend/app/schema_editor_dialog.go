@@ -327,7 +327,6 @@ func (ga *GioApp) renderPropertyTypeChips(gtx layout.Context, row *SchemaRowStat
 	type positioned struct {
 		call op.CallOp
 		pos  image.Point
-		size image.Point
 	}
 	items := make([]positioned, 0, len(propertyTypes))
 
@@ -378,7 +377,6 @@ func (ga *GioApp) renderPropertyTypeChips(gtx layout.Context, row *SchemaRowStat
 		items = append(items, positioned{
 			call: call,
 			pos:  image.Point{X: x, Y: y},
-			size: dims.Size,
 		})
 
 		x += dims.Size.X + gap

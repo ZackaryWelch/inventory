@@ -865,7 +865,9 @@ func (ga *GioApp) mergeSchemaProperties(props map[string]any) {
 	}
 }
 
-// renderObjectSchemaFields renders dynamic form fields for schema-defined properties.
+// renderObjectSchemaFields renders dynamic form fields for schema-defined
+// properties inside a bounded scrollable list so dialogs stay a manageable
+// height when the collection has many defined properties.
 func (ga *GioApp) renderObjectSchemaFields(gtx layout.Context) layout.Dimensions {
 	if ga.selectedCollection == nil || ga.selectedCollection.PropertySchema == nil {
 		return layout.Dimensions{}
@@ -875,38 +877,42 @@ func (ga *GioApp) renderObjectSchemaFields(gtx layout.Context) layout.Dimensions
 		return layout.Dimensions{}
 	}
 
-	children := make([]layout.FlexChild, len(defs))
-	for i, def := range defs {
-		children[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			label := def.DisplayName
-			if label == "" {
-				label = def.Key
-			}
-			if def.Required {
-				label += " *"
-			}
-			if def.Type == "bool" {
-				b := ga.getObjectPropertyBool(def.Key)
-				return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return material.CheckBox(ga.theme.Theme, b, label).Layout(gtx)
-				})
-			}
-			placeholder := ""
-			switch def.Type {
-			case "date":
-				placeholder = "YYYY-MM-DD"
-			case "currency":
-				placeholder = "0.00"
-			case "numeric":
-				placeholder = "0"
-			case "url":
-				placeholder = "https://..."
-			}
-			ed := ga.getObjectPropertyEditor(def.Key)
-			return ga.renderFormField(gtx, label, ed, placeholder)
-		})
+	// Cap the schema list height so the dialog doesn't grow unbounded.
+	maxHeight := gtx.Dp(unit.Dp(280))
+	if gtx.Constraints.Max.Y > maxHeight {
+		gtx.Constraints.Max.Y = maxHeight
 	}
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx, children...)
+
+	listStyle := material.List(ga.theme.Theme, &ga.widgetState.objectSchemaList)
+	return listStyle.Layout(gtx, len(defs), func(gtx layout.Context, i int) layout.Dimensions {
+		def := defs[i]
+		label := def.DisplayName
+		if label == "" {
+			label = def.Key
+		}
+		if def.Required {
+			label += " *"
+		}
+		if def.Type == "bool" {
+			b := ga.getObjectPropertyBool(def.Key)
+			return layout.Inset{Bottom: unit.Dp(theme.Spacing3)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return material.CheckBox(ga.theme.Theme, b, label).Layout(gtx)
+			})
+		}
+		placeholder := ""
+		switch def.Type {
+		case "date":
+			placeholder = "YYYY-MM-DD"
+		case "currency":
+			placeholder = "0.00"
+		case "numeric":
+			placeholder = "0"
+		case "url":
+			placeholder = "https://..."
+		}
+		ed := ga.getObjectPropertyEditor(def.Key)
+		return ga.renderFormField(gtx, label, ed, placeholder)
+	})
 }
 
 // showAPIErrorDialog sets state to display the API error dialog with the given message.

@@ -176,7 +176,7 @@ func (ga *GioApp) renderImportCreateDialog(gtx layout.Context) layout.Dimensions
 
 						// Preview
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return ga.renderImportPreview(gtx)
+							return ga.renderImportPreview(gtx, &ga.widgetState.importCreatePreviewList)
 						}),
 
 						// Summary

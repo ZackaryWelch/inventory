@@ -107,7 +107,7 @@ func (ga *GioApp) renderImportPreviewDialog(gtx layout.Context) layout.Dimension
 
 						// Preview of items (inner scroll)
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return ga.renderImportPreview(gtx)
+							return ga.renderImportPreview(gtx, &ga.widgetState.importPreviewList)
 						}),
 
 						// Column mapping
@@ -263,8 +263,10 @@ func (ga *GioApp) renderImportResultView(gtx layout.Context) layout.Dimensions {
 	)
 }
 
-// renderImportPreview renders a scrollable preview of items
-func (ga *GioApp) renderImportPreview(gtx layout.Context) layout.Dimensions {
+// renderImportPreview renders a scrollable preview of items using the provided
+// list widget state, so the import-preview and import-create dialogs keep
+// independent scroll positions.
+func (ga *GioApp) renderImportPreview(gtx layout.Context, list *widget.List) layout.Dimensions {
 	if len(ga.importData.Data) == 0 {
 		return layout.Dimensions{}
 	}
@@ -282,7 +284,7 @@ func (ga *GioApp) renderImportPreview(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Max.Y = maxHeight
 			}
 
-			listStyle := material.List(ga.theme.Theme, &ga.widgetState.importPreviewList)
+			listStyle := material.List(ga.theme.Theme, list)
 			return listStyle.Layout(gtx, len(ga.importData.Data), func(gtx layout.Context, i int) layout.Dimensions {
 				return ga.renderPreviewItem(gtx, ga.importData.Data[i], i+1)
 			})

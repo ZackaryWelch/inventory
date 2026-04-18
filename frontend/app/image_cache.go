@@ -29,19 +29,19 @@ func newImageCache() *imageCache {
 }
 
 // getOrLoad returns the cached image for the given URL. If it hasn't been fetched
-// yet, it marks it as loading and returns nil — the caller should call loadImage
-// in a goroutine. Returns (img, alreadyLoading).
-func (ic *imageCache) getOrLoad(url string) (image.Image, bool) {
+// yet, it marks it as loading and returns nils — the caller should call loadImage
+// in a goroutine. Returns (img, alreadyLoading, err).
+func (ic *imageCache) getOrLoad(url string) (image.Image, bool, error) {
 	ic.mu.Lock()
 	defer ic.mu.Unlock()
 
 	if e, ok := ic.entries[url]; ok {
-		return e.img, e.loading
+		return e.img, e.loading, e.err
 	}
 
 	// Mark as loading so subsequent calls don't start duplicate fetches.
 	ic.entries[url] = &imageEntry{loading: true}
-	return nil, false
+	return nil, false, nil
 }
 
 // store saves a decoded image (or error) into the cache.
@@ -83,15 +83,24 @@ func (ga *GioApp) loadImage(url string) {
 // getImage returns a decoded image for the URL if cached and ready, or nil.
 // Kicks off an async fetch on first access.
 func (ga *GioApp) getImage(url string) image.Image {
+	img, _ := ga.getImageStatus(url)
+	return img
+}
+
+// getImageStatus returns the cached image (or nil) and the fetch/decode error
+// (or nil) for the URL. Kicks off an async fetch on first access. Callers can
+// use the error to render a broken-image placeholder instead of the default
+// loading one.
+func (ga *GioApp) getImageStatus(url string) (image.Image, error) {
 	if url == "" {
-		return nil
+		return nil, nil
 	}
-	img, alreadyLoading := ga.imgCache.getOrLoad(url)
-	if img != nil {
-		return img
+	img, alreadyLoading, err := ga.imgCache.getOrLoad(url)
+	if img != nil || err != nil {
+		return img, err
 	}
 	if !alreadyLoading {
 		go ga.loadImage(url)
 	}
-	return nil
+	return nil, nil
 }

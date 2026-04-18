@@ -628,7 +628,6 @@ func (ga *GioApp) renderDeleteCollectionDialog(gtx layout.Context) layout.Dimens
 
 	// Create dialog style
 	dialogStyle := widgets.DefaultDialogStyle(ga.widgetState.deleteDialog, "Delete Collection")
-	dialogStyle.Width = unit.Dp(500)
 	dialogStyle.TitleBarColor = theme.ColorDanger
 
 	// Render draggable dialog
@@ -728,7 +727,6 @@ func (ga *GioApp) renderDeleteCollectionErrorDialog(gtx layout.Context) layout.D
 	}
 
 	dialogStyle := widgets.DefaultDialogStyle(ga.widgetState.collectionErrorDialog, "Delete Failed")
-	dialogStyle.Width = unit.Dp(500)
 	dialogStyle.TitleBarColor = theme.ColorDanger
 
 	dims, dismissed := dialogStyle.Layout(gtx, ga.theme.Theme, func(gtx layout.Context) layout.Dimensions {

@@ -368,7 +368,6 @@ type WidgetState struct {
 
 	// Dialog instances
 	collectionDialog *widgets.Dialog
-	groupDialog      *widgets.Dialog
 	deleteDialog     *widgets.Dialog
 	containerDialog  *widgets.Dialog
 	objectDialog     *widgets.Dialog
@@ -376,7 +375,6 @@ type WidgetState struct {
 
 // GroupItemState holds widget state for a single group list item
 type GroupItemState struct {
-	clickable     widget.Clickable
 	editButton    widget.Clickable
 	deleteButton  widget.Clickable
 	membersButton widget.Clickable
@@ -389,7 +387,6 @@ type MemberItemState struct {
 
 // CollectionItemState holds widget state for a single collection list item
 type CollectionItemState struct {
-	clickable    widget.Clickable
 	viewButton   widget.Clickable
 	editButton   widget.Clickable
 	deleteButton widget.Clickable
@@ -404,7 +401,6 @@ type ContainerItemState struct {
 
 // ObjectItemState holds widget state for a single object list item
 type ObjectItemState struct {
-	clickable    widget.Clickable
 	editButton   widget.Clickable
 	deleteButton widget.Clickable
 }
@@ -496,8 +492,8 @@ func NewGioApp() *GioApp {
 		importPreviewList:               widget.List{List: layout.List{Axis: layout.Vertical}},
 		importCreateDialogList:          widget.List{List: layout.List{Axis: layout.Vertical}},
 		importCreatePreviewList:         widget.List{List: layout.List{Axis: layout.Vertical}},
+		objectSchemaList:                widget.List{List: layout.List{Axis: layout.Vertical}},
 		collectionDialog:                widgets.NewDialog(),
-		groupDialog:                     widgets.NewDialog(),
 		deleteDialog:                    widgets.NewDialog(),
 		collectionErrorDialog:           widgets.NewDialog(),
 		apiErrorDialog:                  widgets.NewDialog(),

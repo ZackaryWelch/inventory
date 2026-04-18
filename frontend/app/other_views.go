@@ -92,16 +92,38 @@ func (ga *GioApp) renderUserInfoCard(gtx layout.Context) layout.Dimensions {
 
 			// Email
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Inset{Bottom: unit.Dp(theme.Spacing2)}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{
+						Axis: layout.Vertical,
+					}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							label := material.Body2(ga.theme.Theme, "Email:")
+							label.Color = theme.ColorTextSecondary
+							return label.Layout(gtx)
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							label := material.Body1(ga.theme.Theme, ga.currentUser.Email)
+							return label.Layout(gtx)
+						}),
+					)
+				})
+			}),
+
+			// Connection info (backend URL)
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				if ga.config == nil {
+					return layout.Dimensions{}
+				}
 				return layout.Flex{
 					Axis: layout.Vertical,
 				}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						label := material.Body2(ga.theme.Theme, "Email:")
+						label := material.Body2(ga.theme.Theme, "Backend:")
 						label.Color = theme.ColorTextSecondary
 						return label.Layout(gtx)
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						label := material.Body1(ga.theme.Theme, ga.currentUser.Email)
+						label := material.Body1(ga.theme.Theme, ga.config.BackendURL)
 						return label.Layout(gtx)
 					}),
 				)
