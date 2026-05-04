@@ -3,11 +3,13 @@ package services
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -49,12 +51,59 @@ type groupCacheEntry struct {
 
 type AuthentikAuthService struct {
 	config       config.AuthConfig
+	authentikURL string // resolved base URL selected at startup from config.AuthentikURLs
 	clients      map[string]*clientProvider // client_id -> provider/verifier
 	logger       *slog.Logger
 	httpClient   *http.Client
 	apiConfig    *api.Configuration
 	groupCache   map[string]*groupCacheEntry
 	groupCacheMu sync.RWMutex
+}
+
+// IssuerBaseURL returns the Authentik base URL that was selected from
+// config.AuthentikURLs at startup. Callers (e.g. MCP OAuth discovery) use
+// this to advertise an issuer that is known-reachable from this backend.
+func (s *AuthentikAuthService) IssuerBaseURL() string {
+	return s.authentikURL
+}
+
+// classifyNetworkError returns a short tag describing the failure mode of
+// err, suitable for structured logging. Useful for telling DNS, TLS, and
+// connection failures apart when a probe fails.
+func classifyNetworkError(err error) string {
+	if err == nil {
+		return ""
+	}
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return "dns"
+	}
+	var certErr *tls.CertificateVerificationError
+	if errors.As(err, &certErr) {
+		return "tls_cert_verify"
+	}
+	var hostnameErr x509.HostnameError
+	if errors.As(err, &hostnameErr) {
+		return "tls_hostname"
+	}
+	var unknownAuthErr x509.UnknownAuthorityError
+	if errors.As(err, &unknownAuthErr) {
+		return "tls_unknown_authority"
+	}
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		if strings.Contains(urlErr.Err.Error(), "tls") || strings.Contains(urlErr.Err.Error(), "x509") {
+			return "tls"
+		}
+	}
+	var netOpErr *net.OpError
+	if errors.As(err, &netOpErr) {
+		return "network_" + netOpErr.Op
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "timeout"
+	}
+	return "other"
 }
 
 func NewAuthentikAuthService(config config.AuthConfig, logger *slog.Logger) (*AuthentikAuthService, error) {
@@ -76,20 +125,98 @@ func NewAuthentikAuthService(config config.AuthConfig, logger *slog.Logger) (*Au
 
 	ctx = oidc.ClientContext(ctx, httpClient)
 
-	// Initialize all OAuth clients
-	clients := make(map[string]*clientProvider)
+	if len(config.Clients) == 0 {
+		return nil, ErrAuthConfigInvalid.With(map[string]any{"reason": "no oauth clients configured"})
+	}
+	if len(config.AuthentikURLs) == 0 {
+		return nil, ErrAuthConfigInvalid.With(map[string]any{"reason": "no authentik urls configured"})
+	}
 
-	for _, clientConfig := range config.Clients {
-		// Construct the correct Authentik OIDC provider URL
-		providerURL := fmt.Sprintf("%s/application/o/%s/", config.AuthentikURL, clientConfig.ProviderName)
+	// Probe each configured URL in order. First one that successfully yields an
+	// OIDC discovery document for the first client's provider wins. Probe
+	// errors are classified (dns/tls/etc.) to make the logs useful when a URL
+	// is unreachable or serving a bad cert.
+	firstClient := config.Clients[0]
+	type probeAttempt struct {
+		Index    int    `json:"index"`
+		URL      string `json:"url"`
+		Category string `json:"category"`
+		Error    string `json:"error"`
+	}
+	var (
+		resolvedURL   string
+		firstProvider *oidc.Provider
+		attempts      []probeAttempt
+		lastErr       error
+	)
+	logger.Info("Probing authentik URLs",
+		slog.Int("count", len(config.AuthentikURLs)),
+		slog.String("first_provider", firstClient.ProviderName))
+	for i, baseURL := range config.AuthentikURLs {
+		baseURL = strings.TrimRight(baseURL, "/")
+		providerURL := fmt.Sprintf("%s/application/o/%s/", baseURL, firstClient.ProviderName)
+		attemptStart := time.Now()
+		logger.Info("Probing authentik URL",
+			slog.Int("index", i),
+			slog.String("url", baseURL),
+			slog.String("provider_url", providerURL))
+		provider, err := oidc.NewProvider(ctx, providerURL)
+		if err != nil {
+			category := classifyNetworkError(err)
+			logger.Warn("Authentik URL probe failed",
+				slog.Int("index", i),
+				slog.String("url", baseURL),
+				slog.String("error_category", category),
+				slog.Duration("elapsed", time.Since(attemptStart)),
+				slog.String("error", err.Error()))
+			attempts = append(attempts, probeAttempt{
+				Index:    i,
+				URL:      baseURL,
+				Category: category,
+				Error:    err.Error(),
+			})
+			lastErr = err
+			continue
+		}
+		logger.Info("Authentik URL probe succeeded",
+			slog.Int("index", i),
+			slog.String("url", baseURL),
+			slog.Duration("elapsed", time.Since(attemptStart)))
+		resolvedURL = baseURL
+		firstProvider = provider
+		break
+	}
+	if resolvedURL == "" {
+		return nil, ErrAuthentikUnreachable.With(map[string]any{
+			"attempts":       attempts,
+			"candidate_urls": config.AuthentikURLs,
+		}).Wrap(lastErr)
+	}
+
+	// Initialize all OAuth clients against the resolved base URL. The first
+	// client reuses the provider we already fetched during probing.
+	clients := make(map[string]*clientProvider)
+	for idx, clientConfig := range config.Clients {
+		providerURL := fmt.Sprintf("%s/application/o/%s/", resolvedURL, clientConfig.ProviderName)
 		logger.Info("Creating OIDC provider",
 			slog.String("provider_name", clientConfig.ProviderName),
 			slog.String("provider_url", providerURL))
 
-		// Create OIDC provider
-		provider, err := oidc.NewProvider(ctx, providerURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create OIDC provider for client %s: %w", clientConfig.ProviderName, err)
+		var (
+			provider *oidc.Provider
+			err      error
+		)
+		if idx == 0 {
+			provider = firstProvider
+		} else {
+			provider, err = oidc.NewProvider(ctx, providerURL)
+			if err != nil {
+				return nil, ErrOIDCProviderInit.With(map[string]any{
+					"provider_name": clientConfig.ProviderName,
+					"provider_url":  providerURL,
+					"resolved_url":  resolvedURL,
+				}).Wrap(err)
+			}
 		}
 
 		// Create ID token verifier
@@ -108,23 +235,29 @@ func NewAuthentikAuthService(config config.AuthConfig, logger *slog.Logger) (*Au
 			slog.String("client_id", clientConfig.ClientID))
 	}
 
-	// Create Authentik API configuration
+	// Create Authentik API configuration against the resolved URL.
 	apiConfig := api.NewConfiguration()
-	apiConfig.Host = strings.TrimPrefix(config.AuthentikURL, "https://")
+	apiConfig.Host = strings.TrimPrefix(resolvedURL, "https://")
 	apiConfig.Host = strings.TrimPrefix(apiConfig.Host, "http://")
 	apiConfig.Scheme = "https"
-	if strings.Contains(config.AuthentikURL, "http://") {
+	if strings.HasPrefix(resolvedURL, "http://") {
 		apiConfig.Scheme = "http"
 	}
 	apiConfig.HTTPClient = httpClient
 
+	logger.Info("Authentik auth service initialized",
+		slog.String("resolved_url", resolvedURL),
+		slog.Int("candidate_count", len(config.AuthentikURLs)),
+		slog.Int("failed_candidates", len(attempts)))
+
 	return &AuthentikAuthService{
-		config:     config,
-		clients:    clients,
-		logger:     logger,
-		httpClient: httpClient,
-		apiConfig:  apiConfig,
-		groupCache: make(map[string]*groupCacheEntry),
+		config:       config,
+		authentikURL: resolvedURL,
+		clients:      clients,
+		logger:       logger,
+		httpClient:   httpClient,
+		apiConfig:    apiConfig,
+		groupCache:   make(map[string]*groupCacheEntry),
 	}, nil
 }
 
@@ -548,7 +681,7 @@ func (s *AuthentikAuthService) CreateGroup(ctx context.Context, userToken, name 
 
 // addUserToGroup adds a user to a group in Authentik (legacy method)
 func (s *AuthentikAuthService) addUserToGroup(ctx context.Context, groupID, userID string) error {
-	url := fmt.Sprintf("%s/api/v3/core/groups/%s/add_user/", s.config.AuthentikURL, groupID)
+	url := fmt.Sprintf("%s/api/v3/core/groups/%s/add_user/", s.authentikURL, groupID)
 
 	payload := map[string]string{
 		"pk": userID,
@@ -820,7 +953,7 @@ func (s *AuthentikAuthService) GetOIDCConfig(ctx context.Context, clientID strin
 
 	// Build discovery URL
 	discoveryURL := fmt.Sprintf("%s/application/o/%s/.well-known/openid-configuration",
-		s.config.AuthentikURL, client.config.ProviderName)
+		s.authentikURL, client.config.ProviderName)
 
 	s.logger.Debug("Fetching OIDC discovery config",
 		slog.String("url", discoveryURL),

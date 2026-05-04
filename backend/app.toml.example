@@ -12,7 +12,15 @@ database = "nishiki"
 timeout = 10
 
 [auth]
-authentik_url = "https://IP"
+# authentik_urls is probed in order at startup; the first reachable URL wins
+# and is used for all Authentik traffic and advertised as the MCP OAuth issuer.
+# Rank a fast local path ahead of a tailscale / WAN fallback.
+authentik_urls = [
+  "https://LOCAL_IP_OR_HOSTNAME",
+  "https://FALLBACK_HOSTNAME",
+]
+# Legacy single-URL form is also accepted and prepended to authentik_urls:
+# authentik_url = "https://IP"
 jwks_cache_duration = 300
 allow_self_signed = true
 api_token = ""
@@ -22,6 +30,14 @@ api_token = ""
 provider_name = "nishiki"
 client_id = ""
 client_secret = ""
+
+[images]
+# When enabled, bulk import looks up a representative image for each object
+# via the Google Custom Search API and caches it under cache_dir.
+enabled = false
+google_api_key = ""
+google_search_engine_id = ""
+cache_dir = "./image_cache"
 
 [logging]
 level = "debug"

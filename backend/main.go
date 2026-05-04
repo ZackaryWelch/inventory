@@ -85,13 +85,17 @@ func main() {
 		return mcpSrv
 	}
 
+	oauthDiscovery := &mcpserver.OAuthProtectedResource{
+		Issuer: mcpIssuerURL(appContainer.AuthService, cfg),
+	}
+
 	mcpHTTPServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.MCPPort),
-		Handler: mcp.NewStreamableHTTPHandler(factory, &mcp.StreamableHTTPOptions{Stateless: true}),
+		Handler: oauthDiscovery.Wrap(mcp.NewStreamableHTTPHandler(factory, &mcp.StreamableHTTPOptions{Stateless: true})),
 	}
 	mcpSSEServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Server.MCPSSEPort),
-		Handler: mcp.NewSSEHandler(factory, nil),
+		Handler: oauthDiscovery.Wrap(mcp.NewSSEHandler(factory, nil)),
 	}
 
 	// Start DB connection monitor
@@ -187,4 +191,19 @@ func resolveOrCreateUser(ctx context.Context, c *container.Container, claims *se
 func fileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)
+}
+
+// mcpIssuerURL derives the OAuth issuer URL advertised to MCP clients. It
+// uses the Authentik base URL that the auth service resolved from the ranked
+// authentik_urls config at startup, so the issuer we advertise is guaranteed
+// to be reachable from this backend (and, in the common colocated deployment,
+// from the host running mcp-remote). Returns "" if no client is configured.
+func mcpIssuerURL(auth services.AuthService, cfg *config.Config) string {
+	base := auth.IssuerBaseURL()
+	if base == "" || len(cfg.Auth.Clients) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%s/application/o/%s/",
+		strings.TrimRight(base, "/"),
+		cfg.Auth.Clients[0].ProviderName)
 }

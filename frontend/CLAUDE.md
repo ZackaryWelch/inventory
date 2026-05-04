@@ -24,7 +24,7 @@ gofmt -w .
 
 ## Configuration
 
-### File: `app/config/config.toml` (embedded in WASM) / `config.toml` (desktop)
+### File: `config/config.toml` (embedded in WASM) / `config.toml` (desktop)
 
 ```toml
 port = "3000"
@@ -34,8 +34,9 @@ client_id = "your-client-id"
 # redirect_url auto-generated as http://localhost:{port}/auth/callback
 ```
 
-**WASM** (`app/config_wasm.go`): config baked in at build time via `//go:embed`.
-**Desktop** (`app/config_desktop.go`): loaded from filesystem via Viper; env overrides prefixed `NISHIKI_`.
+Single public `config.LoadConfig()` with build-tagged implementations:
+**WASM** (`config/config_wasm.go`): config baked in at build time via `//go:embed`; `redirect_url` auto-derived from `window.location.origin`.
+**Desktop** (`config/config_desktop.go`): loaded from filesystem via Viper; env overrides prefixed `NISHIKI_`.
 
 ## Architecture
 
@@ -47,8 +48,6 @@ app/
 ├── auth_service.go           # OAuth2 PKCE — WASM (syscall/js localStorage)
 ├── auth_service_desktop.go   # OAuth2 PKCE — desktop (system browser + local HTTP)
 ├── auth_utils.go             # Shared PKCE crypto helpers
-├── config_wasm.go            # Config — WASM (embedded toml)
-├── config_desktop.go         # Config — desktop (filesystem)
 ├── js_helpers.go             # Browser URL helpers — WASM (syscall/js)
 ├── js_helpers_desktop.go     # Browser URL stubs — desktop (no-ops)
 ├── import_handler.go         # File picker — WASM (DOM FileReader)
@@ -67,9 +66,13 @@ app/
 ├── join_group_dialog.go      # Group join dialog
 ├── group_members_dialog.go   # Group member management dialog
 ├── schema_editor_dialog.go   # Collection property schema editor
-├── other_views.go            # Profile view, handleLogout
-└── config/
-    └── config.toml           # Embedded for WASM builds
+└── other_views.go            # Profile view, handleLogout
+
+config/
+├── config.go                 # Shared Config struct
+├── config_wasm.go            # LoadConfig — WASM (embedded toml + js origin)
+├── config_desktop.go         # LoadConfig — desktop (filesystem via Viper)
+└── config.toml               # Embedded for WASM; read from cwd for desktop
 
 ui/
 ├── theme/                    # Gio Material Design theme
@@ -105,8 +108,9 @@ All Gio UI code is cross-platform (no build tag required).
 | File pattern                                            | Build tag             |
 |---------------------------------------------------------|-----------------------|
 | `js_helpers.go`, `auth_service.go`, `import_handler.go` | `js && wasm`          |
-| `config_wasm.go`                                        | `js && wasm`          |
+| `config/config_wasm.go`                                 | `js && wasm`          |
 | `*_desktop.go`, `login_desktop.go`                      | `!js \|\| !wasm`      |
+| `config/config_desktop.go`                              | `!js \|\| !wasm`      |
 | All view files, `gio_app.go`, `import_data.go`          | none (cross-platform) |
 
 ## Authentication Flow (OAuth2 PKCE)
@@ -174,7 +178,7 @@ case "data_loaded":
 - Install: `sudo dnf install libxkbcommon-x11-devel` (Fedora) or `sudo apt install libxkbcommon-x11-dev` (Debian)
 
 **Config embed path not found** (WASM build):
-- Ensure `app/config/config.toml` exists
+- Ensure `config/config.toml` exists
 
 **CORS errors** (WASM auth):
 - Verify backend is running; check `/auth/token` and `/auth/oidc-config` endpoints

@@ -23,7 +23,7 @@ WORKDIR /app
 
 COPY --from=builder /app/frontend/gio-web/ ./gio-web/
 COPY --from=builder /app/frontend/nishiki-frontend .
-COPY --from=builder /app/frontend/config.toml .
+COPY --from=builder /app/frontend/config/config.toml .
 
 RUN chown -R nishiki:nishiki /app
 

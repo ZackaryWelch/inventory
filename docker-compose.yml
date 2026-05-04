@@ -42,9 +42,6 @@ services:
       - "7072:3003"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-      - "authentik.local:192.168.0.125"
-    environment:
-      - NISHIKI_AUTH_AUTHENTIK_URL=https://authentik.local:30141
     networks:
       - nishiki-network
     volumes:

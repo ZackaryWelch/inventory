@@ -34,8 +34,8 @@ func NewObjectController(
 		updateObjectUC:         usecases.NewUpdateObjectUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
 		deleteObjectUC:         usecases.NewDeleteObjectUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService),
 		getCollectionObjectsUC: usecases.NewGetCollectionObjectsUseCase(c.CollectionRepo, c.ContainerRepo, c.AuthService),
-		bulkImportUC:           usecases.NewBulkImportObjectsUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService, c.ImageSearchService),
-		bulkImportCollectionUC: usecases.NewBulkImportCollectionUseCase(c.CollectionRepo, c.ContainerRepo, c.AuthService, c.GetConfig().Import.ReservedColumns, c.ImageSearchService),
+		bulkImportUC:           usecases.NewBulkImportObjectsUseCase(c.ContainerRepo, c.CollectionRepo, c.AuthService, c.ImageSearchService, logger),
+		bulkImportCollectionUC: usecases.NewBulkImportCollectionUseCase(c.CollectionRepo, c.ContainerRepo, c.AuthService, c.GetConfig().Import.ReservedColumns, c.ImageSearchService, logger),
 		logger:                 logger,
 	}
 }

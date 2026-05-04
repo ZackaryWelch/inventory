@@ -3,10 +3,12 @@ package app
 import (
 	"fmt"
 	"image"
-	// Register JPEG and PNG decoders for image.Decode.
+	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"sync"
+
+	_ "golang.org/x/image/webp"
 )
 
 // imageEntry holds a cached decoded image and its loading state.

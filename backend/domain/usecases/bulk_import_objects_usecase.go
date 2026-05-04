@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/nishiki/backend/domain/entities"
 	"github.com/nishiki/backend/domain/repositories"
@@ -36,14 +37,16 @@ type BulkImportObjectsUseCase struct {
 	collectionRepo     repositories.CollectionRepository
 	authService        services.AuthService
 	imageSearchService services.ImageSearchService
+	logger             *slog.Logger
 }
 
-func NewBulkImportObjectsUseCase(containerRepo repositories.ContainerRepository, collectionRepo repositories.CollectionRepository, authService services.AuthService, imageSearchService services.ImageSearchService) *BulkImportObjectsUseCase {
+func NewBulkImportObjectsUseCase(containerRepo repositories.ContainerRepository, collectionRepo repositories.CollectionRepository, authService services.AuthService, imageSearchService services.ImageSearchService, logger *slog.Logger) *BulkImportObjectsUseCase {
 	return &BulkImportObjectsUseCase{
 		containerRepo:      containerRepo,
 		collectionRepo:     collectionRepo,
 		authService:        authService,
 		imageSearchService: imageSearchService,
+		logger:             logger,
 	}
 }
 
@@ -111,7 +114,9 @@ func (uc *BulkImportObjectsUseCase) Execute(ctx context.Context, req BulkImportO
 		if uc.imageSearchService != nil {
 			imageURL, searchErr := uc.imageSearchService.SearchAndCache(ctx, object.Name().String(), object.ObjectType(), object.Properties())
 			if searchErr != nil {
-				fmt.Printf("[ImageSearch] Failed for '%s': %v\n", object.Name().String(), searchErr)
+				uc.logger.Warn("Image search failed",
+					slog.String("object", object.Name().String()),
+					slog.Any("error", searchErr))
 			} else if imageURL != "" {
 				object.UpdateImageURL(imageURL)
 			}

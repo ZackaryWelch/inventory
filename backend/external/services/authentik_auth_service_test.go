@@ -24,7 +24,7 @@ import (
 func newTestService(mockServer *httptest.Server) *AuthentikAuthService {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	cfg := config.AuthConfig{
-		AuthentikURL: mockServer.URL,
+		AuthentikURLs: []string{mockServer.URL},
 		Clients: []config.OAuthClient{
 			{ProviderName: "test-provider", ClientID: "test-client", ClientSecret: "test-secret", RedirectURL: "http://localhost/callback"},
 		},
@@ -34,10 +34,11 @@ func newTestService(mockServer *httptest.Server) *AuthentikAuthService {
 	apiConfig.Scheme = "http"
 	apiConfig.HTTPClient = mockServer.Client()
 	return &AuthentikAuthService{
-		config:     cfg,
-		logger:     logger,
-		httpClient: mockServer.Client(),
-		apiConfig:  apiConfig,
+		config:       cfg,
+		authentikURL: mockServer.URL,
+		logger:       logger,
+		httpClient:   mockServer.Client(),
+		apiConfig:    apiConfig,
 	}
 }
 
@@ -195,7 +196,7 @@ func TestAuthentikAuthService_GetOIDCConfig(t *testing.T) {
 			// Setup service
 			logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 			cfg := config.AuthConfig{
-				AuthentikURL: mockServer.URL,
+				AuthentikURLs: []string{mockServer.URL},
 				Clients: []config.OAuthClient{
 					{
 						ProviderName: "nishiki",
@@ -213,10 +214,11 @@ func TestAuthentikAuthService_GetOIDCConfig(t *testing.T) {
 			}
 
 			service := &AuthentikAuthService{
-				config:     cfg,
-				clients:    clients,
-				logger:     logger,
-				httpClient: &http.Client{Timeout: 5 * time.Second},
+				config:       cfg,
+				authentikURL: mockServer.URL,
+				clients:      clients,
+				logger:       logger,
+				httpClient:   &http.Client{Timeout: 5 * time.Second},
 			}
 
 			// Set environment variable if provided
@@ -356,7 +358,7 @@ func TestAuthentikAuthService_ProxyTokenExchange(t *testing.T) {
 			// Setup service
 			logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 			cfg := config.AuthConfig{
-				AuthentikURL: mockServer.URL,
+				AuthentikURLs: []string{mockServer.URL},
 				Clients: []config.OAuthClient{
 					{
 						ProviderName: "nishiki",
@@ -379,10 +381,11 @@ func TestAuthentikAuthService_ProxyTokenExchange(t *testing.T) {
 			}
 
 			service := &AuthentikAuthService{
-				config:     cfg,
-				clients:    clients,
-				logger:     logger,
-				httpClient: &http.Client{Timeout: 5 * time.Second},
+				config:       cfg,
+				authentikURL: mockServer.URL,
+				clients:      clients,
+				logger:       logger,
+				httpClient:   &http.Client{Timeout: 5 * time.Second},
 			}
 
 			// Execute

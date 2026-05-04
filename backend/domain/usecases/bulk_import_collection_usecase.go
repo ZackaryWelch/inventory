@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"strconv"
 	"strings"
 
@@ -52,6 +52,7 @@ type BulkImportCollectionUseCase struct {
 	authService        services.AuthService
 	typeInference      *services.TypeInferenceService
 	imageSearchService services.ImageSearchService
+	logger             *slog.Logger
 }
 
 // NewBulkImportCollectionUseCase creates the use case.
@@ -63,6 +64,7 @@ func NewBulkImportCollectionUseCase(
 	authService services.AuthService,
 	reservedColumns []string,
 	imageSearchService services.ImageSearchService,
+	logger *slog.Logger,
 ) *BulkImportCollectionUseCase {
 	return &BulkImportCollectionUseCase{
 		collectionRepo:     collectionRepo,
@@ -70,6 +72,7 @@ func NewBulkImportCollectionUseCase(
 		authService:        authService,
 		typeInference:      services.NewTypeInferenceService(reservedColumns),
 		imageSearchService: imageSearchService,
+		logger:             logger,
 	}
 }
 
@@ -196,18 +199,22 @@ func (uc *BulkImportCollectionUseCase) Execute(ctx context.Context, req BulkImpo
 
 		// Get containers for assignment
 		containerMap := make(map[string]*entities.Container)
-		log.Printf("[AutoDist] Building containerMap from %d assignments", len(distributionPlan.Assignments))
+		uc.logger.Debug("AutoDist: building container map",
+			slog.Int("assignments", len(distributionPlan.Assignments)))
 		for _, assignment := range distributionPlan.Assignments {
 			if _, exists := containerMap[assignment.ContainerID.String()]; !exists {
 				container, err := uc.containerRepo.GetByID(ctx, assignment.ContainerID)
 				if err != nil {
 					return nil, fmt.Errorf("failed to get container %s: %w", assignment.ContainerID.String(), err)
 				}
-				log.Printf("[AutoDist] Fetched container %s with %d existing objects", container.ID().String(), len(container.Objects()))
+				uc.logger.Debug("AutoDist: fetched container",
+					slog.String("container_id", container.ID().String()),
+					slog.Int("existing_objects", len(container.Objects())))
 				containerMap[assignment.ContainerID.String()] = container
 			}
 		}
-		log.Printf("[AutoDist] ContainerMap built with %d unique containers", len(containerMap))
+		uc.logger.Debug("AutoDist: container map built",
+			slog.Int("unique_containers", len(containerMap)))
 
 		// Store distribution plan for later use
 		// We'll use it after creating objects
@@ -429,7 +436,10 @@ func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.
 			failed++
 			continue
 		}
-		log.Printf("[AutoDist] Added object '%s' to container %s (now has %d objects)", name, container.ID().String(), len(container.Objects()))
+		uc.logger.Debug("AutoDist: added object to container",
+			slog.String("object", name),
+			slog.String("container_id", container.ID().String()),
+			slog.Int("container_objects", len(container.Objects())))
 
 		imported++
 
@@ -439,15 +449,19 @@ func (uc *BulkImportCollectionUseCase) executeAutomaticDistribution(ctx context.
 	}
 
 	// Update all affected containers
-	log.Printf("[AutoDist] Updating %d containers with new objects", len(containerMap))
+	uc.logger.Debug("AutoDist: updating containers",
+		slog.Int("container_count", len(containerMap)))
 	for _, container := range containerMap {
-		log.Printf("[AutoDist] Updating container %s with %d total objects", container.ID().String(), len(container.Objects()))
+		uc.logger.Debug("AutoDist: updating container",
+			slog.String("container_id", container.ID().String()),
+			slog.Int("total_objects", len(container.Objects())))
 		if err := uc.containerRepo.Update(ctx, container); err != nil {
 			return nil, fmt.Errorf("failed to update container %s: %w", container.ID().String(), err)
 		}
-		log.Printf("[AutoDist] Successfully updated container %s", container.ID().String())
+		uc.logger.Debug("AutoDist: container updated",
+			slog.String("container_id", container.ID().String()))
 	}
-	log.Printf("[AutoDist] All containers updated successfully")
+	uc.logger.Debug("AutoDist: all containers updated")
 
 	total := imported + failed
 
@@ -761,7 +775,9 @@ func (uc *BulkImportCollectionUseCase) searchObjectImage(ctx context.Context, ob
 	}
 	imageURL, err := uc.imageSearchService.SearchAndCache(ctx, object.Name().String(), object.ObjectType(), object.Properties())
 	if err != nil {
-		log.Printf("[ImageSearch] Failed for '%s': %v", object.Name().String(), err)
+		uc.logger.Warn("Image search failed",
+			slog.String("object", object.Name().String()),
+			slog.Any("error", err))
 		return
 	}
 	if imageURL != "" {

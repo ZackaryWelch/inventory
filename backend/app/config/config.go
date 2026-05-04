@@ -85,7 +85,13 @@ type OAuthClient struct {
 }
 
 type AuthConfig struct {
-	AuthentikURL      string        `toml:"authentik_url" mapstructure:"authentik_url"`
+	// AuthentikURL is a single-URL convenience form. If set, it is prepended
+	// to AuthentikURLs during Load(). Prefer AuthentikURLs for new configs.
+	AuthentikURL string `toml:"authentik_url" mapstructure:"authentik_url"`
+	// AuthentikURLs lists Authentik base URLs in preferred order. The service
+	// probes them at startup and uses the first reachable one. Multiple entries
+	// let you rank a fast local path ahead of a tailscale / WAN fallback.
+	AuthentikURLs     []string      `toml:"authentik_urls" mapstructure:"authentik_urls"`
 	Clients           []OAuthClient `toml:"clients" mapstructure:"clients"`
 	JWKSCacheDuration int           `toml:"jwks_cache_duration" mapstructure:"jwks_cache_duration"`
 	AllowSelfSigned   bool          `toml:"allow_self_signed" mapstructure:"allow_self_signed"`
@@ -146,6 +152,13 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("error unmarshaling config: %w", err)
 	}
 
+	// Fold the singular authentik_url into the plural list so the rest of the
+	// code only has to consult one field.
+	if config.Auth.AuthentikURL != "" {
+		config.Auth.AuthentikURLs = append([]string{config.Auth.AuthentikURL}, config.Auth.AuthentikURLs...)
+		config.Auth.AuthentikURL = ""
+	}
+
 	if err := validate(&config); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
@@ -174,7 +187,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("database.uri", "") // Legacy field
 
 	// Auth defaults
-	v.SetDefault("auth.authentik_url", "")
+	v.SetDefault("auth.authentik_urls", []string{})
 	v.SetDefault("auth.jwks_cache_duration", 300)
 	v.SetDefault("auth.allow_self_signed", false)
 	v.SetDefault("auth.api_token", "")
@@ -212,8 +225,13 @@ func validate(config *Config) error {
 		return errors.New("database name is required")
 	}
 
-	if config.Auth.AuthentikURL == "" {
-		return errors.New("authentik URL is required")
+	if len(config.Auth.AuthentikURLs) == 0 {
+		return errors.New("at least one authentik_urls entry is required")
+	}
+	for i, u := range config.Auth.AuthentikURLs {
+		if u == "" {
+			return fmt.Errorf("authentik_urls[%d] is empty", i)
+		}
 	}
 
 	if len(config.Auth.Clients) == 0 {

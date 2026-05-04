@@ -21,6 +21,10 @@ type AuthClaims struct {
 }
 
 type AuthService interface {
+	// IssuerBaseURL returns the Authentik base URL that was selected from the
+	// ranked authentik_urls config at startup. Used when advertising the OIDC
+	// issuer to external clients (e.g. MCP OAuth discovery).
+	IssuerBaseURL() string
 	ValidateToken(ctx context.Context, token string) (*AuthClaims, error)
 	GetUserFromClaims(ctx context.Context, claims *AuthClaims) (*entities.User, error)
 	CreateUserFromClaims(ctx context.Context, claims *AuthClaims) (*entities.User, error)

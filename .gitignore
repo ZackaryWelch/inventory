@@ -8,3 +8,4 @@ frontend/web/app.wasm
 frontend/gio-web/vendor/
 .idea
 data
+.serena
